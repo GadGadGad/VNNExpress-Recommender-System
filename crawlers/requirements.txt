@@ -1,0 +1,10 @@
+requests
+beautifulsoup4
+lxml
+toml
+rich
+selenium
+selenium-stealth
+playwright
+playwright-stealth==1.0.6
+python-dateutil

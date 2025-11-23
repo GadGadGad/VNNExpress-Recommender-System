@@ -1,0 +1,16 @@
+# Configuration for vnexpress_csv_crawler.py
+
+[crawler]
+# Time to wait between requests to be polite to the server
+min_sleep = 0.8
+max_sleep = 1.6
+
+# Number of times to retry a failed network request
+retry_count = 3
+
+# User-Agent to pretend to be a real browser
+user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
+
+[files]
+# The default folder to save CSV files and cache
+default_output_dir = "data"

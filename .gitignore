@@ -1,0 +1,28 @@
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env
+
+# --- Data ---
+data/raw/*
+data/processed/*
+
+# --- Model Checkpoints ---
+*.pth
+*.pt
+checkpoints/
+
+# --- Outputs & Logs ---
+plots/
+logs/
+*.log
+.DS_Store
+
+# --- IDEs ---
+.vscode/
+.idea/
