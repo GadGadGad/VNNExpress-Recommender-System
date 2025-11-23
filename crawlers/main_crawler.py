@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 vnexpress_csv_crawler.py (STEP 1: DISCOVERER)
 - Crawls VNExpress categories to discover articles.
@@ -24,7 +23,6 @@ import concurrent.futures
 from typing import List, Optional, Tuple
 from contextlib import nullcontext
 
-# --- 🔽 THÊM IMPORT NGÀY THÁNG 🔽 ---
 from datetime import datetime
 try:
     from dateutil.relativedelta import relativedelta
@@ -32,19 +30,15 @@ except ImportError:
     print("LỖI: Cần cài 'python-dateutil'.")
     print("Hãy chạy: python -m pip install python-dateutil")
     sys.exit(1)
-# --- 🔼 KẾT THÚC IMPORT NGÀY THÁNG 🔼 ---
 
 
-# --- Rich UI Imports ---
 import rich.logging
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, BarColumn, TextColumn, TimeElapsedColumn, TimeRemainingColumn
 
-# --- Import shared utilities ---
 from utils import Cache, sha1, normalize_url, resolve_category_id
 
-# --- Initialize Rich Console & Logging ---
 console = Console()
 logging.basicConfig(
     level=logging.INFO,
@@ -54,7 +48,6 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-# --- Load Configuration ---
 try:
     config = toml.load("config.toml")
     crawler_cfg = config.get("crawler", {})
@@ -65,7 +58,6 @@ except Exception:
     crawler_cfg = {}
     files_cfg = {}
 
-# --- Set Global Settings from Config ---
 BASE = "https://vnexpress.net/"
 MIN_SLEEP = crawler_cfg.get("min_sleep", 0.8)
 MAX_SLEEP = crawler_cfg.get("max_sleep", 1.6)
@@ -75,7 +67,6 @@ DEFAULT_OUTPUT = files_cfg.get("default_output_dir", "data")
 MAX_WORKERS = crawler_cfg.get("max_workers", 10)
 
 
-# ---------- Main Crawler ----------
 class VnExpressCrawler:
     def __init__(self, output_dir: Path, use_cache=True):
         self.output_dir = output_dir
@@ -113,7 +104,6 @@ class VnExpressCrawler:
 
         init(self.article_csv, ["article_id", "url", "title", "short_description", "author", "category", "tags", "published_at", "content"])
 
-    # -------------- Network --------------
     def safe_get(self, url: str) -> Optional[str]:
         """Cached and retrying HTTP GET request."""
         cached = self.cache.get(f"html:{url}")
@@ -136,7 +126,6 @@ class VnExpressCrawler:
         log.error(f"Failed to get {url} after {RETRY_COUNT} retries.")
         return None
 
-    # --- 🔽 THÊM HÀM HELPER CHIA NGÀY 🔽 ---
     def _split_date_ranges(self, start_str: str, end_str: str) -> List[Tuple[datetime, datetime]]:
         """Splits a date range into 1-year (or less) chunks."""
         try:
@@ -161,10 +150,8 @@ class VnExpressCrawler:
 
         log.info(f"Split date range '{start_str}' to '{end_str}' into {len(ranges)} chunk(s).")
         return ranges
-    # --- 🔼 KẾT THÚC HÀM HELPER 🔼 ---
 
 
-    # --- 🔽 SỬA HÀM DISCOVER 🔽 ---
     def discover_articles(self, category_id: str, pages: int = 2, progress_context=None, task_id=None, from_ts: Optional[int] = None, to_ts: Optional[int] = None) -> List[dict]:
         """Discovers articles from category pages (standard or date range)."""
         articles_data = []
@@ -220,10 +207,8 @@ class VnExpressCrawler:
             time.sleep(random.uniform(MIN_SLEEP, MAX_SLEEP))
 
         return articles_data
-    # --- 🔼 KẾT THÚC SỬA HÀM DISCOVER 🔼 ---
 
 
-    # -------------- Fetch Article (No Comments) --------------
     def fetch_article(self, url: str, short_description: str, category_source: str) -> Optional[dict]:
         """Fetches a single article's HTML metadata."""
         if url in self.seen_articles:
@@ -275,11 +260,9 @@ class VnExpressCrawler:
         }
         return article
 
-    # -------------- Save --------------
     def save_article(self, article: dict):
         """Saves one article to articles.csv. (Thread-safe)"""
         try:
-            # 1. Save article metadata
             writer = csv.writer(open(self.article_csv, "a", newline="", encoding="utf-8"))
             writer.writerow([
                 article["article_id"], article["url"], article["title"],
@@ -288,11 +271,9 @@ class VnExpressCrawler:
                 article["published_at"], article["content"]
             ])
 
-            # 2. Log this URL as "seen" for resumability
             with open(self.seen_file, "a", encoding="utf-8") as f:
                 f.write(f"{article['url']}\n")
 
-            # 3. Update internal stats
             self.stats["articles_saved"] += 1
         except Exception as e:
             log.error(f"Failed to save article {article.get('url')}: {e}")
@@ -311,11 +292,9 @@ class VnExpressCrawler:
         )
         console.print(Panel(summary, title="Discovery Summary", border_style="bold magenta", padding=(1, 2)))
 
-    # --- 🔽 SỬA HÀM CRAWL CHÍNH 🔽 ---
     def crawl(self, categories: list[str], pages: int = 2, workers: int = MAX_WORKERS, no_progress: bool = False, from_date: Optional[str] = None, to_date: Optional[str] = None):
         """Main crawl orchestration function."""
 
-        # This wrapper will be called by each thread.
         def fetch_and_save_article(article_info):
             try:
                 article = self.fetch_article(
@@ -325,12 +304,11 @@ class VnExpressCrawler:
                 )
                 if article:
                     self.save_article(article)
-                    return 1 # Success
+                    return 1
             except Exception as e:
                 log.error(f"Critical error crawling {article_info['url']}: {e}", exc_info=False)
-            return 0 # Failure
+            return 0
 
-        # --- Quản lý Progress bar ---
         progress_manager = (
             Progress(
                 TextColumn("[progress.description]{task.description}"),
@@ -355,7 +333,6 @@ class VnExpressCrawler:
             all_articles_data = []
             date_range_mode = from_date and to_date
 
-            # --- 🔽 THÊM MỚI: LOGIC DỊCH CATEGORY 🔽 ---
             categories_to_process = []
             if date_range_mode:
                 log.info("Date range mode active. Resolving category names to IDs...")
@@ -372,11 +349,9 @@ class VnExpressCrawler:
             else:
                 # Ở chế độ standard, chúng ta dùng thẳng tên
                 categories_to_process = categories
-            # --- 🔼 KẾT THÚC THÊM MỚI 🔼 ---
 
 
             if date_range_mode:
-                # --- CHẾ ĐỘ DATE RANGE ---
                 log.info(f"Running in Date Range mode from [yellow]{from_date}[/yellow] to [yellow]{to_date}[/yellow]")
                 date_ranges = self._split_date_ranges(from_date, to_date)
                 if not date_ranges:
@@ -405,7 +380,6 @@ class VnExpressCrawler:
                         log.info(f" > Found {len(articles_data)} articles in this range.")
 
             else:
-                # --- CHẾ ĐỘ TIÊU CHUẨN (LOGIC CŨ) ---
                 log.info("Running in Standard mode (latest articles).")
                 discover_task_id = progress.add_task(f"[cyan]Discovering articles...", total=len(categories_to_process) * pages) if not no_progress else None
 
@@ -420,14 +394,12 @@ class VnExpressCrawler:
                     all_articles_data.extend(articles_data)
                     log.info(f" > Found {len(articles_data)} new articles in [cyan]{category}[/cyan].")
 
-            # --- KẾT THÚC LOGIC DISCOVERY ---
 
             if not all_articles_data:
                 log.warning("No new articles found to crawl.")
                 self.print_summary()
                 return
 
-            # --- Lọc ra các bài đã thấy ---
             unique_new_articles = []
             seen_in_this_run = set()
             for article in all_articles_data:
@@ -443,7 +415,6 @@ class VnExpressCrawler:
                 self.print_summary()
                 return
 
-            # --- Use ThreadPoolExecutor (Logic xử lý không đổi) ---
             crawl_task_id = progress.add_task(f"[green]Saving {len(unique_new_articles)} articles", total=len(unique_new_articles)) if not no_progress else None
             if no_progress:
                 log.info(f"Saving {len(unique_new_articles)} articles (progress bar disabled)...")
@@ -461,10 +432,8 @@ class VnExpressCrawler:
 
         log.info("Crawl complete.")
         self.print_summary()
-    # --- 🔼 KẾT THÚC SỬA HÀM CRAWL 🔼 ---
 
 
-# --- 🔽 SỬA HÀM RUN_AS_IMPORT 🔽 ---
 def run_as_import(categories: list[str], pages: int, output_dir_str: str, use_cache: bool, workers: int, from_date: Optional[str] = None, to_date: Optional[str] = None, no_progress: bool = True):
     """
     Hàm này được gọi bởi script bên ngoài (pipeline)
@@ -481,14 +450,12 @@ def run_as_import(categories: list[str], pages: int, output_dir_str: str, use_ca
         categories,
         pages,
         workers=workers,
-        no_progress=no_progress, # <-- SỬA: Dùng giá trị được truyền vào
+        no_progress=no_progress,
         from_date=from_date,
         to_date=to_date
     )
-# --- 🔼 KẾT THÚC SỬA HÀM RUN_AS_IMPORT 🔼 ---
 
 
-# --- 🔽 SỬA HÀM __main__ 🔽 ---
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="VnExpress Article Discoverer (Step 1)",
@@ -554,4 +521,3 @@ if __name__ == "__main__":
         from_date=args.from_date,
         to_date=args.to_date
     )
-# --- 🔼 KẾT THÚC SỬA HÀM __main__ 🔼 ---

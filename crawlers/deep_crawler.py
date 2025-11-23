@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 vnexpress_deep_crawler.py (STEP 2: PROCESSOR)
 - Scrapes VnExpress articles for top-level comments AND their replies.
@@ -33,33 +32,27 @@ from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.webdriver.firefox.service import Service as FirefoxService
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 
-# --- THÊM STEALTH IMPORT ---
 try:
     from selenium_stealth import stealth
 except ImportError:
     print("LỖI: Cần cài 'selenium-stealth'.")
     print("Hãy chạy: python -m pip install selenium-stealth")
     sys.exit(1)
-# --- KẾT THÚC STEALTH IMPORT ---
 
 
-# --- Rich UI Imports ---
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.panel import Panel
 from rich.rule import Rule
 
-# --- Import shared utilities ---
 from utils import Cache, sha1
 
-# --- Initialize Rich Console ---
 log = logging.getLogger()  # Get the root logger
 
 
 @dataclass
 class Selectors:
     """Holds all CSS selectors in one place for easy maintenance."""
-    # --- THÊM USER AGENT ---
     USER_AGENT: str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
 
     comment_block: str = "div.comment_item.width_common"
@@ -75,7 +68,6 @@ class Selectors:
     view_more_comments: str = "a#show_more_coment"
 
 
-# --- Class Crawler chính ---
 class VnExpressDeepCrawler:
     """
     Class chính để quản lý state (driver, cache, seen_urls)
@@ -106,7 +98,6 @@ class VnExpressDeepCrawler:
         # Khởi động Driver
         self.driver = self._setup_driver()
 
-    # --- Các hàm Quản lý File và Driver ---
     def _setup_driver(self) -> WebDriver:
         """Initializes and returns the requested webdriver."""
         log.info(
@@ -194,7 +185,6 @@ class VnExpressDeepCrawler:
         except Exception as e:
             log.error(f"An error occurred while saving chunk to CSV: {e}", exc_info=True)
 
-    # --- Các hàm Helper (trước đây là global) ---
     def _extract_user_id(self, href: str) -> str:
         """Extracts the numeric user ID from a profile URL."""
         if not href:
@@ -254,7 +244,6 @@ class VnExpressDeepCrawler:
 
         return { "author": author, "user_id": user_id, "text": text, "date": date, "reactions": reactions }
 
-    # --- Hàm Scrape chính (đã thêm Cache) ---
     def _scrape_article_page(self, url: str) -> list[dict]:
         """Scrapes all comments and replies from a single article URL."""
         cache_key = f"vnexpress_deep_scrape:{url}"
@@ -365,7 +354,6 @@ class VnExpressDeepCrawler:
         self.cache.set(cache_key, {"data": scraped_data})
         return scraped_data
 
-    # --- HÀM RUN ĐÃ SỬA ---
     def run(self, urls_to_scrape: List[str]):
         """Hàm điều phối chính, tích hợp Resumability và lưu file Tức thời."""
         urls_to_process = []
@@ -436,7 +424,6 @@ class VnExpressDeepCrawler:
         self.console.print(summary_panel)
 
 
-# --- HÀM IMPORT ĐÃ SỬA ---
 def run_as_import(input_file_str: str, output_file_str: str, browser: str, is_headless: bool, use_cache: bool, worker_id: str = "Step2", console: Console = None):
     """
     Hàm này được gọi bởi script bên ngoài (pipeline)
@@ -524,9 +511,7 @@ def run_as_import(input_file_str: str, output_file_str: str, browser: str, is_he
 # 🔼 --- KẾT THÚC HÀM MỚI --- 🔼
 
 
-# --- __main__ ĐÃ SỬA ---
 if __name__ == "__main__":
-    # --- Argument Parsing ---
     parser = argparse.ArgumentParser(
         description="Scrape VnExpress comments and replies from a file of URLs."
     )
@@ -569,7 +554,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
 
-    # --- THIẾT LẬP LOGGING ---
     LOG_FORMAT = "[%(worker_id)s] %(message)s"
     log_formatter = logging.Formatter(LOG_FORMAT, datefmt="%Y-%m-%d %H:M:%S")
     file_handler = logging.FileHandler(args.logfile, mode='w', encoding='utf-8')
@@ -588,9 +572,7 @@ if __name__ == "__main__":
             record.worker_id = args.worker_id
             return True
     log.addFilter(WorkerIdFilter())
-    # --- KẾT THÚC LOGGING ---
 
-    # --- Logic khởi chạy ---
     console.print(Rule(f"[bold]VnExpress Deep Crawler (Step 2)[/bold]", style="bold blue"))
 
     try:

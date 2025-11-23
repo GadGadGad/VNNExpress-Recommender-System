@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Orchestrator script to run the full VnExpress crawler pipeline.
 
@@ -17,14 +16,12 @@ import argparse
 import os
 from datetime import datetime
 
-# --- Rich UI Imports ---
 import rich
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.rule import Rule
 from rich.status import Status
 
-# --- 🔽 THAY ĐỔI: IMPORT TRỰC TIẾP CÁC STEP 🔽 ---
 try:
     from main_crawler import run_as_import as run_step_1
     from deep_crawler import run_as_import as run_step_2
@@ -33,10 +30,8 @@ except ImportError as e:
     print(f"Lỗi Import: {e}")
     print("Vui lòng đảm bảo các file 'main_crawler.py', 'deep_crawler.py', và 'user_profile_crawler.py' nằm cùng thư mục.")
     sys.exit(1)
-# --- 🔼 KẾT THÚC THAY ĐỔI 🔼 ---
 
 
-# --- Initialize Rich Console & Logging ---
 console = Console()
 logging.basicConfig(
     level=logging.INFO,
@@ -76,18 +71,14 @@ def main(args):
             log.error("Date format is invalid. Please use D/M/Y (e.g., 01/01/2024).")
             sys.exit(1)
 
-    # --- 🔽 THÊM MỚI: Đọc giá trị cờ progress 🔽 ---
-    # `no_progress` là NGƯỢC LẠI của `show_progress`
     no_progress_value = not args.show_progress
     if args.show_progress:
         log.warning("[bold yellow]--show-progress is active. Console output for Step 1 & 3 may be messy.[/bold yellow]")
-    # --- 🔼 KẾT THÚC THÊM MỚI 🔼 ---
 
 
     pipeline_completed = False
 
     try:
-        # --- STEP 1 (IMPORT) ---
         if 1 in args.steps:
             console.rule(f"[bold cyan]Starting Step: 1. Discover Articles ({args.workers} workers)[/bold cyan]")
             try:
@@ -99,7 +90,7 @@ def main(args):
                     workers=args.workers,
                     from_date=from_date_arg,
                     to_date=to_date_arg,
-                    no_progress=no_progress_value # <-- SỬA
+                    no_progress=no_progress_value
                 )
                 console.log(f"[bold green]✅ Step '1. Discover Articles' completed successfully.[/bold green]\n")
             except Exception as e:
@@ -110,7 +101,6 @@ def main(args):
             log.info("Skipping Step 1 (Discover Articles) as requested.")
 
 
-        # --- STEP 2 (IMPORT) ---
         if 2 in args.steps:
             if 1 not in args.steps and not articles_csv.exists():
                 log.error(f"[bold red]Cannot run Step 2: Input file '{articles_csv.name}' not found.[/bold red]")
@@ -140,7 +130,6 @@ def main(args):
             log.info("Skipping Step 2 (Process Comments) as requested.")
 
 
-        # --- STEP 3 (IMPORT) ---
         if 3 in args.steps:
             if 2 not in args.steps and not replies_csv.exists():
                 log.error(f"[bold red]Cannot run Step 3: Input file '{replies_csv.name}' not found.[/bold red]")
@@ -154,7 +143,7 @@ def main(args):
                     use_cache=(not args.no_cache),
                     workers=args.workers,
                     console=console,
-                    no_progress=no_progress_value # <-- SỬA
+                    no_progress=no_progress_value
                 )
                 console.log(f"[bold green]✅ Step '3. Enrich Users' completed successfully.[/bold green]\n")
             except Exception as e:
@@ -249,13 +238,11 @@ if __name__ == "__main__":
         help="Disable caching for all steps"
     )
 
-    # --- 🔽 THÊM MỚI: CỜ --show-progress 🔽 ---
     parser.add_argument(
         "--show-progress",
         action="store_true",
         help="Show individual progress bars for Step 1 and 3 (can be messy)"
     )
-    # --- 🔼 KẾT THÚC THÊM MỚI 🔼 ---
 
     parsed_args = parser.parse_args()
 

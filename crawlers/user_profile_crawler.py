@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 vnexpress_user_profile_crawler.py (STEP 3: ENRICHER - METADATA ONLY)
 - Crawls VNExpress user profiles for metadata (Join Date) only.
@@ -20,14 +19,12 @@ from playwright.sync_api import sync_playwright, Browser
 from bs4 import BeautifulSoup
 from contextlib import nullcontext
 
-# --- STEALTH IMPORT ---
 try:
     from playwright_stealth import stealth_sync
 except ImportError:
     print("LỖI: Không tìm thấy 'playwright_stealth'.")
     print("Hãy chạy: pip install playwright-stealth==1.0.6")
     sys.exit(1)
-# --- END STEALTH IMPORT ---
 
 # Rich imports
 from rich.console import Console
@@ -38,7 +35,6 @@ from rich.progress import (
 )
 from rich.table import Table
 
-# --- Import shared utilities ---
 from utils import Cache
 
 # Global Settings
@@ -47,7 +43,6 @@ USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTM
 MAX_WORKERS = 5
 
 
-# --- CRAWLER CLASS ---
 class UserProfileCrawler:
     def __init__(self, input_dir: Path, console: Console, use_cache=True):
         self.input_dir = input_dir
@@ -55,19 +50,15 @@ class UserProfileCrawler:
         self.user_profile_csv = input_dir / "user_profiles.csv"
         self.console = console
 
-        # --- CACHE SETUP ---
         self.cache = Cache(input_dir / ".cache", enabled=use_cache)
         self.console.log(f"Cache enabled: [cyan]{use_cache}[/]")
 
-        # --- RESUMABILITY SETUP ---
         self.seen_file = self.input_dir / ".seen_users.txt"
         self.seen_users = set()
         self._load_seen_users()
 
-        # --- THREAD-SAFETY ---
         self.csv_lock = threading.Lock()
 
-        # --- PLAYWRIGHT SETUP ---
         self.console.log("[cyan]Playwright UserProfileCrawler initialized (Metadata Mode).[/]")
         self.thread_local = threading.local()
         self.all_playwright_instances = []
