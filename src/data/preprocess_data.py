@@ -63,7 +63,7 @@ def process_and_save(articles_path, replies_path, output_dir='data/processed', h
     # 4. Save
     save_path = f'{output_dir}/graph_data.pt'
     torch.save(data, save_path)
-    print(f"✅ Processed graph saved to: {save_path}")
+    print(f"Processed graph saved to: {save_path}")
 
 if __name__ == "__main__":
     process_and_save('data/raw/articles.csv', 'data/raw/replies.csv')
