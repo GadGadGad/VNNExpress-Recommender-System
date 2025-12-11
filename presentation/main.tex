@@ -1,0 +1,66 @@
+\documentclass{beamer}
+\usepackage[T1]{fontenc}
+\usetheme{Madrid}
+\usecolortheme{default} % dolphin
+\usepackage{unicode-math}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{animate}
+\usepackage{ragged2e} % For better text alignment
+\usepackage[backend=biber, style=ieee]{biblatex}
+\addbibresource{references.bib}
+\setbeamertemplate{bibliography item}[text]
+\setbeamertemplate{caption}[numbered]
+
+%------------------------------------------------------------
+% Title page configuration
+\title[Recommender System] 
+{Article Recommender System}
+
+\subtitle{DS300.Q11 - Final Project}
+
+\author[T. Nhat, L.M.Nhut, N.H.Phat]
+{\textbf{Presented by:} \break T.~Nhat\inst{1} \and L.~M.~Nhut\inst{1} \and N.~H.~Phat\inst{1} \break \textbf{Instructor}: PhD. Nguyen~Trong~Chinh\inst{1}}
+
+\institute[VNU-UIT]
+{
+  \inst{1}%
+  Department of Computer Science\\
+  University of Information Technology
+}
+
+\date[December 24th 2025]
+{DS300 Final Project Report}
+
+\logo{\includegraphics[height=1cm]{assets/images/uit-logo.png}}
+%------------------------------------------------------------
+
+\begin{document}
+
+\frame{\titlepage}
+
+\AtBeginSection[]
+{
+    \begin{frame}
+        \frametitle{Table of Contents}
+        \tableofcontents[currentsection]
+    \end{frame}
+}
+
+\begin{frame}
+    \frametitle{Table of Contents}
+    \tableofcontents
+\end{frame}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+\begin{frame}
+    \centering
+    \Huge \textbf{Thank You!}
+
+    \vspace{1cm}
+    \large Q \& A
+\end{frame}
+%------------------------------------------------------------
+
+\end{document}
