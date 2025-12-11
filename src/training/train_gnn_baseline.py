@@ -1,3 +1,4 @@
+%%writefile src/training/train_gnn_baseline.py
 """
 GNN Baseline Training & Evaluation Pipeline
 ============================================
@@ -37,7 +38,7 @@ from tqdm import tqdm
 
 # PyTorch Geometric
 from torch_geometric.data import HeteroData
-from torch_geometric.nn import SAGEConv, GCNConv, GATConv, to_hetero
+from torch_geometric.nn import SAGEConv, GCNConv, GATConv, LGConv, to_hetero
 from torch_geometric.transforms import RandomLinkSplit
 
 
@@ -139,14 +140,15 @@ class GATEncoder(nn.Module):
 class LightGCNEncoder(nn.Module):
     """
     LightGCN: Simplified GCN without feature transformation and nonlinearity.
-    Reference: He et al., "LightGCN: Simplifying and Powering Graph Convolution Network"
+    FIXED: Uses LGConv to be compatible with to_hetero() tracing.
     """
     
     def __init__(self, hidden_dim: int, out_dim: int, num_layers: int = 3, dropout: float = 0.0):
         super().__init__()
         self.num_layers = num_layers
-        # LightGCN doesn't use learnable weight matrices in propagation
-        # We just use a simple linear projection at the end
+        # Use PyG's built-in LGConv which handles normalization and message passing correctly
+        # and is compatible with to_hetero tracing
+        self.conv = LGConv() 
         self.out_proj = nn.Linear(hidden_dim, out_dim) if hidden_dim != out_dim else nn.Identity()
         
     def forward(self, x, edge_index):
@@ -154,26 +156,14 @@ class LightGCNEncoder(nn.Module):
         all_embeddings = [x]
         
         for _ in range(self.num_layers):
-            # Normalized adjacency propagation
-            x = self._propagate(x, edge_index)
+            # LGConv handles the normalized adjacency propagation
+            x = self.conv(x, edge_index)
             all_embeddings.append(x)
         
         # Mean pooling over all layers (key insight of LightGCN)
         x = torch.stack(all_embeddings, dim=0).mean(dim=0)
         x = self.out_proj(x)
         return x
-    
-    def _propagate(self, x, edge_index):
-        """Simple message passing (normalized sum)."""
-        row, col = edge_index
-        deg = torch.bincount(row, minlength=x.size(0)).float().clamp(min=1)
-        deg_inv_sqrt = deg.pow(-0.5)
-        norm = deg_inv_sqrt[row] * deg_inv_sqrt[col]
-        
-        # Aggregate messages
-        out = torch.zeros_like(x)
-        out.index_add_(0, row, x[col] * norm.unsqueeze(-1))
-        return out
 
 
 def get_model(model_name: str, hidden_dim: int, out_dim: int, 
@@ -548,7 +538,8 @@ def run_experiment(args):
         device=device,
         lr=args.lr,
         weight_decay=args.weight_decay,
-        neg_sampling_ratio=args.neg_ratio
+        neg_sampling_ratio=args.neg_ratio,
+        scheduler_type='plateau'
     )
     
     # Train
