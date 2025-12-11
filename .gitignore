@@ -9,6 +9,7 @@ venv/
 .env
 
 # --- Data ---
+data*
 data/raw/*
 data/processed/*
 crawlers/data/
