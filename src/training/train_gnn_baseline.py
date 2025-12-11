@@ -1,4 +1,3 @@
-%%writefile src/training/train_gnn_baseline.py
 """
 GNN Baseline Training & Evaluation Pipeline
 ============================================
