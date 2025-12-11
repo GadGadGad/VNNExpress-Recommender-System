@@ -58,3 +58,8 @@ Thumbs.db
 *.fdb_latexmk
 *.bbl
 *.blg
+*.snm
+*.run.xml
+*.bcf
+*.nav
+*.pdf
