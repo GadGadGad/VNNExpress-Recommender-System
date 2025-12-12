@@ -44,6 +44,10 @@ crawlers/*.log
 .seen_urls*.txt
 *.cache
 
+# --- Exception ---
+!src/models/
+!src/models/.gitkeep
+
 # --- System Files ---
 Thumbs.db
 .DS_Store
