@@ -46,7 +46,7 @@ class GNNDataConverter:
         users_path: str = 'data/raw/user_profiles.csv',
         output_dir: str = 'data/processed',
         hidden_dim: int = 64,
-        add_text_features: bool = False,
+        add_text_features: bool = False, use_phobert: bool = False,
         text_max_features: int = 1000
     ):
         self.articles_path = articles_path
@@ -57,6 +57,8 @@ class GNNDataConverter:
         
         self.hidden_dim = hidden_dim
         self.add_text_features = add_text_features
+        self.use_phobert = use_phobert
+        self.use_phobert = use_phobert
         self.text_max_features = text_max_features
         
         # Data containers
@@ -95,40 +97,40 @@ class GNNDataConverter:
             try:
                 return str(int(float(val)))
             except:
-                return str(val)
-        
-        self.replies['user_id'] = self.replies['parent_user_id'].apply(clean_id)
-        
-        # Filter to valid articles only
-        valid_urls = set(self.articles['url'].unique())
-        self.replies = self.replies[self.replies['article_url'].isin(valid_urls)]
-        print(f"   → {len(self.replies):,} valid interactions")
-        
-        # Load user profiles (optional)
-        if os.path.exists(self.users_path):
-            print(f"Loading users from {self.users_path}...")
-            self.users = pd.read_csv(self.users_path)
+
+
+
+
+
+
+
+
+
+
+
+
+
             print(f"   → {len(self.users):,} users loaded")
         
         # Create ID mappings
-        self._create_mappings()
-    
-    def apply_kcore_filter(self, min_user_interactions: int = 5, min_article_interactions: int = 5):
-        """
-        Apply k-core filtering to keep only active users and popular articles.
-        
-        This iteratively removes:
-        - Users with fewer than min_user_interactions
-        - Articles with fewer than min_article_interactions
-        
-        Until convergence (no more removals).
-        
-        Args:
-            min_user_interactions: Minimum interactions for a user to be kept
-            min_article_interactions: Minimum interactions for an article to be kept
-        """
-        print(f"\nApplying k-core filtering (min_user={min_user_interactions}, min_article={min_article_interactions})...")
-        print(f"   Before: {len(self.replies):,} interactions")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         
         prev_len = 0
         iteration = 0
@@ -217,7 +219,59 @@ class GNNDataConverter:
         return features
     
     def _create_article_features(self) -> torch.Tensor:
+
+
         """Create article node features."""
+        if self.use_phobert:
+            print("   -> Using PhoBERT embeddings (Projected to hidden_dim)...")
+            emb_path = self.output_dir / 'phobert_embeddings.pt'
+            if not emb_path.exists():
+                raise FileNotFoundError(f"Run generate_embeddings.py first!")
+            emb_dict = torch.load(emb_path)
+            
+            features = []
+            zeros = 0
+            for url in self.articles['url']:
+                if url in emb_dict:
+                    features.append(emb_dict[url])
+                else:
+                    features.append(torch.randn(768)*0.1)
+                    zeros += 1
+            if zeros > 0: print(f"      [WARN] {zeros} missing embeddings")
+            
+            # Project 768 -> hidden_dim
+            full_emb = torch.stack(features)
+            # Use random projection (fixed seed for consistency)
+            torch.manual_seed(42)
+            proj = torch.nn.Linear(768, self.hidden_dim)
+            return proj(full_emb).detach()
+            
+
+        if self.use_phobert:
+            print("   -> Using PhoBERT embeddings (Projected to hidden_dim)...")
+            emb_path = self.output_dir / 'phobert_embeddings.pt'
+            if not emb_path.exists():
+                raise FileNotFoundError(f"Run generate_embeddings.py first!")
+            emb_dict = torch.load(emb_path)
+            
+            features = []
+            zeros = 0
+            for url in self.articles['url']:
+                if url in emb_dict:
+                    features.append(emb_dict[url])
+                else:
+                    features.append(torch.randn(768)*0.1)
+                    zeros += 1
+            if zeros > 0: print(f"      [WARN] {zeros} missing embeddings")
+            
+            # Project 768 -> hidden_dim
+            full_emb = torch.stack(features)
+            # Use random projection (fixed seed for consistency)
+            torch.manual_seed(42)
+            proj = torch.nn.Linear(768, self.hidden_dim)
+            return proj(full_emb).detach()
+            
+
         num_articles = len(self.article_map)
         
         # Category one-hot encoding
@@ -885,6 +939,11 @@ def main():
         help='Add TF-IDF text features to article nodes'
     )
     parser.add_argument(
+        '--use-phobert',
+        action='store_true',
+        help='Use pre-computed PhoBERT embeddings'
+    )
+    parser.add_argument(
         '--export-networkx',
         action='store_true',
         help='Also export to NetworkX format'
@@ -949,7 +1008,8 @@ def main():
         replies_path=args.replies,
         output_dir=args.output,
         hidden_dim=args.hidden_dim,
-        add_text_features=args.add_text_features
+        add_text_features=args.add_text_features,
+        use_phobert=args.use_phobert,
     )
     
     # Apply k-core filtering if specified

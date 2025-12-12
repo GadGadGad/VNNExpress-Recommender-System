@@ -41,10 +41,6 @@ from torch_geometric.nn import SAGEConv, GCNConv, GATConv, to_hetero
 from torch_geometric.transforms import RandomLinkSplit
 
 
-# ============================================================================
-# MODEL DEFINITIONS
-# ============================================================================
-
 class GraphSAGEEncoder(nn.Module):
     """GraphSAGE-based encoder for heterogeneous graphs."""
     
@@ -192,10 +188,6 @@ def get_model(model_name: str, hidden_dim: int, out_dim: int,
     return models[model_name](hidden_dim, out_dim, num_layers, dropout)
 
 
-# ============================================================================
-# METRICS
-# ============================================================================
-
 class RecommenderMetrics:
     """Comprehensive evaluation metrics for recommender systems."""
     
@@ -292,6 +284,7 @@ class RecommenderMetrics:
         return roc_auc_score(labels, scores)
 
 
+
 # ============================================================================
 # TRAINER
 # ============================================================================
@@ -315,8 +308,18 @@ class GNNTrainer:
         self.edge_type = edge_type
         self.neg_ratio = neg_sampling_ratio
         
+        self.neg_ratio = neg_sampling_ratio
+        
+        # Collect parameters
+        params = list(model.parameters())
+        
+        # Add node features if they are learnable
+        for node_type in data.node_types:
+            if isinstance(data[node_type].x, nn.Parameter):
+                params.append(data[node_type].x)
+            
         self.optimizer = torch.optim.Adam(
-            model.parameters(), lr=lr, weight_decay=weight_decay
+            params, lr=lr, weight_decay=weight_decay
         )
         
         if scheduler_type == 'plateau':
@@ -536,6 +539,23 @@ def run_experiment(args):
         dropout=args.dropout
     )
     
+    # Initialize features and handle dimension mismatches
+    print("   -> Initializing node features...")
+    for node_type in data.node_types:
+        x = data[node_type].x
+        num_nodes, feat_dim = x.shape
+        
+        # Condition 1: User nodes (always learnable)
+        # Condition 2: Dimension mismatch (e.g. Category 15 vs Hidden 64)
+        if node_type == 'user' or feat_dim != args.hidden_dim:
+            print(f"      [{node_type}] Replacing features ({feat_dim}) with learnable embeddings ({args.hidden_dim})")
+            data[node_type].x = nn.Parameter(torch.randn(num_nodes, args.hidden_dim) * 0.1)
+        else:
+            # If Article features match hidden_dim, we can keep them fixed or make them learnable
+            # For now, let's make them learnable too since data is sparse
+            print(f"      [{node_type}] Converting features ({feat_dim}) to learnable parameters")
+            data[node_type].x = nn.Parameter(x.clone())
+
     # Convert to heterogeneous
     model = to_hetero(base_model, data.metadata(), aggr='sum')
     
@@ -584,6 +604,7 @@ def run_experiment(args):
         # Save model
         model_path = save_dir / f"{args.model}_{timestamp}.pt"
         torch.save({
+            'node_embeddings': {nt: data[nt].x for nt in data.node_types},
             'model_state_dict': model.state_dict(),
             'model_config': {
                 'model': args.model,
