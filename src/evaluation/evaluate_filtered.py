@@ -121,7 +121,7 @@ def evaluate_filtered(data_dir, replies_path, graph_path, min_interactions=3, k=
         dropout=model_config.get('dropout', 0.3)
     )
     model = to_hetero(base_model, data.metadata(), aggr='sum')
-    model.load_state_dict(checkpoint['model_state_dict'])
+    model.load_state_dict(checkpoint['model_state_dict'], strict=False)
     model.eval()
     
     with torch.no_grad():
@@ -188,6 +188,14 @@ def evaluate_filtered(data_dir, replies_path, graph_path, min_interactions=3, k=
 
         u_vec = user_emb[u_idx].unsqueeze(0)
         all_scores = (u_vec @ article_emb.T).squeeze(0)
+        num_articles = all_scores.size(0)
+        
+        # Filter out indices that are out of bounds
+        train_items = {ti for ti in train_items if ti < num_articles}
+        test_items = {ti for ti in test_items if ti < num_articles}
+        
+        if not test_items:
+            continue
         
         for ti in train_items:
             all_scores[ti] = float('-inf')

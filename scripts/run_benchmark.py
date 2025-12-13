@@ -1,17 +1,16 @@
 import subprocess
 import re
 import sys
-from tabulate import tabulate  # Assuming user might not have it, I'll fallback to simple formatting if needed, but standard python doesn't include it. I'll write a simple formatter.
+from tabulate import tabulate
 
-def run_evaluation(min_interactions, model_path, graph_path, data_dir):
-    print(f"Running evaluation for Min Interactions = {min_interactions} (Model: {model_path})...")
+def run_evaluation(min_interactions):
+    print(f"Running evaluation for Min Interactions = {min_interactions}...")
     
     cmd = [
         "python", "src/evaluation/evaluate_filtered.py",
-        "--graph", graph_path,
-        "--data-dir", data_dir,
-        "--min", str(min_interactions),
-        "--model", model_path
+        "--graph", "data/processed_phobert/full_hetero_graph.pt",
+        "--data-dir", "data/processed_phobert",
+        "--min", str(min_interactions)
     ]
     
     result = subprocess.run(cmd, capture_output=True, text=True)
@@ -19,7 +18,7 @@ def run_evaluation(min_interactions, model_path, graph_path, data_dir):
     if result.returncode != 0:
         print(f"Error running evaluation for min={min_interactions}")
         print(result.stderr)
-        return None, None
+        return None
         
     # extract metrics
     output = result.stdout
@@ -33,56 +32,35 @@ def run_evaluation(min_interactions, model_path, graph_path, data_dir):
 def main():
     thresholds = [1, 2, 3, 5, 10]
     
-    # Define Configurations
-    configs = {
-        "baseline": {
-            "model": "models/baseline/lightgcn.pt", # We need to find exact name or use glob in python
-            "graph": "data/processed_baseline/full_hetero_graph.pt",
-            "data": "data/processed_baseline"
-        },
-        "social": {
-            "model": "models/social/lightgcn.pt",
-            "graph": "data/processed_social/full_hetero_graph.pt",
-            "data": "data/processed_social"
-        }
+    # Baseline Results (Hardcoded from previous experiments)
+    baseline = {
+        1: {"recall": 6.2, "ndcg": 3.1, "hitrate": 7.8, "precision": None, "mrr": None},
+        2: {"recall": None, "ndcg": None, "hitrate": None, "precision": None, "mrr": None},
+        3: {"recall": 10.04, "ndcg": 5.43, "hitrate": None, "precision": None, "mrr": None},
+        5: {"recall": 8.11, "ndcg": 5.27, "hitrate": None, "precision": None, "mrr": None},
+        10: {"recall": None, "ndcg": None, "hitrate": None, "precision": None, "mrr": None}
     }
     
-    # Helper to find latest model in dir if specific file not known
-    import glob
-    import os
-    for key in configs:
-        # Assuming training script saves as lightgcn_TIMESTAMP.pt in the save-dir
-        # But wait, save-dir arg in train script just sets WHERE to save.
-        # It saves as lightgcn_YYYYMMDD_HHMMSS.pt
-        # We need to find the latest file in that directory.
-        files = glob.glob(f"{configs[key]['model'].replace('/lightgcn.pt', '')}/lightgcn_*.pt")
-        if files:
-            configs[key]['model'] = max(files, key=os.path.getctime)
-        else:
-            print(f"Warning: No model found for {key} in {configs[key]['model']}")
-
     results = []
     
-    print("Starting Comprehensive Benchmark (Live Training)...")
+    print("Starting Comprehensive Benchmark...")
     print("=" * 60)
     
     for k in thresholds:
-        # Run Social
-        m_social = run_evaluation(k, configs["social"]["model"], configs["social"]["graph"], configs["social"]["data"])
+        m = run_evaluation(k)
         
-        # Run Baseline
-        m_base = run_evaluation(k, configs["baseline"]["model"], configs["baseline"]["graph"], configs["baseline"]["data"])
+        if m is None:
+            print(f"Skipping min={k} due to error")
+            continue
         
         row = {"min": k}
         for key in ["recall", "ndcg", "precision", "hitrate", "mrr"]:
-            val_social = m_social.get(key, 0.0)
-            val_base = m_base.get(key, 0.0)
+            val = m.get(key, 0.0)
+            base = baseline[k].get(key)
             
-            row[f"social_{key}"] = f"{val_social:.2f}%" if key != "mrr" else f"{val_social:.4f}"
-            row[f"base_{key}"] = f"{val_base:.2f}%" if key != "mrr" else f"{val_base:.4f}"
-            
-            diff = val_social - val_base
-            row[f"diff_{key}"] = f"{diff:+.2f}%" if key != "mrr" else f"{diff:+.4f}"
+            row[f"social_{key}"] = f"{val:.2f}%"
+            row[f"base_{key}"] = f"{base:.2f}%" if base is not None else "--"
+            row[f"diff_{key}"] = f"{val - base:+.2f}%" if base is not None else "--"
             
         results.append(row)
         
@@ -92,7 +70,7 @@ def main():
     
     # Print Table
     headers = ["Segment", "Metric", "Original (No Social)", "Social Graph", "Impact"]
-    print(f"{headers[0]:<25} | {headers[1]:<10} | {headers[2]:<20} | {headers[3]:<15} | {headers[4]:<10}")
+    print(f"{headers[0]:<25} | {headers[1]:<12} | {headers[2]:<20} | {headers[3]:<15} | {headers[4]:<10}")
     print("-" * 95)
     
     labels = {

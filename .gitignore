@@ -9,7 +9,7 @@ venv/
 .env
 
 # --- Data ---
-data*
+data/
 data/raw/*
 data/processed/*
 crawlers/data/
@@ -40,6 +40,7 @@ logs/
 
 # --- Crawler Cache & Temp Files ---
 crawlers/.cache/
+crawlers/data*
 crawlers/*.log
 .seen_urls*.txt
 *.cache
