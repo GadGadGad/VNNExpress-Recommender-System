@@ -102,7 +102,7 @@ class VnExpressCrawler:
                 csv.writer(open(path, "w", newline="", encoding="utf-8")).writerow(header)
                 log.info(f"Created new file: [bold]{path.name}[/bold]")
 
-        init(self.article_csv, ["article_id", "url", "title", "short_description", "author", "category", "tags", "published_at", "content"])
+        init(self.article_csv, ["article_id", "url", "title", "short_description", "author", "published_at", "content"])
 
     def safe_get(self, url: str) -> Optional[str]:
         """Cached and retrying HTTP GET request."""
@@ -223,14 +223,6 @@ class VnExpressCrawler:
         title = soup.select_one("h1.title_news_detail, h1.title-detail")
         published = soup.select_one(".date, span.date")
         content_el = soup.select_one(".fck_detail, .sidebar_1 .Normal")
-        tags_el = soup.select(".item-tag, .tags a")
-
-        category_text = ""
-        category_el_list = soup.select("ul.breadcrumb a")
-        if category_el_list:
-            category_text = category_el_list[-1].text.strip()
-        else:
-            category_text = category_source # Fallback to the category we found it in
 
         author_text = ""
         end_span = soup.select_one("span#article-end")
@@ -253,8 +245,6 @@ class VnExpressCrawler:
             "title": title.text.strip() if title else "",
             "short_description": short_description,
             "author": author_text,
-            "category": category_text,
-            "tags": [t.text.strip() for t in tags_el],
             "published_at": published.text.strip() if published else "",
             "content": content_el.get_text("\n", strip=True) if content_el else "",
         }
@@ -267,7 +257,6 @@ class VnExpressCrawler:
             writer.writerow([
                 article["article_id"], article["url"], article["title"],
                 article["short_description"], article["author"],
-                article["category"], json.dumps(article["tags"], ensure_ascii=False),
                 article["published_at"], article["content"]
             ])
 

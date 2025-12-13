@@ -26,9 +26,10 @@ try:
     from main_crawler import run_as_import as run_step_1
     from deep_crawler import run_as_import as run_step_2
     from user_profile_crawler import run_as_import as run_step_3
+    from metadata_crawler import run_as_import as run_step_4
 except ImportError as e:
     print(f"Lỗi Import: {e}")
-    print("Vui lòng đảm bảo các file 'main_crawler.py', 'deep_crawler.py', và 'user_profile_crawler.py' nằm cùng thư mục.")
+    print("Vui lòng đảm bảo các file crawler nằm cùng thư mục.")
     sys.exit(1)
 
 
@@ -154,6 +155,30 @@ def main(args):
             log.info("Skipping Step 3 (Enrich Users) as requested.")
 
 
+        if 4 in args.steps:
+            if not articles_csv.exists():
+                log.error(f"[bold red]Cannot run Step 4: Input file '{articles_csv.name}' not found.[/bold red]")
+                log.error("Please run Step 1 first to generate it.")
+                sys.exit(1)
+
+            console.rule("[bold cyan]Starting Step: 4. Extract Metadata Only (category, tags)[/bold cyan]")
+            try:
+                run_step_4(
+                    input_file_str=str(articles_csv),
+                    output_dir_str=str(output_dir),
+                    browser=args.browser,
+                    is_headless=args.headless,
+                    use_cache=(not args.no_cache)
+                )
+                console.log(f"[bold green]✅ Step '4. Extract Metadata Only' completed successfully.[/bold green]\n")
+            except Exception as e:
+                console.log(f"[bold red]❌ ERROR IN STEP: '4. Extract Metadata Only'[/bold red]")
+                log.error(f"Pipeline HALTED due to an error in Step 4: {e}", exc_info=True)
+                sys.exit(1)
+        else:
+            log.info("Skipping Step 4 (Extract Metadata Only) as requested.")
+
+
         console.rule(f"[bold green]🎉 Pipeline Finished Successfully! 🎉[/bold green]")
         log.info(f"All output is available in the '{output_dir}' directory.")
 
@@ -202,10 +227,9 @@ if __name__ == "__main__":
         "-s", "--steps",
         type=int,
         nargs="+",
-        choices=[1, 2, 3],
+        choices=[1, 2, 3, 4],
         default=[1, 2, 3],
-        help="Which step(s) to run, in order. (default: 1 2 3)"
-    )
+        help="Which step(s) to run:\n  1: Discover Articles\n  2: Process Comments (Deep Crawl)\n  3: Enrich Users\n  4: Extract Metadata Only (category, tags) - for existing data\n(default: 1 2 3)")
 
     parser.add_argument(
         "--from-date",
