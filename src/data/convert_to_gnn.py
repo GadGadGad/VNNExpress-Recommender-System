@@ -97,41 +97,9 @@ class GNNDataConverter:
             try:
                 return str(int(float(val)))
             except:
-
-
-
-
-
-
-
-
-
-
-
-
-
-            print(f"   → {len(self.users):,} users loaded")
+                print(f"   → {len(self.users):,} users loaded")
         
-        # Create ID mappings
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
+        # Create ID mappings    
         prev_len = 0
         iteration = 0
         
