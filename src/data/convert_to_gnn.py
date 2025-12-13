@@ -47,7 +47,9 @@ class GNNDataConverter:
         output_dir: str = 'data/processed',
         hidden_dim: int = 64,
         add_text_features: bool = False, use_phobert: bool = False,
-        text_max_features: int = 1000
+        text_max_features: int = 1000,
+        min_user_interactions: int = 0,
+        min_article_interactions: int = 0
     ):
         self.articles_path = articles_path
         self.replies_path = replies_path
@@ -58,20 +60,18 @@ class GNNDataConverter:
         self.hidden_dim = hidden_dim
         self.add_text_features = add_text_features
         self.use_phobert = use_phobert
-        self.use_phobert = use_phobert
         self.text_max_features = text_max_features
+        self.min_user_interactions = min_user_interactions
+        self.min_article_interactions = min_article_interactions
         
-        # Data containers
         self.articles = None
         self.replies = None
         self.users = None
         
-        # Mappings
         self.user_map = {}
         self.article_map = {}
         self.category_encoder = None
         
-        # Load data
         self._load_data()
         
     def _load_data(self):
@@ -80,57 +80,27 @@ class GNNDataConverter:
         print("GNN Data Converter - Loading Data")
         print("=" * 60)
         
-        # Load articles
         print(f"\nLoading articles from {self.articles_path}...")
         self.articles = pd.read_csv(self.articles_path)
         print(f"   → {len(self.articles):,} articles loaded")
         
-        # Load replies
         print(f"Loading replies from {self.replies_path}...")
         self.replies = pd.read_csv(self.replies_path)
         
-        # Clean replies - remove NO_COMMENT markers
         self.replies = self.replies[self.replies['parent_user_id'] != 'NO_COMMENT'].copy()
         
-        # Clean user IDs
         def clean_id(val):
             try:
+                if pd.isna(val) or val == '' or str(val).lower() == 'nan':
+                    return None
                 return str(int(float(val)))
             except:
-
-
-
-
-
-
-
-
-
-
-
-
-
-            print(f"   → {len(self.users):,} users loaded")
+                return str(val)
         
-        # Create ID mappings
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        self.replies['user_id'] = self.replies['reply_user_id'].apply(clean_id)
+        self.replies = self.replies[self.replies['user_id'].notna()].copy()
+        
+        print(f"   → {len(self.replies):,} interactions after cleaning")
         
         prev_len = 0
         iteration = 0
@@ -139,15 +109,12 @@ class GNNDataConverter:
             prev_len = len(self.replies)
             iteration += 1
             
-            # Count interactions per user
             user_counts = self.replies['user_id'].value_counts()
-            valid_users = user_counts[user_counts >= min_user_interactions].index
+            valid_users = user_counts[user_counts >= self.min_user_interactions].index
             
-            # Count interactions per article
             article_counts = self.replies['article_url'].value_counts()
-            valid_articles = article_counts[article_counts >= min_article_interactions].index
+            valid_articles = article_counts[article_counts >= self.min_article_interactions].index
             
-            # Filter
             self.replies = self.replies[
                 (self.replies['user_id'].isin(valid_users)) &
                 (self.replies['article_url'].isin(valid_articles))
@@ -155,23 +122,19 @@ class GNNDataConverter:
             
         print(f"   After {iteration} iterations: {len(self.replies):,} interactions")
         
-        # Also filter articles dataframe
         valid_article_urls = self.replies['article_url'].unique()
         original_articles = len(self.articles)
         self.articles = self.articles[self.articles['url'].isin(valid_article_urls)].copy()
         
-        # Print stats
         unique_users = self.replies['user_id'].nunique()
         unique_articles = self.replies['article_url'].nunique()
         
         print(f"   Users: {unique_users:,}")
         print(f"   Articles: {unique_articles:,} (removed {original_articles - len(self.articles):,})")
         
-        # Calculate new density
         density = len(self.replies) / (unique_users * unique_articles) * 100
         print(f"   New density: {density:.4f}%")
         
-        # Recreate mappings with filtered data
         self._create_mappings()
         
     def _create_mappings(self):
@@ -182,11 +145,9 @@ class GNNDataConverter:
         self.user_map = {u: i for i, u in enumerate(unique_users)}
         self.article_map = {a: i for i, a in enumerate(unique_articles)}
         
-        # Add index columns
         self.replies['user_idx'] = self.replies['user_id'].map(self.user_map)
         self.replies['article_idx'] = self.replies['article_url'].map(self.article_map)
         
-        # Encode categories
         self.category_encoder = LabelEncoder()
         self.articles['category_idx'] = self.category_encoder.fit_transform(self.articles['category'])
         
@@ -210,11 +171,8 @@ class GNNDataConverter:
         """Create user node features."""
         num_users = len(self.user_map)
         
-        # Option 1: Random learnable embeddings
         features = torch.randn(num_users, self.hidden_dim)
         
-        # Option 2: Activity-based features (if we want richer features)
-        # Could add: comment count, avg reactions, etc.
         
         return features
     
@@ -239,9 +197,7 @@ class GNNDataConverter:
                     zeros += 1
             if zeros > 0: print(f"      [WARN] {zeros} missing embeddings")
             
-            # Project 768 -> hidden_dim
             full_emb = torch.stack(features)
-            # Use random projection (fixed seed for consistency)
             torch.manual_seed(42)
             proj = torch.nn.Linear(768, self.hidden_dim)
             return proj(full_emb).detach()
@@ -264,9 +220,7 @@ class GNNDataConverter:
                     zeros += 1
             if zeros > 0: print(f"      [WARN] {zeros} missing embeddings")
             
-            # Project 768 -> hidden_dim
             full_emb = torch.stack(features)
-            # Use random projection (fixed seed for consistency)
             torch.manual_seed(42)
             proj = torch.nn.Linear(768, self.hidden_dim)
             return proj(full_emb).detach()
@@ -274,22 +228,18 @@ class GNNDataConverter:
 
         num_articles = len(self.article_map)
         
-        # Category one-hot encoding
         cat_tensor = torch.tensor(self.articles['category_idx'].values)
         cat_one_hot = F.one_hot(cat_tensor, num_classes=len(self.category_encoder.classes_)).float()
         
         if self.add_text_features:
             print("   → Adding text features (TF-IDF)...")
-            # TF-IDF on titles
             titles = self.articles['title'].fillna('').tolist()
             tfidf = TfidfVectorizer(max_features=self.text_max_features)
             text_features = tfidf.fit_transform(titles).toarray()
             text_tensor = torch.tensor(text_features, dtype=torch.float32)
             
-            # Combine category + text features
             combined = torch.cat([cat_one_hot, text_tensor], dim=1)
             
-            # Project to hidden_dim
             projector = torch.nn.Linear(combined.shape[1], self.hidden_dim)
             features = projector(combined).detach()
         else:
@@ -321,24 +271,19 @@ class GNNDataConverter:
         
         data = HeteroData()
         
-        # Node features
         data['user'].x = self._create_user_features()
         data['article'].x = self._create_article_features()
         
-        # Edge indices
         src = torch.tensor(self.replies['user_idx'].values, dtype=torch.long)
         dst = torch.tensor(self.replies['article_idx'].values, dtype=torch.long)
         data['user', 'comments', 'article'].edge_index = torch.stack([src, dst])
         
-        # Edge weights (based on reaction count)
         reactions = pd.to_numeric(self.replies['parent_reactions'], errors='coerce').fillna(1).values
         reactions = np.clip(reactions, 1, None)  # Min weight of 1
         data['user', 'comments', 'article'].edge_weight = torch.tensor(reactions, dtype=torch.float32)
         
-        # Make undirected for bidirectional message passing
         data = T.ToUndirected()(data)
         
-        # Save
         save_path = self.output_dir / 'user_article_graph.pt'
         torch.save(data, save_path)
         self._save_mappings()
@@ -379,7 +324,6 @@ class GNNDataConverter:
         num_positives = len(self.replies)
         num_neg_samples = num_positives * num_negatives
         
-        # Build positive set for fast lookup
         positive_set = set(
             zip(self.replies['user_idx'].values, self.replies['article_idx'].values)
         )
@@ -388,7 +332,6 @@ class GNNDataConverter:
         neg_articles = []
         
         if strategy == 'random':
-            # Uniform random sampling
             print("   -> Random negative sampling...")
             attempts = 0
             max_attempts = num_neg_samples * 10
@@ -408,7 +351,6 @@ class GNNDataConverter:
                 attempts += batch_size
             
         elif strategy == 'popular':
-            # Sample from popular articles (harder negatives)
             print("   -> Popularity-based negative sampling...")
             article_counts = self.replies['article_idx'].value_counts()
             article_probs = article_counts / article_counts.sum()
@@ -419,7 +361,6 @@ class GNNDataConverter:
             
             for _ in tqdm(range(num_negatives), desc="   Generating negatives"):
                 for user_idx in user_indices:
-                    # Sample from popular articles
                     for _ in range(10):  # Max attempts per user
                         article_idx = np.random.choice(popular_articles, p=probs)
                         if (user_idx, article_idx) not in positive_set:
@@ -431,10 +372,8 @@ class GNNDataConverter:
                         break
                         
         elif strategy == 'hard':
-            # Sample from same category (hardest negatives)
             print("   -> Hard negative sampling (same category)...")
             
-            # Build article -> category mapping
             article_to_cat = {}
             cat_to_articles = defaultdict(list)
             
@@ -444,7 +383,6 @@ class GNNDataConverter:
                     article_to_cat[art_idx] = cat_idx
                     cat_to_articles[cat_idx].append(art_idx)
             
-            # For each positive, sample negative from same category
             for _, row in tqdm(self.replies.iterrows(), total=len(self.replies), 
                              desc="   Generating hard negatives"):
                 user_idx = int(row['user_idx'])
@@ -507,12 +445,10 @@ class GNNDataConverter:
         
         np.random.seed(seed)
         
-        # Get positive edges
         pos_users = self.replies['user_idx'].values
         pos_articles = self.replies['article_idx'].values
         num_positives = len(pos_users)
         
-        # Shuffle and split positives
         indices = np.random.permutation(num_positives)
         train_end = int(num_positives * train_ratio)
         val_end = int(num_positives * (train_ratio + val_ratio))
@@ -523,14 +459,12 @@ class GNNDataConverter:
         
         print(f"   Positive splits: train={len(train_idx)}, val={len(val_idx)}, test={len(test_idx)}")
         
-        # Generate negative samples
         neg_users, neg_articles = self.generate_negative_samples(
             num_negatives=neg_ratio,
             strategy=neg_strategy,
             seed=seed
         )
         
-        # Split negatives proportionally
         neg_indices = np.random.permutation(len(neg_users))
         neg_train_end = int(len(neg_users) * train_ratio)
         neg_val_end = int(len(neg_users) * (train_ratio + val_ratio))
@@ -541,18 +475,15 @@ class GNNDataConverter:
         
         print(f"   Negative splits: train={len(neg_train_idx)}, val={len(neg_val_idx)}, test={len(neg_test_idx)}")
         
-        # Create base HeteroData with node features
         data = HeteroData()
         data['user'].x = self._create_user_features()
         data['article'].x = self._create_article_features()
         
-        # Store all edges for message passing (positive only)
         data['user', 'comments', 'article'].edge_index = torch.stack([
             torch.tensor(pos_users[train_idx], dtype=torch.long),
             torch.tensor(pos_articles[train_idx], dtype=torch.long)
         ])
         
-        # Create splits dictionary
         splits = {
             'train': {
                 'pos_users': torch.tensor(pos_users[train_idx], dtype=torch.long),
@@ -584,7 +515,6 @@ class GNNDataConverter:
             'neg_strategy': neg_strategy
         }
         
-        # Save
         save_path = self.output_dir / 'graph_with_negatives.pt'
         torch.save(result, save_path)
         self._save_mappings()
@@ -649,7 +579,6 @@ class GNNDataConverter:
             edge_weight=edge_weight
         )
         
-        # Save
         save_path = self.output_dir / 'user_user_graph.pt'
         torch.save(data, save_path)
         self._save_mappings()
@@ -726,7 +655,6 @@ class GNNDataConverter:
             edge_weight=edge_weight
         )
         
-        # Save
         save_path = self.output_dir / f'article_article_graph_{method}.pt'
         torch.save(data, save_path)
         self._save_mappings()
@@ -809,10 +737,8 @@ class GNNDataConverter:
                 user_user_edges, dtype=torch.long
             ).T
         
-        # Make undirected
         data = T.ToUndirected()(data)
         
-        # Save
         save_path = self.output_dir / 'full_hetero_graph.pt'
         torch.save(data, save_path)
         self._save_mappings()
@@ -853,7 +779,6 @@ class GNNDataConverter:
                     weight=float(row.get('parent_reactions', 1) or 1)
                 )
         
-        # Save
         save_path = self.output_dir / f'{graph_type}_networkx.gpickle'
         nx.write_gpickle(G, save_path)
         
@@ -888,7 +813,6 @@ class GNNDataConverter:
             g.nodes['user'].data['x'] = self._create_user_features()
             g.nodes['article'].data['x'] = self._create_article_features()
             
-            # Save
             save_path = self.output_dir / 'user_article_dgl.bin'
             dgl.save_graphs(str(save_path), [g])
             self._save_mappings()
@@ -1010,14 +934,11 @@ def main():
         hidden_dim=args.hidden_dim,
         add_text_features=args.add_text_features,
         use_phobert=args.use_phobert,
+        min_user_interactions=args.min_user_interactions,
+        min_article_interactions=args.min_article_interactions,
     )
     
-    # Apply k-core filtering if specified
-    if args.min_user_interactions > 0 or args.min_article_interactions > 0:
-        converter.apply_kcore_filter(
-            min_user_interactions=max(1, args.min_user_interactions),
-            min_article_interactions=max(1, args.min_article_interactions)
-        )
+    # Note: K-core filtering is now done automatically in _load_data() via iterative filtering
     
     # Build requested graph type(s)
     if args.graph_type in ['user-article', 'all']:

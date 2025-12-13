@@ -10,7 +10,7 @@
 set -e
 
 EPOCHS="${EPOCHS:-100}"
-DATA_PATH="data/processed/user_article_graph.pt"
+DATA_PATH="${DATA_PATH:-data/processed_phobert/full_hetero_graph.pt}"
 MODELS_DIR="models"
 RESULTS_FILE="$MODELS_DIR/comparison_results.txt"
 
@@ -19,6 +19,8 @@ echo "Training All GNN Models"
 echo "============================================================"
 echo "Epochs: $EPOCHS"
 echo ""
+
+mkdir -p "$MODELS_DIR"
 
 # Create results file header
 echo "Model Comparison Results - $(date)" > "$RESULTS_FILE"
