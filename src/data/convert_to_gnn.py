@@ -102,6 +102,7 @@ class GNNDataConverter:
         
         print(f"   → {len(self.replies):,} interactions after cleaning")
         
+        # Create ID mappings    
         prev_len = 0
         iteration = 0
         
