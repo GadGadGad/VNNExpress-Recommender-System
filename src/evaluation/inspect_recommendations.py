@@ -7,7 +7,6 @@ import random
 from pathlib import Path
 import glob
 import os
-from collections import Counter
 
 def load_latest_model(model_dir='models'):
     files = glob.glob(f"{model_dir}/lightgcn_*.pt")
@@ -20,7 +19,7 @@ def load_latest_model(model_dir='models'):
     except TypeError:
         return torch.load(latest_file, map_location='cpu')
 
-def inspect(data_dir, articles_path, replies_path, rerank=False):
+def inspect(data_dir, articles_path, replies_path):
     # Load Model
     checkpoint = load_latest_model()
     
@@ -50,8 +49,7 @@ def inspect(data_dir, articles_path, replies_path, rerank=False):
     for _, row in articles_df.iterrows():
         url_to_meta[row['url']] = {
             'title': row.get('title', 'No Title'),
-            'desc': row.get('short_description', ''),
-            'cat': row.get('category', 'Unknown')
+            'desc': row.get('short_description', '')
         }
         
     # Load Replies for Context & Popularity
@@ -106,30 +104,10 @@ def inspect(data_dir, articles_path, replies_path, rerank=False):
             history_urls = user_history[str(original_uid)]
             
         print(f"\n--- User Profile ({len(history_urls)} interactions) ---")
-        
-        cats = [url_to_meta.get(u, {}).get('cat', 'Unknown') for u in history_urls]
-        user_top_cats = set()
-        if cats:
-            print("Top Categories:")
-            total = len(cats)
-            for c, count in Counter(cats).most_common(3):
-                print(f"   - {c}: {count} ({count/total:.1%})")
-                user_top_cats.add(c)
 
         # --- RECOMMENDATIONS ---
         u_vec = user_emb[user_idx].unsqueeze(0)
         scores = (u_vec @ article_emb.T).squeeze(0)
-        
-        # Re-Ranking Boost
-        if rerank and user_top_cats:
-            print(f"\n[INFO] Boosting Top Categories: {user_top_cats} by 1.5x")
-            boost_mask = torch.ones_like(scores)
-            for i in range(len(scores)):
-                url = idx_to_article[i]
-                cat = url_to_meta.get(url, {}).get('cat', 'Unknown')
-                if cat in user_top_cats:
-                    boost_mask[i] = 1.5
-            scores = scores * boost_mask
         
         # Filter seen
         seen_indices = []
@@ -143,29 +121,25 @@ def inspect(data_dir, articles_path, replies_path, rerank=False):
         values = topk.values.tolist()
         
         print(f"\n--- Top 10 Recommendations ---")
-        rec_cats = [url_to_meta.get(idx_to_article[i], {}).get('cat', 'Unknown') for i in indices]
         rec_pops = [article_pop.get(idx_to_article[i], 0) for i in indices]
         
         # METRICS
         avg_pop = sum(rec_pops) / 10
-        matches = sum(1 for c in rec_cats if c in user_top_cats)
-        match_rate = matches / 10
         
-        print(f"METRICS:\n   - Avg Popularity: {avg_pop:.1f} (Lower is more niche)\n   - Category Match: {match_rate:.0%} (Higher is better)")
+        print(f"METRICS:\n   - Avg Popularity: {avg_pop:.1f} (Lower is more niche)")
         print("-" * 40)
             
         for rank, (idx, score) in enumerate(zip(indices, values), 1):
             url = idx_to_article[idx]
-            meta = url_to_meta.get(url, {'title': 'Unknown', 'desc': '', 'cat': '?'})
+            meta = url_to_meta.get(url, {'title': 'Unknown', 'desc': ''})
             pop = article_pop.get(url, 0)
-            print(f"{rank}. [{score:.4f}] [Pop:{pop}] [{meta['cat']}] {meta['title']}")
+            print(f"{rank}. [{score:.4f}] [Pop:{pop}] {meta['title']}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--data-dir', default='data/processed_phobert')
     parser.add_argument('--articles', default='data/raw/articles.csv')
     parser.add_argument('--replies', default='data/raw/replies.csv')
-    parser.add_argument('--rerank', action='store_true', help='Apply category-based re-ranking to mitigate popularity bias')
     args = parser.parse_args()
     
-    inspect(args.data_dir, args.articles, args.replies, args.rerank)
+    inspect(args.data_dir, args.articles, args.replies)

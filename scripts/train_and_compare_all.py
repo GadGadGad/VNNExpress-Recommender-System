@@ -58,18 +58,22 @@ def run_gnn_model(model_name, epochs=50):
     output = result.stdout + result.stderr
     
     # Parse all available metrics from GNN output (table format)
+    # GNN outputs in format: "Metric               Value" (variable whitespace)
     import re
     metrics = {}
     
-    # GNN outputs in format: "Metric     Value"
-    for metric_name, key in [('Recall@10', 'recall'), ('NDCG@10', 'ndcg'), 
-                              ('HitRate@10', 'hitrate'), ('Precision@10', 'precision'),
-                              ('MRR@10', 'mrr')]:
-        match = re.search(rf"{metric_name}\s+([\d.]+)", output)
-        metrics[key] = float(match.group(1)) if match else 0.0
+    for k in [1, 5, 10]:
+        match = re.search(rf"Recall@{k}\s+([\d.]+)", output)
+        metrics[f'recall@{k}'] = float(match.group(1)) if match else 0.0
+        
+        match = re.search(rf"NDCG@{k}\s+([\d.]+)", output)
+        metrics[f'ndcg@{k}'] = float(match.group(1)) if match else 0.0
+        
+        match = re.search(rf"HitRate@{k}\s+([\d.]+)", output)
+        metrics[f'hitrate@{k}'] = float(match.group(1)) if match else 0.0
     
-    # mAP is not in GNN output, estimate from other metrics
-    metrics['map'] = metrics.get('ndcg', 0) * 0.8  # Approximate
+    match = re.search(r"MRR@10\s+([\d.]+)", output)
+    metrics['mrr'] = float(match.group(1)) if match else 0.0
     
     return metrics
 

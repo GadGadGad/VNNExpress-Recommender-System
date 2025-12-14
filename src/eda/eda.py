@@ -16,14 +16,8 @@ def run_eda(articles_path, replies_path, output_dir='plots'):
     # Clean Replies
     replies = replies[replies['parent_user_id'] != 'NO_COMMENT']
 
-    # --- 1. Category Distribution ---
-    plt.figure(figsize=(12, 6))
-    top_cats = articles['category'].value_counts().head(15)
-    sns.barplot(x=top_cats.values, y=top_cats.index, hue=top_cats.index, legend=False, palette='viridis')
-    plt.title('Top 15 Categories')
-    plt.tight_layout()
-    plt.savefig(f'{output_dir}/1_category_dist.png')
-    print(f"Saved: {output_dir}/1_category_dist.png")
+    # --- 1. Article Count Summary ---
+    print(f"Total Articles: {len(articles)}")
 
     # --- 2. Comments per Article (Long Tail) ---
     comments_per_article = replies['article_url'].value_counts()

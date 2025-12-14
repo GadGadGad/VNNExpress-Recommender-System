@@ -5,7 +5,7 @@ This script provides comprehensive graph construction options for GNN training:
 
 1. User-Article Bipartite Graph (for recommendations)
 2. User-User Graph (based on shared article interactions)
-3. Article-Article Graph (based on shared commenters / same category)
+3. Article-Article Graph (based on shared commenters)
 4. Full Heterogeneous Graph (all node types and relations)
 
 Supports:
@@ -70,7 +70,7 @@ class GNNDataConverter:
         
         self.user_map = {}
         self.article_map = {}
-        self.category_encoder = None
+
         
         self._load_data()
         
@@ -149,13 +149,10 @@ class GNNDataConverter:
         self.replies['user_idx'] = self.replies['user_id'].map(self.user_map)
         self.replies['article_idx'] = self.replies['article_url'].map(self.article_map)
         
-        self.category_encoder = LabelEncoder()
-        self.articles['category_idx'] = self.category_encoder.fit_transform(self.articles['category'])
         
         print(f"\nGraph Statistics:")
         print(f"   Users: {len(self.user_map):,}")
         print(f"   Articles: {len(self.article_map):,}")
-        print(f"   Categories: {len(self.category_encoder.classes_)}")
         print(f"   Edges (interactions): {len(self.replies):,}")
         
     def _save_mappings(self):
@@ -164,8 +161,6 @@ class GNNDataConverter:
             json.dump(self.user_map, f)
         with open(self.output_dir / 'article_map.json', 'w') as f:
             json.dump(self.article_map, f)
-        with open(self.output_dir / 'category_classes.json', 'w') as f:
-            json.dump(list(self.category_encoder.classes_), f)
         print(f"   [OK] Saved mappings to {self.output_dir}")
             
     def _create_user_features(self) -> torch.Tensor:
@@ -178,8 +173,6 @@ class GNNDataConverter:
         return features
     
     def _create_article_features(self) -> torch.Tensor:
-
-
         """Create article node features."""
         if self.use_phobert:
             print("   -> Using PhoBERT embeddings (Projected to hidden_dim)...")
@@ -202,35 +195,8 @@ class GNNDataConverter:
             torch.manual_seed(42)
             proj = torch.nn.Linear(768, self.hidden_dim)
             return proj(full_emb).detach()
-            
-
-        if self.use_phobert:
-            print("   -> Using PhoBERT embeddings (Projected to hidden_dim)...")
-            emb_path = self.output_dir / 'phobert_embeddings.pt'
-            if not emb_path.exists():
-                raise FileNotFoundError(f"Run generate_embeddings.py first!")
-            emb_dict = torch.load(emb_path)
-            
-            features = []
-            zeros = 0
-            for url in self.articles['url']:
-                if url in emb_dict:
-                    features.append(emb_dict[url])
-                else:
-                    features.append(torch.randn(768)*0.1)
-                    zeros += 1
-            if zeros > 0: print(f"      [WARN] {zeros} missing embeddings")
-            
-            full_emb = torch.stack(features)
-            torch.manual_seed(42)
-            proj = torch.nn.Linear(768, self.hidden_dim)
-            return proj(full_emb).detach()
-            
 
         num_articles = len(self.article_map)
-        
-        cat_tensor = torch.tensor(self.articles['category_idx'].values)
-        cat_one_hot = F.one_hot(cat_tensor, num_classes=len(self.category_encoder.classes_)).float()
         
         if self.add_text_features:
             print("   → Adding text features (TF-IDF)...")
@@ -239,16 +205,14 @@ class GNNDataConverter:
             text_features = tfidf.fit_transform(titles).toarray()
             text_tensor = torch.tensor(text_features, dtype=torch.float32)
             
-            combined = torch.cat([cat_one_hot, text_tensor], dim=1)
-            
-            projector = torch.nn.Linear(combined.shape[1], self.hidden_dim)
-            features = projector(combined).detach()
+            projector = torch.nn.Linear(text_tensor.shape[1], self.hidden_dim)
+            features = projector(text_tensor).detach()
         else:
-            # Project category one-hot to hidden_dim
-            projector = torch.nn.Linear(cat_one_hot.shape[1], self.hidden_dim)
-            features = projector(cat_one_hot).detach()
+            # Use random initialization (no category available)
+            features = torch.randn(num_articles, self.hidden_dim)
         
         return features
+
     
     def build_user_article_graph(self) -> 'HeteroData':
         """
@@ -373,37 +337,27 @@ class GNNDataConverter:
                         break
                         
         elif strategy == 'hard':
-            print("   -> Hard negative sampling (same category)...")
+            # Hard negative sampling now falls back to popularity-based
+            # (category column no longer available)
+            print("   -> Hard negative sampling (using popularity-based as fallback)...")
+            article_counts = self.replies['article_idx'].value_counts()
+            article_probs = article_counts / article_counts.sum()
+            popular_articles = article_probs.index.values
+            probs = article_probs.values
             
-            article_to_cat = {}
-            cat_to_articles = defaultdict(list)
+            user_indices = self.replies['user_idx'].unique()
             
-            for url, cat_idx in zip(self.articles['url'], self.articles['category_idx']):
-                if url in self.article_map:
-                    art_idx = self.article_map[url]
-                    article_to_cat[art_idx] = cat_idx
-                    cat_to_articles[cat_idx].append(art_idx)
-            
-            for _, row in tqdm(self.replies.iterrows(), total=len(self.replies), 
-                             desc="   Generating hard negatives"):
-                user_idx = int(row['user_idx'])
-                art_idx = int(row['article_idx'])
-                
-                if art_idx in article_to_cat:
-                    cat = article_to_cat[art_idx]
-                    same_cat_articles = cat_to_articles[cat]
-                    
-                    for _ in range(num_negatives):
-                        for _ in range(10):  # Max attempts
-                            neg_art = np.random.choice(same_cat_articles)
-                            if (user_idx, neg_art) not in positive_set:
-                                neg_users.append(user_idx)
-                                neg_articles.append(neg_art)
-                                break
-                        
-                        if len(neg_users) >= num_neg_samples:
+            for _ in tqdm(range(num_negatives), desc="   Generating negatives"):
+                for user_idx in user_indices:
+                    for _ in range(10):  # Max attempts per user
+                        article_idx = np.random.choice(popular_articles, p=probs)
+                        if (user_idx, article_idx) not in positive_set:
+                            neg_users.append(user_idx)
+                            neg_articles.append(article_idx)
                             break
-                
+                    
+                    if len(neg_users) >= num_neg_samples:
+                        break
                 if len(neg_users) >= num_neg_samples:
                     break
         
@@ -590,13 +544,12 @@ class GNNDataConverter:
         
         return data
     
-    def build_article_article_graph(self, method: str = 'category') -> 'Data':
+    def build_article_article_graph(self, method: str = 'users') -> 'Data':
         """
         Build Article-Article graph.
         
         Methods:
-            - 'category': Connect articles in the same category
-            - 'users': Connect articles with shared commenters
+            - 'users': Connect articles with shared commenters (default)
         """
         print(f"\nBuilding Article-Article Graph (method={method})...")
         
@@ -608,40 +561,24 @@ class GNNDataConverter:
         edges = []
         weights = []
         
-        if method == 'category':
-            # Group articles by category
-            category_articles = self.articles.groupby('category_idx').apply(
-                lambda x: [self.article_map.get(url) for url in x['url'] if url in self.article_map]
-            ).to_dict()
+        # Find users who commented on each article
+        article_users = self.replies.groupby('article_idx')['user_idx'].apply(set).to_dict()
+        article_ids = list(article_users.keys())
+        
+        print("   → Connecting articles by shared users...")
+        for i in tqdm(range(len(article_ids)), desc="   Processing articles"):
+            a1 = article_ids[i]
+            users_a1 = article_users[a1]
             
-            print("   → Connecting articles by category...")
-            for cat, article_list in tqdm(category_articles.items(), desc="   Processing categories"):
-                article_list = [a for a in article_list if a is not None]
-                for i, a1 in enumerate(article_list):
-                    for a2 in article_list[i+1:]:
-                        edges.append([a1, a2])
-                        edges.append([a2, a1])
-                        weights.extend([1.0, 1.0])
-                        
-        elif method == 'users':
-            # Find users who commented on each article
-            article_users = self.replies.groupby('article_idx')['user_idx'].apply(set).to_dict()
-            article_ids = list(article_users.keys())
-            
-            print("   → Connecting articles by shared users...")
-            for i in tqdm(range(len(article_ids)), desc="   Processing articles"):
-                a1 = article_ids[i]
-                users_a1 = article_users[a1]
+            for j in range(i + 1, len(article_ids)):
+                a2 = article_ids[j]
+                users_a2 = article_users[a2]
                 
-                for j in range(i + 1, len(article_ids)):
-                    a2 = article_ids[j]
-                    users_a2 = article_users[a2]
-                    
-                    shared = len(users_a1 & users_a2)
-                    if shared >= 1:
-                        edges.append([a1, a2])
-                        edges.append([a2, a1])
-                        weights.extend([shared, shared])
+                shared = len(users_a1 & users_a2)
+                if shared >= 1:
+                    edges.append([a1, a2])
+                    edges.append([a2, a1])
+                    weights.extend([shared, shared])
         
         if not edges:
             print("   No edges found!")
@@ -673,11 +610,9 @@ class GNNDataConverter:
         Nodes:
             - user: Commenting users
             - article: News articles
-            - category: Article categories
         
         Edges:
             - (user, comments, article)
-            - (article, belongs_to, category)
             - (user, interacts_with, user) - shared article interactions
         """
         print("\nBuilding Full Heterogeneous Graph...")
@@ -697,27 +632,11 @@ class GNNDataConverter:
         # Articles  
         data['article'].x = self._create_article_features()
         
-        # Categories
-        num_cats = len(self.category_encoder.classes_)
-        data['category'].x = torch.eye(num_cats)  # One-hot identity
-        
         # ===== EDGES =====
         # User -> Article (comments)
         src = torch.tensor(self.replies['user_idx'].values, dtype=torch.long)
         dst = torch.tensor(self.replies['article_idx'].values, dtype=torch.long)
         data['user', 'comments', 'article'].edge_index = torch.stack([src, dst])
-        
-        # Article -> Category (belongs_to)
-        article_indices = []
-        category_indices = []
-        for url, cat_idx in zip(self.articles['url'], self.articles['category_idx']):
-            if url in self.article_map:
-                article_indices.append(self.article_map[url])
-                category_indices.append(cat_idx)
-        
-        data['article', 'belongs_to', 'category'].edge_index = torch.tensor(
-            [article_indices, category_indices], dtype=torch.long
-        )
         
         # User -> User (shared articles, min 2)
         user_articles = self.replies.groupby('user_idx')['article_idx'].apply(set).to_dict()
@@ -746,7 +665,6 @@ class GNNDataConverter:
         
         print(f"   [OK] User nodes: {data['user'].x.shape}")
         print(f"   [OK] Article nodes: {data['article'].x.shape}")
-        print(f"   [OK] Category nodes: {data['category'].x.shape}")
         print(f"   [OK] Saved to: {save_path}")
         
         return data
@@ -768,9 +686,7 @@ class GNNDataConverter:
                 G.add_node(f"u_{idx}", node_type='user', original_id=user_id)
             
             for article_url, idx in self.article_map.items():
-                cat = self.articles[self.articles['url'] == article_url]['category'].values
-                cat = cat[0] if len(cat) > 0 else 'unknown'
-                G.add_node(f"a_{idx}", node_type='article', category=cat)
+                G.add_node(f"a_{idx}", node_type='article')
             
             # Add edges
             for _, row in self.replies.iterrows():
