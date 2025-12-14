@@ -28,47 +28,39 @@ import scipy.sparse as sp
 class LightGCLWrapper:
     """Wrapper that handles LightGCL's special requirements (SVD, adj_norm)."""
     
-    def __init__(self, n_users, n_items, embed_dim=64, n_layers=3, device='cpu'):
+    def __init__(self, n_users, n_items, embed_dim=64, n_layers=3, device='cpu',
+                 svd_q=20, ssl_weight=0.1, temp=0.2):
         self.n_users = n_users
         self.n_items = n_items
         self.device = device
-        self.model = LightGCL(n_users, n_items, embed_dim, n_layers)
+        self.model = LightGCL(n_users, n_items, embed_dim, n_layers, 
+                              svd_q=svd_q, ssl_weight=ssl_weight, temp=temp)
         self.adj_norm = None
         
     def setup(self, train_pairs):
-        """Create adjacency matrix and compute SVD."""
-        # Create interaction matrix
+        """Create normalized interaction matrix and compute SVD."""
         row = np.array([u for u, i in train_pairs])
         col = np.array([i for u, i in train_pairs])
-        data = np.ones(len(train_pairs))
-        R = sp.csr_matrix((data, (row, col)), shape=(self.n_users, self.n_items))
+        data = np.ones(len(train_pairs), dtype=np.float32)
+        R = sp.coo_matrix((data, (row, col)), shape=(self.n_users, self.n_items))
         
-        # Compute SVD
-        self.model.compute_svd(R)
+        rowD = np.array(R.sum(1)).squeeze()
+        colD = np.array(R.sum(0)).squeeze()
+        rowD[rowD == 0] = 1
+        colD[colD == 0] = 1
         
-        # Create bipartite adjacency matrix
-        adj_size = self.n_users + self.n_items
-        adj_mat = sp.dok_matrix((adj_size, adj_size), dtype=np.float32)
-        adj_mat[:self.n_users, self.n_users:] = R
-        adj_mat[self.n_users:, :self.n_users] = R.T
-        adj_mat = adj_mat.tocsr()
+        R_coo = R.tocoo()
+        normalized_data = np.zeros_like(R_coo.data)
+        for i in range(len(R_coo.data)):
+            normalized_data[i] = R_coo.data[i] / np.sqrt(rowD[R_coo.row[i]] * colD[R_coo.col[i]])
         
-        # Symmetric normalization
-        rowsum = np.array(adj_mat.sum(1)).flatten()
-        d_inv_sqrt = np.power(rowsum, -0.5)
-        d_inv_sqrt[np.isinf(d_inv_sqrt)] = 0.
-        d_mat_inv_sqrt = sp.diags(d_inv_sqrt)
-        norm_adj = d_mat_inv_sqrt @ adj_mat @ d_mat_inv_sqrt
+        indices = torch.LongTensor(np.array([R_coo.row, R_coo.col]))
+        values = torch.FloatTensor(normalized_data)
+        shape = torch.Size(R_coo.shape)
+        self.adj_norm = torch.sparse_coo_tensor(indices, values, shape).coalesce().to(self.device)
         
-        # Convert to sparse tensor
-        norm_adj = norm_adj.tocoo()
-        indices = torch.LongTensor(np.array([norm_adj.row, norm_adj.col]))
-        values = torch.FloatTensor(norm_adj.data)
-        shape = torch.Size(norm_adj.shape)
-        self.adj_norm = torch.sparse_coo_tensor(indices, values, shape).to(self.device)
-        
-        # Move model to device
         self.model.to_device(self.device)
+        self.model.compute_svd(self.adj_norm)
         
     def to(self, device):
         self.device = device
@@ -90,17 +82,17 @@ class LightGCLWrapper:
         return self.model.load_state_dict(state_dict)
     
     def forward(self, edge_index=None):
-        return self.model.forward(self.adj_norm)
+        E_u, E_i, _, _ = self.model.forward(self.adj_norm)
+        return E_u, E_i
     
     def __call__(self, edge_index=None):
         return self.forward(edge_index)
     
     def bpr_loss(self, users, pos_items, neg_items, edge_index):
-        """Wrapper for LightGCL's calculate_loss."""
         total_loss, bpr, reg, ssl = self.model.calculate_loss(
             self.adj_norm, users, pos_items, neg_items
         )
-        return total_loss, reg
+        return total_loss, torch.tensor(0.0, device=total_loss.device)
 
 
 def load_data(data_path, min_interactions=2):
@@ -354,6 +346,10 @@ def main():
     parser.add_argument('--n-layers', type=int, default=3)
     parser.add_argument('--patience', type=int, default=10)
     parser.add_argument('--device', default='cuda' if torch.cuda.is_available() else 'cpu')
+    # LightGCL-specific parameters
+    parser.add_argument('--svd-q', type=int, default=20, help='LightGCL: SVD components (default: 20)')
+    parser.add_argument('--ssl-weight', type=float, default=0.1, help='LightGCL: SSL loss weight (default: 0.1)')
+    parser.add_argument('--temp', type=float, default=0.2, help='LightGCL: Temperature for contrastive loss (default: 0.2)')
     
     args = parser.parse_args()
     device = torch.device(args.device)
@@ -377,7 +373,9 @@ def main():
         'sgl': lambda: SGL(n_users, n_items, args.hidden_dim, args.n_layers),
         'simgcl': lambda: SimGCL(n_users, n_items, args.hidden_dim, args.n_layers),
         'ncl': lambda: NCL(n_users, n_items, args.hidden_dim, args.n_layers),
-        'lightgcl': lambda: LightGCLWrapper(n_users, n_items, args.hidden_dim, args.n_layers, device=args.device),
+        'lightgcl': lambda: LightGCLWrapper(n_users, n_items, args.hidden_dim, args.n_layers, 
+                                              device=args.device, svd_q=args.svd_q, 
+                                              ssl_weight=args.ssl_weight, temp=args.temp),
     }
     
     model = models_map[args.model]()
@@ -411,6 +409,8 @@ def main():
     print(f"  NDCG@1:     {best_metrics.get('ndcg@1', 0):.4f}")
     print(f"  NDCG@5:     {best_metrics.get('ndcg@5', 0):.4f}")
     print(f"  NDCG@10:    {best_metrics.get('ndcg@10', 0):.4f}")
+    print(f"  HitRate@1:  {best_metrics.get('hitrate@1', 0):.4f}")
+    print(f"  HitRate@5:  {best_metrics.get('hitrate@5', 0):.4f}")
     print(f"  HitRate@10: {best_metrics.get('hitrate@10', 0):.4f}")
     print(f"  MRR:        {best_metrics.get('mrr', 0):.4f}")
 

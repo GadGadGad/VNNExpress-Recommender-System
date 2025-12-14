@@ -24,21 +24,18 @@ def run_cf_model(model_name, epochs=50):
     result = subprocess.run(cmd, capture_output=True, text=True)
     output = result.stdout + result.stderr
     
-    # Parse multi-k metrics from "Best Metrics:" section
     import re
     metrics = {}
     
-    # Parse Recall@1, @5, @10
     for k in [1, 5, 10]:
         match = re.search(rf"Recall@{k}:\s+([\d.]+)", output)
         metrics[f'recall@{k}'] = float(match.group(1)) if match else 0.0
         
         match = re.search(rf"NDCG@{k}:\s+([\d.]+)", output)
         metrics[f'ndcg@{k}'] = float(match.group(1)) if match else 0.0
-    
-    # HitRate and MRR
-    match = re.search(r"HitRate@10:\s+([\d.]+)", output)
-    metrics['hitrate@10'] = float(match.group(1)) if match else 0.0
+        
+        match = re.search(rf"HitRate@{k}:\s+([\d.]+)", output)
+        metrics[f'hitrate@{k}'] = float(match.group(1)) if match else 0.0
     
     match = re.search(r"MRR:\s+([\d.]+)", output)
     metrics['mrr'] = float(match.group(1)) if match else 0.0
@@ -183,15 +180,18 @@ def main():
     results = []
     
     def add_result(model_name, model_type, metrics):
-        """Helper to add result with all metrics."""
         results.append({
             'Model': model_name.upper(),
             'Type': model_type,
-            'R@1': f"{metrics.get('recall@1', metrics.get('recall', 0)*0.3):.3f}",
-            'R@5': f"{metrics.get('recall@5', metrics.get('recall', 0)*0.7):.3f}",
-            'R@10': f"{metrics.get('recall@10', metrics.get('recall', 0)):.3f}",
-            'N@10': f"{metrics.get('ndcg@10', metrics.get('ndcg', 0)):.3f}",
-            'HR@10': f"{metrics.get('hitrate@10', metrics.get('hitrate', 0)):.3f}",
+            'R@1': f"{metrics.get('recall@1', 0):.3f}",
+            'R@5': f"{metrics.get('recall@5', 0):.3f}",
+            'R@10': f"{metrics.get('recall@10', 0):.3f}",
+            'N@1': f"{metrics.get('ndcg@1', 0):.3f}",
+            'N@5': f"{metrics.get('ndcg@5', 0):.3f}",
+            'N@10': f"{metrics.get('ndcg@10', 0):.3f}",
+            'HR@1': f"{metrics.get('hitrate@1', 0):.3f}",
+            'HR@5': f"{metrics.get('hitrate@5', 0):.3f}",
+            'HR@10': f"{metrics.get('hitrate@10', 0):.3f}",
             'MRR': f"{metrics.get('mrr', 0):.3f}"
         })
     
