@@ -48,6 +48,7 @@ crawlers/*.log
 # --- Exception ---
 !src/models/
 !src/models/.gitkeep
+!src/data/
 
 # --- System Files ---
 Thumbs.db
