@@ -52,6 +52,7 @@ class CrawledDataEDA:
         self.articles = self._load_articles()
         self.replies = self._load_replies()
         self.users = self._load_users()
+        self.metadata = self._load_metadata()
         
     def _load_articles(self):
         """Load and preprocess articles data."""
@@ -79,6 +80,18 @@ class CrawledDataEDA:
         print(f"   → {len(df):,} users loaded")
         return df
     
+    def _load_metadata(self):
+        """Load metadata (categories and tags)."""
+        path = self.data_dir / 'metadata.csv'
+        if path.exists():
+            print(f"Loading metadata from {path}...")
+            df = pd.read_csv(path)
+            print(f"   → {len(df):,} metadata entries loaded")
+            return df
+        else:
+            print(f"   [SKIP] metadata.csv not found")
+            return None
+    
     def print_basic_stats(self):
         """Print basic statistics about the datasets."""
         print("\n" + "=" * 60)
@@ -89,7 +102,6 @@ class CrawledDataEDA:
         print("\n--- Articles Dataset ---")
         print(f"Total articles: {len(self.articles):,}")
         print(f"Columns: {list(self.articles.columns)}")
-        print(f"Categories: {self.articles['category'].nunique()}")
         print(f"Unique authors: {self.articles['author'].nunique()}")
         
         # Replies stats
@@ -107,25 +119,74 @@ class CrawledDataEDA:
         print("\n--- Users Dataset ---")
         print(f"Total user profiles: {len(self.users):,}")
     
-    def analyze_categories(self):
-        """Analyze article category distribution."""
-        print("\nAnalyzing category distribution...")
+    def analyze_tags(self):
+        """Analyze article tags distribution."""
+        # Check if tags column exists in articles
+        if 'tags' not in self.articles.columns:
+            print("\n[SKIP] Tags analysis - 'tags' column not in articles.csv")
+            print("       (Tags may be in metadata.csv instead)")
+            return
+        
+        print("\nAnalyzing tags distribution...")
+        
+        # Parse tags (they are stored as string representation of lists)
+        import ast
+        
+        all_tags = []
+        for tags_str in self.articles['tags'].fillna('[]'):
+            try:
+                tags_list = ast.literal_eval(tags_str) if isinstance(tags_str, str) else []
+                all_tags.extend(tags_list)
+            except:
+                pass
+        
+        if not all_tags:
+            print("   No tags found to analyze.")
+            return
+        
+        from collections import Counter
+        tag_counts = Counter(all_tags)
+        
+        fig, ax = plt.subplots(figsize=(12, 8))
+        
+        # Top 20 tags
+        top_tags = dict(tag_counts.most_common(20))
+        
+        bars = ax.barh(list(top_tags.keys())[::-1], list(top_tags.values())[::-1], 
+                      color=plt.cm.viridis(np.linspace(0, 0.8, len(top_tags))))
+        ax.set_xlabel('Number of Articles')
+        ax.set_title('Top 20 Article Tags')
+        ax.bar_label(bars, fmt='%d', padding=3, fontsize=9)
+        
+        plt.tight_layout()
+        plt.savefig(self.output_dir / 'eda_01_tags_distribution.png', dpi=150, bbox_inches='tight')
+        print(f"   [OK] Saved: {self.output_dir}/eda_01_tags_distribution.png")
+        plt.close()
+    
+    def analyze_metadata_categories(self):
+        """Analyze category distribution from metadata.csv."""
+        if self.metadata is None:
+            print("   [SKIP] No metadata available")
+            return
+        
+        print("\nAnalyzing category distribution (from metadata)...")
         
         fig, axes = plt.subplots(1, 2, figsize=(16, 7))
         
         # Top 15 categories
-        top_cats = self.articles['category'].value_counts().head(15)
+        top_cats = self.metadata['category'].value_counts().head(15)
         
         ax1 = axes[0]
-        bars = ax1.barh(top_cats.index[::-1], top_cats.values[::-1], color=plt.cm.viridis(np.linspace(0, 0.8, 15)))
+        bars = ax1.barh(top_cats.index[::-1], top_cats.values[::-1], 
+                       color=plt.cm.viridis(np.linspace(0, 0.8, 15)))
         ax1.set_xlabel('Number of Articles')
         ax1.set_title('Top 15 Article Categories')
         ax1.bar_label(bars, fmt='%d', padding=3, fontsize=9)
         
         # Category pie chart (top 10 + Others)
         ax2 = axes[1]
-        top_10 = self.articles['category'].value_counts().head(10)
-        others = self.articles['category'].value_counts()[10:].sum()
+        top_10 = self.metadata['category'].value_counts().head(10)
+        others = self.metadata['category'].value_counts()[10:].sum()
         pie_data = pd.concat([top_10, pd.Series({'Others': others})])
         
         wedges, texts, autotexts = ax2.pie(
@@ -138,8 +199,112 @@ class CrawledDataEDA:
         ax2.set_title('Category Distribution (Top 10 + Others)')
         
         plt.tight_layout()
-        plt.savefig(self.output_dir / 'eda_01_category_distribution.png', dpi=150, bbox_inches='tight')
-        print(f"   [OK] Saved: {self.output_dir}/eda_01_category_distribution.png")
+        plt.savefig(self.output_dir / 'eda_09_metadata_categories.png', dpi=150, bbox_inches='tight')
+        print(f"   [OK] Saved: {self.output_dir}/eda_09_metadata_categories.png")
+        plt.close()
+    
+    def analyze_metadata_tags(self):
+        """Analyze tags distribution from metadata.csv."""
+        if self.metadata is None:
+            print("   [SKIP] No metadata available")
+            return
+        
+        print("Analyzing tags distribution (from metadata)...")
+        
+        import ast
+        from collections import Counter
+        
+        all_tags = []
+        for tags_str in self.metadata['tags'].fillna('[]'):
+            try:
+                tags_list = ast.literal_eval(tags_str) if isinstance(tags_str, str) else []
+                all_tags.extend(tags_list)
+            except:
+                pass
+        
+        if not all_tags:
+            print("   No tags found in metadata.")
+            return
+        
+        tag_counts = Counter(all_tags)
+        
+        fig, axes = plt.subplots(1, 2, figsize=(16, 7))
+        
+        # Top 25 tags bar chart
+        ax1 = axes[0]
+        top_tags = dict(tag_counts.most_common(25))
+        bars = ax1.barh(list(top_tags.keys())[::-1], list(top_tags.values())[::-1], 
+                       color=plt.cm.plasma(np.linspace(0.2, 0.8, len(top_tags))))
+        ax1.set_xlabel('Number of Articles')
+        ax1.set_title('Top 25 Article Tags (from Metadata)')
+        ax1.bar_label(bars, fmt='%d', padding=3, fontsize=8)
+        
+        # Tag frequency distribution
+        ax2 = axes[1]
+        tag_freq = list(tag_counts.values())
+        ax2.hist(tag_freq, bins=50, color=COLORS['secondary'], edgecolor='white', alpha=0.8)
+        ax2.set_xlabel('Number of Articles per Tag')
+        ax2.set_ylabel('Number of Tags')
+        ax2.set_title(f'Tag Frequency Distribution\n({len(tag_counts):,} unique tags)')
+        ax2.set_yscale('log')
+        
+        plt.tight_layout()
+        plt.savefig(self.output_dir / 'eda_10_metadata_tags.png', dpi=150, bbox_inches='tight')
+        print(f"   [OK] Saved: {self.output_dir}/eda_10_metadata_tags.png")
+        plt.close()
+    
+    def analyze_engagement_by_category(self):
+        """Analyze engagement (comments) by category using metadata.csv."""
+        if self.metadata is None:
+            print("   [SKIP] No metadata available")
+            return
+        
+        print("Analyzing engagement by category (from metadata)...")
+        
+        # Merge metadata with replies to get category info
+        comments_per_article = self.replies.groupby('article_url').size().reset_index(name='comment_count')
+        
+        merged = self.metadata.merge(
+            comments_per_article, left_on='article_url', right_on='article_url', how='left'
+        )
+        merged['comment_count'] = merged['comment_count'].fillna(0)
+        
+        # Calculate average comments per category
+        category_engagement = merged.groupby('category').agg({
+            'comment_count': ['mean', 'sum', 'count']
+        }).round(2)
+        category_engagement.columns = ['avg_comments', 'total_comments', 'num_articles']
+        category_engagement = category_engagement.sort_values('avg_comments', ascending=False)
+        
+        fig, axes = plt.subplots(1, 2, figsize=(16, 7))
+        
+        # Top 15 categories by average comments
+        ax1 = axes[0]
+        top_15 = category_engagement.head(15)
+        bars = ax1.barh(range(len(top_15)), top_15['avg_comments'].values,
+                        color=plt.cm.viridis(np.linspace(0, 0.8, 15)))
+        ax1.set_yticks(range(len(top_15)))
+        ax1.set_yticklabels(top_15.index)
+        ax1.set_xlabel('Average Comments per Article')
+        ax1.set_title('Most Engaging Categories (by Avg Comments)')
+        ax1.invert_yaxis()
+        ax1.bar_label(bars, fmt='%.1f', padding=3, fontsize=9)
+        
+        # Top 15 by total comments
+        ax2 = axes[1]
+        top_15_total = category_engagement.nlargest(15, 'total_comments')
+        bars2 = ax2.barh(range(len(top_15_total)), top_15_total['total_comments'].values,
+                         color=plt.cm.plasma(np.linspace(0.2, 0.8, 15)))
+        ax2.set_yticks(range(len(top_15_total)))
+        ax2.set_yticklabels(top_15_total.index)
+        ax2.set_xlabel('Total Comments')
+        ax2.set_title('Categories with Most Total Comments')
+        ax2.invert_yaxis()
+        ax2.bar_label(bars2, fmt='%d', padding=3, fontsize=9)
+        
+        plt.tight_layout()
+        plt.savefig(self.output_dir / 'eda_11_engagement_by_category.png', dpi=150, bbox_inches='tight')
+        print(f"   [OK] Saved: {self.output_dir}/eda_11_engagement_by_category.png")
         plt.close()
     
     def analyze_comments_per_article(self):
@@ -415,54 +580,43 @@ class CrawledDataEDA:
         print(f"   [OK] Saved: {self.output_dir}/eda_07_author_productivity.png")
         plt.close()
     
-    def analyze_engagement_by_category(self):
-        """Analyze engagement (comments) by article category."""
-        print("Analyzing engagement by category...")
+    def analyze_engagement_overall(self):
+        """Analyze overall engagement patterns."""
+        print("Analyzing engagement patterns...")
         
-        # Merge articles with replies to get category info
-        article_urls = self.articles[['url', 'category']].copy()
         comments_per_article = self.replies.groupby('article_url').size().reset_index(name='comment_count')
-        comments_per_article = comments_per_article.rename(columns={'article_url': 'url'})
         
-        merged = article_urls.merge(comments_per_article, on='url', how='left')
+        # Merge with articles to get titles
+        merged = self.articles[['url', 'title']].merge(
+            comments_per_article, left_on='url', right_on='article_url', how='left'
+        )
         merged['comment_count'] = merged['comment_count'].fillna(0)
-        
-        # Calculate average comments per category
-        category_engagement = merged.groupby('category').agg({
-            'comment_count': ['mean', 'sum', 'count']
-        }).round(2)
-        category_engagement.columns = ['avg_comments', 'total_comments', 'num_articles']
-        category_engagement = category_engagement.sort_values('avg_comments', ascending=False)
         
         fig, axes = plt.subplots(1, 2, figsize=(16, 7))
         
-        # Top 15 categories by average comments
+        # Top 20 most commented articles
         ax1 = axes[0]
-        top_15 = category_engagement.head(15)
-        bars = ax1.barh(range(len(top_15)), top_15['avg_comments'].values,
-                        color=plt.cm.viridis(np.linspace(0, 0.8, 15)))
-        ax1.set_yticks(range(len(top_15)))
-        ax1.set_yticklabels(top_15.index)
-        ax1.set_xlabel('Average Comments per Article')
-        ax1.set_title('Most Engaging Categories (by Avg Comments)')
+        top_20 = merged.nlargest(20, 'comment_count')
+        bars = ax1.barh(range(len(top_20)), top_20['comment_count'].values,
+                        color=plt.cm.viridis(np.linspace(0, 0.8, 20)))
+        ax1.set_yticks(range(len(top_20)))
+        ax1.set_yticklabels([t[:40] + '...' if len(str(t)) > 40 else t for t in top_20['title']])
+        ax1.set_xlabel('Number of Comments')
+        ax1.set_title('Top 20 Most Commented Articles')
         ax1.invert_yaxis()
-        ax1.bar_label(bars, fmt='%.1f', padding=3, fontsize=9)
+        ax1.bar_label(bars, fmt='%d', padding=3, fontsize=9)
         
-        # Top 15 by total comments
+        # Comment count distribution
         ax2 = axes[1]
-        top_15_total = category_engagement.nlargest(15, 'total_comments')
-        bars2 = ax2.barh(range(len(top_15_total)), top_15_total['total_comments'].values,
-                         color=plt.cm.plasma(np.linspace(0.2, 0.8, 15)))
-        ax2.set_yticks(range(len(top_15_total)))
-        ax2.set_yticklabels(top_15_total.index)
-        ax2.set_xlabel('Total Comments')
-        ax2.set_title('Categories with Most Total Comments')
-        ax2.invert_yaxis()
-        ax2.bar_label(bars2, fmt='%d', padding=3, fontsize=9)
+        ax2.hist(merged['comment_count'], bins=50, color=plt.cm.plasma(0.5), edgecolor='white', alpha=0.8)
+        ax2.set_xlabel('Number of Comments')
+        ax2.set_ylabel('Number of Articles')
+        ax2.set_title('Distribution of Comments per Article')
+        ax2.set_yscale('log')
         
         plt.tight_layout()
-        plt.savefig(self.output_dir / 'eda_08_engagement_by_category.png', dpi=150, bbox_inches='tight')
-        print(f"   [OK] Saved: {self.output_dir}/eda_08_engagement_by_category.png")
+        plt.savefig(self.output_dir / 'eda_08_engagement_patterns.png', dpi=150, bbox_inches='tight')
+        print(f"   [OK] Saved: {self.output_dir}/eda_08_engagement_patterns.png")
         plt.close()
     
     def generate_summary_dashboard(self):
@@ -483,7 +637,6 @@ class CrawledDataEDA:
         Total Comments: {len(self.replies):,}
         Total Users: {len(self.users):,}
         
-        Categories: {self.articles['category'].nunique()}
         Authors: {self.articles['author'].nunique()}
         Commented Articles: {self.replies['article_url'].nunique():,}
         """
@@ -491,11 +644,11 @@ class CrawledDataEDA:
                  family='monospace', transform=ax1.transAxes)
         ax1.set_title('Key Metrics', fontweight='bold', fontsize=12)
         
-        # 2. Top 10 Categories
+        # 2. Top 10 Authors
         ax2 = fig.add_subplot(gs[0, 1:])
-        top_cats = self.articles['category'].value_counts().head(10)
-        ax2.barh(top_cats.index[::-1], top_cats.values[::-1], color=plt.cm.viridis(np.linspace(0, 0.8, 10)))
-        ax2.set_title('Top 10 Categories', fontweight='bold')
+        top_authors = self.articles['author'].value_counts().head(10)
+        ax2.barh(top_authors.index[::-1], top_authors.values[::-1], color=plt.cm.viridis(np.linspace(0, 0.8, 10)))
+        ax2.set_title('Top 10 Authors', fontweight='bold')
         ax2.set_xlabel('Articles')
         
         # 3. Comments per Article
@@ -566,13 +719,18 @@ class CrawledDataEDA:
         print("=" * 60)
         
         self.generate_summary_dashboard()
-        self.analyze_categories()
+        self.analyze_tags()
         self.analyze_comments_per_article()
         self.analyze_user_activity()
         self.analyze_reactions()
         self.analyze_text_length()
         self.analyze_reply_depth()
         self.analyze_author_productivity()
+        self.analyze_engagement_overall()
+        
+        # Metadata-based analysis (if metadata.csv exists)
+        self.analyze_metadata_categories()
+        self.analyze_metadata_tags()
         self.analyze_engagement_by_category()
         
         print("\n" + "=" * 60)

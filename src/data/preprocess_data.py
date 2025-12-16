@@ -4,7 +4,6 @@ import torch_geometric.transforms as T
 import os
 import json
 from torch_geometric.data import HeteroData
-from sklearn.preprocessing import LabelEncoder
 
 def process_and_save(articles_path, replies_path, output_dir='data/processed', hidden_dim=64):
     print("--- [Preprocess] Starting Data Pipeline ---")
@@ -45,13 +44,8 @@ def process_and_save(articles_path, replies_path, output_dir='data/processed', h
     # Features
     data['user'].x = torch.randn(len(unique_users), hidden_dim) # Random Init
 
-    le = LabelEncoder()
-    cat_encoded = le.fit_transform(articles['category'])
-    cat_one_hot = torch.nn.functional.one_hot(torch.tensor(cat_encoded), num_classes=len(le.classes_)).float()
-
-    # Project & Detach
-    projector = torch.nn.Linear(cat_one_hot.shape[1], hidden_dim)
-    data['article'].x = projector(cat_one_hot).detach()
+    # Article Features - Random Initialization (no category)
+    data['article'].x = torch.randn(len(unique_articles), hidden_dim)
 
     # Edges
     src = torch.tensor(replies['user_idx'].values, dtype=torch.long)

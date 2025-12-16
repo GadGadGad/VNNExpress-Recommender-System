@@ -5,7 +5,6 @@ import torch
 import torch.nn.functional as F
 import torch_geometric.transforms as T
 from torch_geometric.data import HeteroData
-from sklearn.preprocessing import LabelEncoder
 
 def load_data(articles_path, replies_path, hidden_dim=64):
     print(f"--- [Dataset] Loading data from {articles_path} & {replies_path} ---")
@@ -54,17 +53,8 @@ def load_data(articles_path, replies_path, hidden_dim=64):
     # Kích thước [Num_Users, 64] -> Nhẹ, không tốn VRAM
     data['user'].x = torch.randn(num_users, hidden_dim)
 
-    # Article Feature: Category One-Hot -> Projected -> Detached
-    le = LabelEncoder()
-    cat_encoded = le.fit_transform(articles['category'])
-    cat_one_hot = torch.nn.functional.one_hot(
-        torch.tensor(cat_encoded), num_classes=len(le.classes_)
-    ).float()
-
-    # Project từ số lượng category (vd: 15) lên hidden_dim (64)
-    # QUAN TRỌNG: .detach() để ngắt computational graph, tránh RuntimeError
-    projector = torch.nn.Linear(cat_one_hot.shape[1], hidden_dim)
-    data['article'].x = projector(cat_one_hot).detach()
+    # Article Feature: Random Initialization (no category)
+    data['article'].x = torch.randn(num_articles, hidden_dim)
 
     # --- EDGES ---
     src = torch.tensor(replies['user_idx'].values, dtype=torch.long)
