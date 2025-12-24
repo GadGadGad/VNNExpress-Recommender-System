@@ -75,13 +75,6 @@ class VnExpressCrawler:
         self.session = requests.Session()
         self.silent = False
 
-    def _log(self, message, level="info"):
-        """Helper to suppress logs if self.silent is True."""
-        if not self.silent:
-            if level == "info": log.info(message)
-            elif level == "warning": log.warning(message)
-            elif level == "error": log.error(message)
-
         # Use imported Cache
         self.cache = Cache(output_dir / ".cache", enabled=use_cache)
 
@@ -95,6 +88,13 @@ class VnExpressCrawler:
 
         self._load_seen()
         self._init_csvs()
+
+    def _log(self, message, level="info"):
+        """Helper to suppress logs if self.silent is True."""
+        if not self.silent:
+            if level == "info": log.info(message)
+            elif level == "warning": log.warning(message)
+            elif level == "error": log.error(message)
 
     def _load_seen(self):
         """Loads previously scraped URLs to enable resuming."""

@@ -18,7 +18,7 @@ from typing import Optional, Dict, Any, Set
 from playwright.sync_api import sync_playwright, Browser
 from bs4 import BeautifulSoup
 from contextlib import nullcontext
-from tqdm.auto import tqdm
+from tqdm import tqdm
 
 try:
     from playwright_stealth import stealth_sync
