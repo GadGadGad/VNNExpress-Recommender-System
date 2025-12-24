@@ -284,8 +284,7 @@ class VnExpressCrawler:
 
     def crawl(self, categories: list[str], pages: int = 2, workers: int = MAX_WORKERS, no_progress: bool = False, from_date: Optional[str] = None, to_date: Optional[str] = None, use_tqdm: bool = False):
         """Main crawl orchestration function."""
-        # Force no_progress if use_tqdm is True to avoid conflict
-        actual_no_progress = no_progress or use_tqdm
+        self.silent = use_tqdm
 
         def fetch_and_save_article(article_info):
             try:
@@ -351,7 +350,7 @@ class VnExpressCrawler:
                 total_tasks = len(categories_to_process) * pages
 
             if use_tqdm and not no_progress:
-                pbar1 = tqdm(total=total_tasks, desc="Discovering", file=sys.stderr, leave=True)
+                pbar1 = tqdm(total=total_tasks, desc="Discovering", file=sys.stderr, position=0, leave=True, dynamic_ncols=True)
             
             if date_range_mode:
                 log.info(f"Running in Date Range mode from [yellow]{from_date}[/yellow] to [yellow]{to_date}[/yellow]")
@@ -435,7 +434,7 @@ class VnExpressCrawler:
             
             pbar2 = None
             if use_tqdm and not no_progress:
-                pbar2 = tqdm(total=len(unique_new_articles), desc="Saving Articles", file=sys.stderr, leave=True)
+                pbar2 = tqdm(total=len(unique_new_articles), desc="Saving Articles", file=sys.stderr, position=0, leave=True, dynamic_ncols=True)
 
             if no_progress:
                 log.info(f"Saving {len(unique_new_articles)} articles (progress bar disabled)...")
