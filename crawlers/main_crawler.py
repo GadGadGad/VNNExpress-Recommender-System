@@ -358,7 +358,7 @@ class VnExpressCrawler:
                 total_tasks = len(categories_to_process) * pages
 
             if use_tqdm and not no_progress:
-                pbar1 = tqdm(total=total_tasks, desc="Discovering", file=sys.stderr, position=0, leave=True, dynamic_ncols=True)
+                pbar1 = tqdm(total=total_tasks, desc="Discovering", file=sys.stdout, position=0, leave=True, dynamic_ncols=True, ascii=True, mininterval=0.5)
             
             if date_range_mode:
                 log.info(f"Running in Date Range mode from [yellow]{from_date}[/yellow] to [yellow]{to_date}[/yellow]")
@@ -442,7 +442,7 @@ class VnExpressCrawler:
             
             pbar2 = None
             if use_tqdm and not no_progress:
-                pbar2 = tqdm(total=len(unique_new_articles), desc="Saving Articles", file=sys.stderr, position=0, leave=True, dynamic_ncols=True)
+                pbar2 = tqdm(total=len(unique_new_articles), desc="Saving Articles", file=sys.stdout, position=0, leave=True, dynamic_ncols=True, ascii=True, mininterval=0.5)
 
             if no_progress:
                 log.info(f"Saving {len(unique_new_articles)} articles (progress bar disabled)...")

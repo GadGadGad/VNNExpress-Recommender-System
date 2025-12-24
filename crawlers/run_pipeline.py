@@ -34,11 +34,25 @@ except ImportError as e:
 
 
 console = Console()
+
+# Check for use_tqdm early to setup logging
+use_tqdm_flag = "--use-tqdm" in sys.argv
+
+if use_tqdm_flag:
+    # Use standard StreamHandler instead of RichHandler to avoid TTY/escape code conflicts with tqdm
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(logging.Formatter("%(message)s"))
+    # Silence secondary libraries aggressively
+    logging.getLogger("requests").setLevel(logging.WARNING)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+else:
+    handler = rich.logging.RichHandler(console=console, rich_tracebacks=True, show_path=False, markup=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(message)s",
     datefmt="[%X]",
-    handlers=[rich.logging.RichHandler(console=console, rich_tracebacks=True, show_path=False, markup=True)]
+    handlers=[handler]
 )
 log = logging.getLogger(__name__)
 
