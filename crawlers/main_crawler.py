@@ -22,7 +22,7 @@ from bs4 import BeautifulSoup
 import concurrent.futures
 from typing import List, Optional, Tuple
 from contextlib import nullcontext
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from datetime import datetime
 try:
@@ -358,7 +358,8 @@ class VnExpressCrawler:
                 total_tasks = len(categories_to_process) * pages
 
             if use_tqdm and not no_progress:
-                pbar1 = tqdm(total=total_tasks, desc="Discovering", file=sys.stdout, position=0, leave=True, dynamic_ncols=True, ascii=True, mininterval=0.5)
+                print() # Ensure a fresh line for tqdm
+                pbar1 = tqdm(total=total_tasks, desc="Discovering", position=0, leave=True, dynamic_ncols=True, ascii=True)
             
             if date_range_mode:
                 log.info(f"Running in Date Range mode from [yellow]{from_date}[/yellow] to [yellow]{to_date}[/yellow]")
@@ -442,7 +443,8 @@ class VnExpressCrawler:
             
             pbar2 = None
             if use_tqdm and not no_progress:
-                pbar2 = tqdm(total=len(unique_new_articles), desc="Saving Articles", file=sys.stdout, position=0, leave=True, dynamic_ncols=True, ascii=True, mininterval=0.5)
+                print() # Ensure a fresh line for tqdm
+                pbar2 = tqdm(total=len(unique_new_articles), desc="Saving Articles", position=0, leave=True, dynamic_ncols=True, ascii=True)
 
             if no_progress:
                 log.info(f"Saving {len(unique_new_articles)} articles (progress bar disabled)...")
