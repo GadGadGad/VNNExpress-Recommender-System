@@ -72,8 +72,8 @@ def main(args):
             log.error("Date format is invalid. Please use D/M/Y (e.g., 01/01/2024).")
             sys.exit(1)
 
-    no_progress_value = not args.show_progress
-    if args.show_progress:
+    no_progress_value = not (args.show_progress or args.use_tqdm)
+    if args.show_progress and not args.use_tqdm:
         log.warning("[bold yellow]--show-progress is active. Console output for Step 1 & 3 may be messy.[/bold yellow]")
 
 

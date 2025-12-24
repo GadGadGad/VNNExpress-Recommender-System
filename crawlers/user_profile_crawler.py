@@ -349,6 +349,7 @@ if __name__ == "__main__":
     parser.add_argument("--input", "-i", default="data", help="Directory containing replies.csv")
     parser.add_argument("--no-cache", action="store_true", help="Disable caching")
     parser.add_argument("--workers", "-w", type=int, default=MAX_WORKERS, help=f"Workers (default: {MAX_WORKERS})")
+    parser.add_argument("--use-tqdm", action="store_true", help="Use tqdm progress bars instead of rich")
     args = parser.parse_args()
 
     console = Console()
@@ -367,7 +368,7 @@ if __name__ == "__main__":
     crawler = UserProfileCrawler(Path(args.input), console, use_cache=(not args.no_cache))
 
     try:
-        crawler.crawl_profiles(workers=args.workers)
+        crawler.crawl_profiles(workers=args.workers, use_tqdm=args.use_tqdm)
     except Exception as e:
         console.print_exception()
     finally:

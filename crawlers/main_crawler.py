@@ -513,6 +513,11 @@ if __name__ == "__main__":
         default=MAX_WORKERS,
         help=f"Number of parallel workers (default: {MAX_WORKERS})"
     )
+    parser.add_argument(
+        "--use-tqdm",
+        action="store_true",
+        help="Use tqdm progress bars instead of rich"
+    )
     args = parser.parse_args()
 
     if (args.from_date and not args.to_date) or (not args.from_date and args.to_date):
@@ -543,5 +548,7 @@ if __name__ == "__main__":
         args.pages,
         workers=args.workers,
         from_date=args.from_date,
-        to_date=args.to_date
+        to_date=args.to_date,
+        no_progress=False,
+        use_tqdm=args.use_tqdm
     )
