@@ -91,7 +91,9 @@ def main(args):
                     workers=args.workers,
                     from_date=from_date_arg,
                     to_date=to_date_arg,
-                    no_progress=no_progress_value
+                    no_progress=no_progress_value,
+                    use_tqdm=args.use_tqdm,
+                    console=console
                 )
                 console.log(f"[bold green]✅ Step '1. Discover Articles' completed successfully.[/bold green]\n")
             except Exception as e:
@@ -144,7 +146,8 @@ def main(args):
                     use_cache=(not args.no_cache),
                     workers=args.workers,
                     console=console,
-                    no_progress=no_progress_value
+                    no_progress=no_progress_value,
+                    use_tqdm=args.use_tqdm
                 )
                 console.log(f"[bold green]✅ Step '3. Enrich Users' completed successfully.[/bold green]\n")
             except Exception as e:
@@ -266,6 +269,12 @@ if __name__ == "__main__":
         "--show-progress",
         action="store_true",
         help="Show individual progress bars for Step 1 and 3 (can be messy)"
+    )
+
+    parser.add_argument(
+        "--use-tqdm",
+        action="store_true",
+        help="Use tqdm progress bars instead of rich (better for Kaggle)"
     )
 
     parsed_args = parser.parse_args()

@@ -22,6 +22,7 @@ from bs4 import BeautifulSoup
 import concurrent.futures
 from typing import List, Optional, Tuple
 from contextlib import nullcontext
+from tqdm import tqdm
 
 from datetime import datetime
 try:
@@ -281,7 +282,7 @@ class VnExpressCrawler:
         )
         console.print(Panel(summary, title="Discovery Summary", border_style="bold magenta", padding=(1, 2)))
 
-    def crawl(self, categories: list[str], pages: int = 2, workers: int = MAX_WORKERS, no_progress: bool = False, from_date: Optional[str] = None, to_date: Optional[str] = None):
+    def crawl(self, categories: list[str], pages: int = 2, workers: int = MAX_WORKERS, no_progress: bool = False, from_date: Optional[str] = None, to_date: Optional[str] = None, use_tqdm: bool = False):
         """Main crawl orchestration function."""
 
         def fetch_and_save_article(article_info):
@@ -340,6 +341,9 @@ class VnExpressCrawler:
                 categories_to_process = categories
 
 
+            if use_tqdm and not no_progress:
+                pbar1 = tqdm(total=len(categories_to_process) * pages, desc="Discovering") if not date_range_mode else tqdm(total=total_tasks, desc="Discovering")
+            
             if date_range_mode:
                 log.info(f"Running in Date Range mode from [yellow]{from_date}[/yellow] to [yellow]{to_date}[/yellow]")
                 date_ranges = self._split_date_ranges(from_date, to_date)
@@ -348,7 +352,9 @@ class VnExpressCrawler:
                     return
 
                 total_tasks = len(categories_to_process) * len(date_ranges) * pages
-                discover_task_id = progress.add_task(f"[cyan]Discovering (by date)...", total=total_tasks) if not no_progress else None
+                discover_task_id = None
+                if not no_progress and not use_tqdm:
+                    discover_task_id = progress.add_task(f"[cyan]Discovering (by date)...", total=total_tasks)
 
                 for category_id in categories_to_process:
                     log.info(f"Processing [cyan]Cate_ID {category_id}[/cyan]...")
@@ -360,29 +366,39 @@ class VnExpressCrawler:
                         articles_data = self.discover_articles(
                             category_id,
                             pages,
-                            progress_context=progress,
+                            progress_context=None if use_tqdm else progress,
                             task_id=discover_task_id,
                             from_ts=from_ts,
                             to_ts=to_ts
                         )
+                        if use_tqdm and not no_progress:
+                            pbar1.update(pages)
+                            
                         all_articles_data.extend(articles_data)
                         log.info(f" > Found {len(articles_data)} articles in this range.")
 
             else:
                 log.info("Running in Standard mode (latest articles).")
-                discover_task_id = progress.add_task(f"[cyan]Discovering articles...", total=len(categories_to_process) * pages) if not no_progress else None
+                discover_task_id = None
+                if not no_progress and not use_tqdm:
+                    discover_task_id = progress.add_task(f"[cyan]Discovering articles...", total=len(categories_to_process) * pages)
 
                 for category in categories_to_process:
                     log.info(f"Discovering articles in [cyan]{category}[/cyan]...")
                     articles_data = self.discover_articles(
                         category,
                         pages,
-                        progress_context=progress,
+                        progress_context=None if use_tqdm else progress,
                         task_id=discover_task_id
                     )
+                    if use_tqdm and not no_progress:
+                        pbar1.update(pages)
+                        
                     all_articles_data.extend(articles_data)
                     log.info(f" > Found {len(articles_data)} new articles in [cyan]{category}[/cyan].")
 
+            if use_tqdm and not no_progress:
+                pbar1.close()
 
             if not all_articles_data:
                 log.warning("No new articles found to crawl.")
@@ -404,10 +420,16 @@ class VnExpressCrawler:
                 self.print_summary()
                 return
 
-            crawl_task_id = progress.add_task(f"[green]Saving {len(unique_new_articles)} articles", total=len(unique_new_articles)) if not no_progress else None
+            crawl_task_id = None
+            if not no_progress and not use_tqdm:
+                crawl_task_id = progress.add_task(f"[green]Saving {len(unique_new_articles)} articles", total=len(unique_new_articles))
+            
+            pbar2 = None
+            if use_tqdm and not no_progress:
+                pbar2 = tqdm(total=len(unique_new_articles), desc="Saving Articles")
+
             if no_progress:
                 log.info(f"Saving {len(unique_new_articles)} articles (progress bar disabled)...")
-
 
             with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
                 results = executor.map(fetch_and_save_article, unique_new_articles)
@@ -417,13 +439,19 @@ class VnExpressCrawler:
                         pass
                 else:
                     for result in results:
-                        progress.update(crawl_task_id, advance=1)
+                        if use_tqdm:
+                            pbar2.update(1)
+                        else:
+                            progress.update(crawl_task_id, advance=1)
+            
+            if use_tqdm and not no_progress:
+                pbar2.close()
 
         log.info("Crawl complete.")
         self.print_summary()
 
 
-def run_as_import(categories: list[str], pages: int, output_dir_str: str, use_cache: bool, workers: int, from_date: Optional[str] = None, to_date: Optional[str] = None, no_progress: bool = True):
+def run_as_import(categories: list[str], pages: int, output_dir_str: str, use_cache: bool, workers: int, from_date: Optional[str] = None, to_date: Optional[str] = None, no_progress: bool = True, use_tqdm: bool = False):
     """
     Hàm này được gọi bởi script bên ngoài (pipeline)
     để chạy crawler trong cùng một tiến trình.
@@ -441,7 +469,8 @@ def run_as_import(categories: list[str], pages: int, output_dir_str: str, use_ca
         workers=workers,
         no_progress=no_progress,
         from_date=from_date,
-        to_date=to_date
+        to_date=to_date,
+        use_tqdm=use_tqdm
     )
 
 
