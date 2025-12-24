@@ -247,6 +247,7 @@ class UserProfileCrawler:
 
     def crawl_profiles(self, workers: int = MAX_WORKERS, no_progress: bool = False, use_tqdm: bool = False):
         """Main crawl loop."""
+        self.silent = use_tqdm
         unique_users = self._load_users_from_replies()
         if not unique_users:
             self.console.log("[yellow]No users found to process. Exiting.[/yellow]")
@@ -305,7 +306,7 @@ class UserProfileCrawler:
                 if no_progress:
                     for i, status in enumerate(results):
                         processed += status
-                        if (i + 1) % 50 == 0 and not use_tqdm:
+                        if (i + 1) % 50 == 0 and not self.silent:
                             self.console.log(f"Processed {i+1}/{total_to_crawl} users...")
                 else:
                     for status in results:

@@ -73,6 +73,14 @@ class VnExpressCrawler:
         self.output_dir = output_dir
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.session = requests.Session()
+        self.silent = False
+
+    def _log(self, message, level="info"):
+        """Helper to suppress logs if self.silent is True."""
+        if not self.silent:
+            if level == "info": log.info(message)
+            elif level == "warning": log.warning(message)
+            elif level == "error": log.error(message)
 
         # Use imported Cache
         self.cache = Cache(output_dir / ".cache", enabled=use_cache)
@@ -382,7 +390,7 @@ class VnExpressCrawler:
                             pbar1.update(pages)
                             
                         if not use_tqdm:
-                            log.info(f" > Found {len(articles_data)} articles in this range.")
+                            self._log(f" > Found {len(articles_data)} articles in this range.")
 
             else:
                 log.info("Running in Standard mode (latest articles).")
@@ -391,7 +399,7 @@ class VnExpressCrawler:
                     discover_task_id = progress.add_task(f"[cyan]Discovering articles...", total=len(categories_to_process) * pages)
 
                 for category in categories_to_process:
-                    log.info(f"Discovering articles in [cyan]{category}[/cyan]...")
+                    self._log(f"Discovering articles in [cyan]{category}[/cyan]...")
                     articles_data = self.discover_articles(
                         category,
                         pages,
