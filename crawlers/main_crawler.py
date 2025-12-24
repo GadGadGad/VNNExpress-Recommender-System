@@ -322,7 +322,7 @@ class VnExpressCrawler:
 
             all_articles_data = []
             date_range_mode = from_date and to_date
-
+            
             categories_to_process = []
             if date_range_mode:
                 log.info("Date range mode active. Resolving category names to IDs...")
@@ -337,16 +337,22 @@ class VnExpressCrawler:
                     log.error("[bold red]LỖI: Không có category ID hợp lệ nào để xử lý. Dừng lại.[/bold red]")
                     return
             else:
-                # Ở chế độ standard, chúng ta dùng thẳng tên
                 categories_to_process = categories
 
+            # define total_tasks for tqdm
+            total_tasks = 0
+            if date_range_mode:
+                date_ranges = self._split_date_ranges(from_date, to_date)
+                if date_ranges:
+                    total_tasks = len(categories_to_process) * len(date_ranges) * pages
+            else:
+                total_tasks = len(categories_to_process) * pages
 
             if use_tqdm and not no_progress:
-                pbar1 = tqdm(total=len(categories_to_process) * pages, desc="Discovering") if not date_range_mode else tqdm(total=total_tasks, desc="Discovering")
+                pbar1 = tqdm(total=total_tasks, desc="Discovering")
             
             if date_range_mode:
                 log.info(f"Running in Date Range mode from [yellow]{from_date}[/yellow] to [yellow]{to_date}[/yellow]")
-                date_ranges = self._split_date_ranges(from_date, to_date)
                 if not date_ranges:
                     log.error("No valid date ranges to process. Stopping.")
                     return
@@ -451,7 +457,7 @@ class VnExpressCrawler:
         self.print_summary()
 
 
-def run_as_import(categories: list[str], pages: int, output_dir_str: str, use_cache: bool, workers: int, from_date: Optional[str] = None, to_date: Optional[str] = None, no_progress: bool = True, use_tqdm: bool = False):
+def run_as_import(categories: list[str], pages: int, output_dir_str: str, use_cache: bool, workers: int, from_date: Optional[str] = None, to_date: Optional[str] = None, no_progress: bool = True, use_tqdm: bool = False, console: Console = None):
     """
     Hàm này được gọi bởi script bên ngoài (pipeline)
     để chạy crawler trong cùng một tiến trình.
