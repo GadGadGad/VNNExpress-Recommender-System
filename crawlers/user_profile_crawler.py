@@ -284,7 +284,7 @@ class UserProfileCrawler:
                 console=self.console,
                 transient=True,
             )
-            if not no_progress
+            if (not no_progress and not use_tqdm)
             else nullcontext()
         )
 

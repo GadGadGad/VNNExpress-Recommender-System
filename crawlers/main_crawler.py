@@ -284,6 +284,8 @@ class VnExpressCrawler:
 
     def crawl(self, categories: list[str], pages: int = 2, workers: int = MAX_WORKERS, no_progress: bool = False, from_date: Optional[str] = None, to_date: Optional[str] = None, use_tqdm: bool = False):
         """Main crawl orchestration function."""
+        # Force no_progress if use_tqdm is True to avoid conflict
+        actual_no_progress = no_progress or use_tqdm
 
         def fetch_and_save_article(article_info):
             try:
@@ -311,7 +313,7 @@ class VnExpressCrawler:
                 console=console,
                 transient=False,
             )
-            if not no_progress
+            if (not no_progress and not use_tqdm)
             else nullcontext()
         )
         if no_progress:
