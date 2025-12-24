@@ -221,7 +221,7 @@ class VnExpressCrawler:
     def fetch_article(self, url: str, short_description: str, category_source: str) -> Optional[dict]:
         """Fetches a single article's HTML metadata."""
         if url in self.seen_articles:
-            log.warning(f"Skipping already seen URL: {url}")
+            self._log(f"Skipping already seen URL: {url}", "warning")
             return None
 
         html = self.safe_get(url)
