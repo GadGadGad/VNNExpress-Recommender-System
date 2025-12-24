@@ -390,6 +390,7 @@ class VnExpressCrawler:
                         if use_tqdm and not no_progress:
                             pbar1.update(pages)
                             
+                        all_articles_data.extend(articles_data)
                         if not use_tqdm:
                             self._log(f" > Found {len(articles_data)} articles in this range.")
 
