@@ -292,7 +292,7 @@ class UserProfileCrawler:
             self.console.log("Crawling user metadata (progress bar disabled)...")
 
         if use_tqdm and not no_progress:
-            pbar = tqdm(total=total_to_crawl, desc="Enriching User Nodes")
+            pbar = tqdm(total=total_to_crawl, desc="Enriching User Nodes", file=sys.stderr)
 
         with progress_manager as progress:
             task = None
@@ -305,7 +305,7 @@ class UserProfileCrawler:
                 if no_progress:
                     for i, status in enumerate(results):
                         processed += status
-                        if (i + 1) % 50 == 0:
+                        if (i + 1) % 50 == 0 and not use_tqdm:
                             self.console.log(f"Processed {i+1}/{total_to_crawl} users...")
                 else:
                     for status in results:
