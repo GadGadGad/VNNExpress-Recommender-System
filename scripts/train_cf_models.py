@@ -7,9 +7,14 @@ import os
 import sys
 import argparse
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
+import torch.sparse as sp
 import numpy as np
+import pickle
+import pandas as pd
 from pathlib import Path
+from tqdm import tqdm
 from tqdm import tqdm
 from datetime import datetime
 
@@ -22,7 +27,84 @@ from src.models.sgl import SGL
 from src.models.simgcl import SimGCL
 from src.models.ncl import NCL
 from src.models.lightgcl import LightGCL
+from src.models.cgrc import CGRC
+from src.models.bigcf import BIGCF
+from src.models.igcl import IGCL
+from src.models.xsimgcl import XSimGCL
+from src.models.semantic_id import generate_semantic_ids
+from src.inference.re_ranker import CalibratedReRanker
 import scipy.sparse as sp
+
+
+class SemanticEmbeddingLayer(nn.Module):
+    """
+    Combines hierarchical semantic IDs into a single embedding.
+    """
+    def __init__(self, n_codebooks, codebook_size, embedding_dim):
+        super(SemanticEmbeddingLayer, self).__init__()
+        self.embeddings = nn.ModuleList([
+            nn.Embedding(codebook_size, embedding_dim)
+            for _ in range(n_codebooks)
+        ])
+        
+    def forward(self, semantic_ids):
+        # semantic_ids: (n_items, n_codebooks)
+        out = 0
+        for i, emb in enumerate(self.embeddings):
+            out = out + emb(semantic_ids[:, i])
+        return out
+
+class UserPriorLayer(nn.Module):
+    """
+    Projects dense user priors to matching embedding dimension.
+    """
+    def __init__(self, input_dim, output_dim):
+        super(UserPriorLayer, self).__init__()
+        self.proj = nn.Linear(input_dim, output_dim)
+        
+    def forward(self, user_priors):
+        return self.proj(user_priors)
+
+def compute_normalized_adjacency(n_users, n_items, train_pairs, device, item_item_edges=None):
+    """Compute normalized adjacency matrix for GCN-based models."""
+    row = np.array([u for u, i in train_pairs])
+    col = np.array([i for u, i in train_pairs])
+    data = np.ones(len(train_pairs), dtype=np.float32)
+    R = sp.coo_matrix((data, (row, col)), shape=(n_users, n_items))
+    
+    # Construct (N+M)x(N+M) matrix
+    # A = [0, R
+    #      R.T, 0]
+    
+    adj_mat = sp.dok_matrix((n_users + n_items, n_users + n_items), dtype=np.float32)
+    adj_mat = adj_mat.tolil()
+    R = R.tolil()
+    
+    adj_mat[:n_users, n_users:] = R
+    adj_mat[n_users:, :n_users] = R.T
+    
+    # Add Item-Item edges if provided (S matrix for LLMRec)
+    if item_item_edges is not None:
+        print(f"  Injecting {item_item_edges.shape[1]} item-item semantic edges into adjacency...")
+        s_row = item_item_edges[0].numpy()
+        s_col = item_item_edges[1].numpy()
+        for u, v in zip(s_row, s_col):
+            adj_mat[n_users + u, n_users + v] = 1.0
+            adj_mat[n_users + v, n_users + u] = 1.0
+            
+    adj_mat = adj_mat.tocoo()
+    
+    rowsum = np.array(adj_mat.sum(1))
+    d_inv_sqrt = np.power(rowsum, -0.5).flatten()
+    d_inv_sqrt[np.isinf(d_inv_sqrt)] = 0.
+    d_mat_inv_sqrt = sp.diags(d_inv_sqrt)
+    
+    norm_adj = d_mat_inv_sqrt.dot(adj_mat).dot(d_mat_inv_sqrt).tocoo()
+    
+    indices = torch.LongTensor(np.array([norm_adj.row, norm_adj.col]))
+    values = torch.FloatTensor(norm_adj.data)
+    shape = torch.Size(norm_adj.shape)
+    return torch.sparse_coo_tensor(indices, values, shape).coalesce().to(device)
 
 
 class LightGCLWrapper:
@@ -37,11 +119,16 @@ class LightGCLWrapper:
                               svd_q=svd_q, ssl_weight=ssl_weight, temp=temp)
         self.adj_norm = None
         
-    def setup(self, train_pairs):
+    def setup(self, train_pairs, augmented_pairs=None):
         """Create normalized interaction matrix and compute SVD."""
-        row = np.array([u for u, i in train_pairs])
-        col = np.array([i for u, i in train_pairs])
-        data = np.ones(len(train_pairs), dtype=np.float32)
+        all_pairs = list(train_pairs)
+        if augmented_pairs:
+            print(f"  Injecting {len(augmented_pairs)} synthetic interactions from LLMRec...")
+            all_pairs.extend(augmented_pairs)
+            
+        row = np.array([u for u, i in all_pairs])
+        col = np.array([i for u, i in all_pairs])
+        data = np.ones(len(all_pairs), dtype=np.float32)
         R = sp.coo_matrix((data, (row, col)), shape=(self.n_users, self.n_items))
         
         rowD = np.array(R.sum(1)).squeeze()
@@ -143,19 +230,10 @@ def load_data(data_path, min_interactions=2):
     replies['user_idx'] = replies['user_id'].map(user_map)
     replies['item_idx'] = replies['article_url'].map(article_map)
     
-    # Create edge index (user -> item)
-    users = torch.tensor(replies['user_idx'].values, dtype=torch.long)
-    items = torch.tensor(replies['item_idx'].values, dtype=torch.long)
-    
-    # Bipartite graph edge index
-    edge_index = torch.stack([
-        torch.cat([users, items + n_users]),
-        torch.cat([items + n_users, users])
-    ], dim=0)
-    
-    # Split train/test
-    interactions = list(zip(users.numpy(), items.numpy()))
+    # Split train/test FIRST, then create edge_index from train only
+    interactions = list(zip(replies['user_idx'].values, replies['item_idx'].values))
     interactions = list(set(interactions))
+    np.random.seed(42)  # Reproducibility
     np.random.shuffle(interactions)
     
     split_idx = int(len(interactions) * 0.8)
@@ -173,6 +251,16 @@ def load_data(data_path, min_interactions=2):
         if u not in test_dict:
             test_dict[u] = set()
         test_dict[u].add(i)
+    
+    # Create edge index from TRAIN PAIRS ONLY (no data leakage)
+    train_users = torch.tensor([u for u, i in train_pairs], dtype=torch.long)
+    train_items = torch.tensor([i for u, i in train_pairs], dtype=torch.long)
+    
+    # Bipartite graph edge index (train only)
+    edge_index = torch.stack([
+        torch.cat([train_users, train_items + n_users]),
+        torch.cat([train_items + n_users, train_users])
+    ], dim=0)
     
     data = {
         'n_users': n_users,
@@ -203,6 +291,7 @@ def sample_batch(train_pairs, train_dict, n_items, batch_size):
             neg = np.random.randint(0, n_items)
         neg_items.append(neg)
     
+
     return (
         torch.tensor(users, dtype=torch.long),
         torch.tensor(pos_items, dtype=torch.long),
@@ -210,14 +299,183 @@ def sample_batch(train_pairs, train_dict, n_items, batch_size):
     )
 
 
-def evaluate(model, test_dict, train_dict, n_items, edge_index, k_list=[1, 5, 10], device='cpu'):
-    """Evaluate model with Recall, NDCG, HitRate at multiple k values."""
+def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'):
+    """Load pretrained embeddings and project to target dimension."""
+    if embedding_type == 'random':
+        return None
+        
+    print(f"\nLoading {embedding_type} embeddings...")
+    embeddings = None
+    
+    if embedding_type == 'phobert':
+        path = 'checkpoints/phobert_article_embeddings.pt'
+        if os.path.exists(path):
+            embeddings = torch.load(path, map_location='cpu')
+            print(f"  Loaded PhoBERT embeddings: {embeddings.shape}")
+        else:
+            print(f"  Warning: {path} not found. Using random initialization.")
+            return None
+            
+    elif embedding_type == 'tfidf':
+        print("  Computing TF-IDF embeddings (LSA)...")
+        import pandas as pd
+        from sklearn.feature_extraction.text import TfidfVectorizer
+        from sklearn.decomposition import TruncatedSVD
+        
+        # Load articles to get text
+        try:
+            articles = pd.read_csv('data/raw/articles.csv')
+            texts = []
+            
+            # Map items to text (assuming ordered 0..n_items based on some mapping, 
+            # but here we load raw articles. We need the mapping logic!)
+            # WARNING: scripts/train_cf_models.py doesn't inherently know idx2item mapping 
+            # unless we load it. data/processed/cf_cache.pt MIGHT have it if we modify load_data,
+            # but usually it stores edge_index. 
+            #
+            # However, ContentDataLoader saves 'item2idx' in mapping files?
+            # Let's check 'data/processed/cf_cache.pt' has idx_mapping?
+            # If not, we might be mapping randomly. 
+            #
+            # CRITICAL: We need idx2url mapping to correctly assign text to items.
+            # load_data() in this script loads 'cf_cache.pt'. 
+            # Let's assume for now we load a mapping file or try to reconstruct.
+            #
+            # Actually, let's load `data/processed/mapping.pt` if it exists (LightGCL loader usually creates it)
+            # OR re-load using LightDataLoader logic.
+            #
+            # For simplicity in this context, we'll try to load the original LightGCL Cache if possible,
+            # or assume articles.csv order matches IF they were processed sequentially (risky).
+            # 
+            # Let's try to load 'item2idx' from a standard location if available. 
+            # If not available, we can't reliably assign text.
+            pass
+            
+            # Re-implementation to be safe: Load the full dataloader to get mapping
+            sys.path.insert(0, str(Path(__file__).parent.parent))
+            from src.data.dataloader_lightgcl import LightGCLDataLoader
+            
+            # Initialize loader with root 'data' path (assuming project structure)
+            loader = LightGCLDataLoader('data')
+            
+            # Load processed data which populates idx2item
+            if loader.load_processed() is None:
+                print("  Error: Could not load processed LightGCL data for mapping. Run training first.")
+                return None
+                
+            idx2item = loader.idx2item
+            print(f"  Loaded mapping for {len(idx2item)} items")
+            
+            # Create text list in index order
+            article_map = dict(zip(articles['url'], zip(articles['title'], articles['short_description'])))
+            
+            for idx in range(n_items):
+                url = idx2item.get(idx, None)
+                if url and url in article_map:
+                    title, desc = article_map[url]
+                    # Handle NaNs
+                    title = str(title) if pd.notna(title) else ""
+                    desc = str(desc) if pd.notna(desc) else ""
+                    texts.append(f"{title} {desc}")
+                else:
+                    texts.append("")
+            
+            print(f"  Collected {len(texts)} texts. Computing TF-IDF...")
+            
+            # Compute TF-IDF
+            # Use stricter max_features to avoid noise, but SVD handles dimension reduction anyway
+            vectorizer = TfidfVectorizer(max_features=10000, stop_words=None) 
+            tfidf_matrix = vectorizer.fit_transform(texts)
+            
+            # Reduce dimension with SVD (LSA)
+            print(f"  Reducing dimension {tfidf_matrix.shape[1]} -> {target_dim} with SVD...")
+            svd = TruncatedSVD(n_components=target_dim, random_state=42)
+            embeddings = torch.tensor(svd.fit_transform(tfidf_matrix), dtype=torch.float32)
+            
+            # Normalize calculated embeddings
+            embeddings = F.normalize(embeddings, p=2, dim=1)
+            
+            print(f"  Computed LSA embeddings: {embeddings.shape}")
+            return embeddings.to(device) # Return directly, skipping external normalization block to avoid double norm
+            
+        except Exception as e:
+            print(f"  Error computing TF-IDF: {e}. Using random.")
+            import traceback
+            traceback.print_exc()
+            return None
+        
+    if embeddings is not None:
+        # Match item count (truncate or pad if needed)
+        # Note: Ideally n_items matches exactly. If valid items < n_items (due to padding), we pad.
+        curr_items, curr_dim = embeddings.shape
+        
+        if curr_items != n_items:
+            print(f"  Warning: Embedding items ({curr_items}) != Dataset items ({n_items})")
+            # If we have fewer embeddings, pad with random
+            if curr_items < n_items:
+                padding = torch.randn(n_items - curr_items, curr_dim)
+                embeddings = torch.cat([embeddings, padding], dim=0)
+            else:
+                embeddings = embeddings[:n_items]
+        
+        # Project dimension if needed
+        if curr_dim != target_dim:
+            print(f"  Projecting dimension: {curr_dim} -> {target_dim}")
+            # Use random projection matrix
+            projection = torch.randn(curr_dim, target_dim) / np.sqrt(curr_dim)
+            embeddings = torch.matmul(embeddings.float(), projection.float())
+            
+        # Normalize embeddings to prevent numerical instability (NaN loss)
+        # LightGCL uses Xavier init which produces small values. Large pretrained norms cause exp() explosion.
+        embeddings = F.normalize(embeddings, p=2, dim=1)
+        
+        # Check for NaNs
+        if torch.isnan(embeddings).any():
+             print("  Warning: Embeddings contain NaN! Replacing with random.")
+             return None
+             
+        # Clamp to avoid extreme values just in case
+        embeddings = torch.clamp(embeddings, -1.0, 1.0)
+        
+        # Scale down slightly to ensure stability (Xavier often < 1)
+        embeddings = embeddings * 0.1
+        
+        print(f"  Final embeddings (mean={embeddings.mean():.4f}, std={embeddings.std():.4f}, max={embeddings.abs().max():.4f})")
+            
+        return embeddings.to(device)
+            
+    return None
+
+
+def evaluate(model, test_dict, train_dict, n_items, edge_index, k_list=[1, 5, 10], device='cpu', adj_norm=None, 
+             re_ranker=None, rerank_strategy='none', eval_protocol='full', cold_users=None):
+    """
+    Evaluate model with multiple protocols.
+    
+    eval_protocol:
+        - 'full': Full ranking over all items (hardest, most realistic)
+        - 'loo100': Leave-one-out + 100 random negatives (common in papers)
+        - 'cold': Evaluate only on cold-start users
+    """
     model.eval()
     
     with torch.no_grad():
         if hasattr(model, 'forward'):
-            args = [edge_index.to(device)] if 'edge_index' in str(model.forward.__code__.co_varnames) else []
-            user_emb, item_emb = model(*args) if args else model()
+            forward_args = model.forward.__code__.co_varnames
+            
+            if 'adj_norm' in forward_args and adj_norm is not None:
+                kwargs = {}
+                if 'item_content' in forward_args:
+                    kwargs['item_content'] = getattr(model, 'item_content', None)
+                if 'semantic_ids' in forward_args:
+                    kwargs['semantic_ids'] = getattr(model, 'semantic_ids', None)
+                user_emb, item_emb = model(adj_norm, **kwargs)
+            elif 'edge_index' in forward_args:
+                user_emb, item_emb = model(edge_index.to(device))
+            elif hasattr(model, 'adj_norm'):
+                user_emb, item_emb = model()
+            else:
+                user_emb, item_emb = model()
         else:
             user_emb = model.user_embedding.weight
             item_emb = model.item_embedding.weight
@@ -226,23 +484,56 @@ def evaluate(model, test_dict, train_dict, n_items, edge_index, k_list=[1, 5, 10
     results = {f'{metric}@{k}': [] for metric in ['recall', 'ndcg', 'hitrate'] for k in k_list}
     results['mrr'] = []
     
-    for user, test_items in test_dict.items():
+    # Choose which users to evaluate based on protocol
+    if eval_protocol == 'cold' and cold_users is not None:
+        eval_users = {u: items for u, items in test_dict.items() if u in cold_users}
+        print(f"  Cold-start eval: {len(eval_users)} users")
+    else:
+        eval_users = test_dict
+    
+    for user, test_items in eval_users.items():
         if user >= user_emb.size(0):
             continue
             
         train_items = train_dict.get(user, set())
         u_emb = user_emb[user].unsqueeze(0)
-        scores = torch.mm(u_emb, item_emb.t()).squeeze()
         
-        # Mask train items
-        for item in train_items:
-            if item < scores.size(0):
-                scores[item] = -float('inf')
+        if eval_protocol == 'loo100':
+            # Leave-One-Out + 100 negatives: sample 100 neg items + all positive items
+            all_items = set(range(n_items)) - train_items - test_items
+            neg_samples = np.random.choice(list(all_items), min(100, len(all_items)), replace=False)
+            candidate_items = list(test_items) + list(neg_samples)
+            
+            # Score only these candidates
+            candidate_emb = item_emb[candidate_items]
+            scores = torch.mm(u_emb, candidate_emb.t()).squeeze()
+            
+            # Map back to original indices
+            _, topk_local = torch.topk(scores, min(max_k, len(candidate_items)))
+            topk_candidates = [candidate_items[i] for i in topk_local.cpu().numpy()]
+        else:
+            # Full ranking
+            scores = torch.mm(u_emb, item_emb.t()).squeeze()
+            
+            # Mask train items
+            for item in train_items:
+                if item < scores.size(0):
+                    scores[item] = -float('inf')
+            
+            _, topk = torch.topk(scores, 100)
+            topk_candidates = topk.cpu().numpy().tolist()
         
-        _, topk = torch.topk(scores, max_k)
-        topk_list = topk.cpu().numpy().tolist()
+        # Apply re-ranking if specified
+        if rerank_strategy == 'mmr' and re_ranker is not None:
+            topk_list = re_ranker.mmr_rerank(item_emb, scores if eval_protocol == 'full' else None, top_k=max_k)
+        elif rerank_strategy == 'calib' and re_ranker is not None:
+            user_history = list(train_items) if train_items else []
+            score_arr = scores.cpu().numpy() if eval_protocol == 'full' else np.zeros(n_items)
+            topk_list = re_ranker.calibrate(score_arr, user_history, top_k=max_k)
+        else:
+            topk_list = topk_candidates[:max_k]
         
-        # MRR (computed once, uses first hit)
+        # MRR
         mrr = 0.0
         for i, item in enumerate(topk_list):
             if item in test_items:
@@ -250,27 +541,52 @@ def evaluate(model, test_dict, train_dict, n_items, edge_index, k_list=[1, 5, 10
                 break
         results['mrr'].append(mrr)
         
-        # Compute metrics at each k
+        # Metrics at each k
         for k in k_list:
             topk_k = set(topk_list[:k])
             hits = len(topk_k & test_items)
             
-            # Recall@K
             results[f'recall@{k}'].append(hits / min(k, len(test_items)))
-            
-            # HitRate@K (at least one hit)
             results[f'hitrate@{k}'].append(1.0 if hits > 0 else 0.0)
             
-            # NDCG@K
             dcg = sum(1.0 / np.log2(i + 2) for i, item in enumerate(topk_list[:k]) if item in test_items)
             idcg = sum(1.0 / np.log2(i + 2) for i in range(min(k, len(test_items))))
             results[f'ndcg@{k}'].append(dcg / idcg if idcg > 0 else 0)
+        
+        if re_ranker is not None:
+             ent = compute_entropy(topk_list, re_ranker.item_categories, re_ranker.n_categories)
+             results.setdefault('entropy', []).append(ent)
     
-    # Average all metrics
     return {k: np.mean(v) for k, v in results.items()}
 
 
-def train_model(model, data, args, device):
+
+def load_item_categories(idx2item, csv_path='data/raw/articles.csv'):
+    """Map item indices to their categories."""
+    df = pd.read_csv(csv_path)
+    url_to_cat = dict(zip(df['url'], df['source_category']))
+    unique_cats = sorted(df['source_category'].unique().tolist())
+    cat_to_id = {cat: i for i, cat in enumerate(unique_cats)}
+    
+    categories = []
+    for i in range(len(idx2item)):
+        url = idx2item[i]
+        cat = url_to_cat.get(url, 'Other')
+        categories.append(cat_to_id.get(cat, 0))
+    return np.array(categories), len(unique_cats)
+
+def compute_entropy(item_indices, item_categories, n_categories):
+    """Compute Shannon Entropy of categorical distribution."""
+    cats = item_categories[item_indices]
+    counts = np.bincount(cats, minlength=n_categories)
+    probs = counts / (len(item_indices) + 1e-9)
+    probs = probs[probs > 0]
+    return -np.sum(probs * np.log2(probs)) if len(probs) > 0 else 0
+
+
+def train_model(model, data, args, device, item_content=None, semantic_ids=None, user_priors=None, 
+                re_ranker=None, cold_users=None):
+
     """Train a CF model."""
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     
@@ -285,10 +601,14 @@ def train_model(model, data, args, device):
     best_state = None
     patience_counter = 0
     
-    for epoch in range(args.epochs):
+    pbar = tqdm(range(args.epochs), desc=f"Training {args.model.upper()}", ncols=100)
+    for epoch in pbar:
         model.train()
         total_loss = 0
         n_batches = len(train_pairs) // args.batch_size + 1
+        
+        # Inner loop progress bar for batches if needed, but epoch bar is usually enough
+        # We'll just stick to epoch bar update
         
         for _ in range(n_batches):
             users, pos_items, neg_items = sample_batch(train_pairs, train_dict, n_items, args.batch_size)
@@ -297,11 +617,66 @@ def train_model(model, data, args, device):
             optimizer.zero_grad()
             
             # Different models have different loss signatures
-            if hasattr(model, 'bpr_loss'):
+            if hasattr(model, 'calculate_loss'):
+                # Graph-based models need `adj_norm`
+                if args.model in ['simgcl', 'cgrc', 'bigcf', 'igcl', 'xsimgcl', 'sgl', 'ncl']:
+                    graph_structure = data.get('adj_norm')
+                    if graph_structure is None:
+                        # Fallback if not computed (shouldn't happen if setup is correct)
+                        print("Warning: adj_norm missing in train loop, falling back to edge_index")
+                        graph_structure = edge_index
+                elif args.model == 'lightgcl':
+                     # LightGCL internal model manages its structure usually, likely stored inside Wrapper
+                     # But if we access `model.calculate_loss`, we might need to pass something.
+                     # Our LightGCLWrapper (if used) handles it. 
+                     # If `model` is the inner model, we might need adj. 
+                     # Let's check LightGCLWrapper usage. 
+                     # The `model` passed here is likely the Wrapper instance or the internal Module.
+                     # In main(), `model` is assigned `LightGCLWrapper(...).model`? Or the wrapper itself?
+                     # Let's assume wrapper extracts what it needs.
+                     graph_structure = data.get('adj_norm') # Pass it anyway
+                else:
+                    graph_structure = edge_index
+                
+                if isinstance(model, CGRC):
+                    loss, bpr, recon, reg = model.calculate_loss(graph_structure, users, pos_items, neg_items, item_content)
+                elif isinstance(model, XSimGCL):
+                    if args.denoise_ratio > 0 and epoch >= 5: # Burn-in 5 epochs
+                        loss, bpr_sample, ssl, reg = model.calculate_loss(graph_structure, users, pos_items, neg_items, 
+                                                                         semantic_ids=semantic_ids, user_priors=user_priors,
+                                                                         return_per_sample=True)
+                        # Truncated Loss Denoising
+                        n_to_prune = int(len(bpr_sample) * args.denoise_ratio)
+                        if n_to_prune > 0:
+                            _, indices = torch.topk(bpr_sample, k=n_to_prune, largest=True)
+                            mask = torch.ones_like(bpr_sample)
+                            mask[indices] = 0
+                            bpr = (bpr_sample * mask).sum() / mask.sum()
+                            loss = bpr + model.ssl_weight * ssl + model.lambda_reg * reg
+                        else:
+                            bpr = bpr_sample.mean()
+                    else:
+                        loss, bpr, ssl, reg = model.calculate_loss(graph_structure, users, pos_items, neg_items, 
+                                                                  semantic_ids=semantic_ids, user_priors=user_priors)
+                elif isinstance(model, BIGCF):
+                    loss, bpr, cl, reg = model.calculate_loss(graph_structure, users, pos_items, neg_items)
+                elif isinstance(model, IGCL):
+                    loss, bpr, ssl, reg = model.calculate_loss(graph_structure, users, pos_items, neg_items)
+                else:
+                    loss, bpr, reg, ssl = model.calculate_loss(graph_structure, users, pos_items, neg_items)
+            elif hasattr(model, 'bpr_loss'):
+                # NGCF/NCL style
                 loss, reg = model.bpr_loss(users, pos_items, neg_items, edge_index)
                 loss = loss + args.weight_decay * reg
             else:
-                user_emb, item_emb = model(edge_index)
+                if isinstance(model, (SimGCL, CGRC, BIGCF, IGCL)):
+                    if isinstance(model, CGRC):
+                        user_emb, item_emb = model(data['adj_norm'], item_content)
+                    else:
+                        user_emb, item_emb = model(data['adj_norm'])
+                else:
+                    user_emb, item_emb = model(edge_index)
+                
                 pos_scores = (user_emb[users] * item_emb[pos_items]).sum(dim=1)
                 neg_scores = (user_emb[users] * item_emb[neg_items]).sum(dim=1)
                 loss = -F.logsigmoid(pos_scores - neg_scores).mean()
@@ -310,11 +685,25 @@ def train_model(model, data, args, device):
             optimizer.step()
             total_loss += loss.item()
         
+        else:
+            pbar.set_postfix({'loss': f"{total_loss:.4f}"})
+        
         # Evaluate every 5 epochs
         if (epoch + 1) % 5 == 0:
-            metrics = evaluate(model, test_dict, train_dict, n_items, edge_index, device=device)
-            print(f"Epoch {epoch+1:3d} | Loss: {total_loss/n_batches:.4f} | "
-                  f"R@1: {metrics.get('recall@1', 0):.3f} | R@5: {metrics.get('recall@5', 0):.3f} | R@10: {metrics.get('recall@10', 0):.3f}")
+            adj_norm = data.get('adj_norm')
+            metrics = evaluate(model, test_dict, train_dict, n_items, edge_index, device=device, adj_norm=adj_norm,
+                               re_ranker=re_ranker, rerank_strategy=args.rerank, eval_protocol=args.eval_protocol,
+                               cold_users=cold_users)
+
+
+            
+            pbar.set_postfix({
+                'loss': f"{total_loss:.4f}", 
+                'R@10': f"{metrics.get('recall@10', 0):.4f}"
+            })
+            
+            tqdm.write(f"Epoch {epoch+1:3d} | Loss: {total_loss:.4f} | "
+                  f"R@10: {metrics.get('recall@10', 0):.4f} | NDCG@10: {metrics.get('ndcg@10', 0):.4f}")
             
             recall_10 = metrics.get('recall@10', 0)
             if recall_10 > best_recall:
@@ -325,7 +714,7 @@ def train_model(model, data, args, device):
             else:
                 patience_counter += 1
                 if patience_counter >= args.patience:
-                    print(f"Early stopping at epoch {epoch+1}")
+                    tqdm.write(f"Early stopping at epoch {epoch+1}")
                     break
     
     if best_state:
@@ -335,7 +724,7 @@ def train_model(model, data, args, device):
 
 def main():
     parser = argparse.ArgumentParser(description='Train CF/CL Models')
-    parser.add_argument('--model', '-m', choices=['ngcf', 'simplex', 'directau', 'sgl', 'simgcl', 'ncl', 'lightgcl'],
+    parser.add_argument('--model', '-m', choices=['ngcf', 'simplex', 'directau', 'sgl', 'simgcl', 'ncl', 'lightgcl', 'cgrc', 'bigcf', 'igcl', 'xsimgcl'],
                         default='ngcf', help='Model to train')
     parser.add_argument('--data-path', default='data/processed', help='Data directory')
     parser.add_argument('--epochs', type=int, default=100)
@@ -351,11 +740,29 @@ def main():
     parser.add_argument('--ssl-weight', type=float, default=0.1, help='LightGCL: SSL loss weight (default: 0.1)')
     parser.add_argument('--temp', type=float, default=0.2, help='LightGCL: Temperature for contrastive loss (default: 0.2)')
     
+    # Embedding arguments
+    parser.add_argument('--embedding', choices=['random', 'phobert', 'tfidf'], default='random',
+                        help='Embedding initialization (random, phobert, tfidf)')
+    parser.add_argument('--augment', choices=['none', 'llmrec'], default='none',
+                        help='Graph augmentation strategy')
+    parser.add_argument('--semantic-id-bits', type=int, default=0,
+                        help='Number of semantic ID codebooks (0 to disable)')
+    parser.add_argument('--denoise-ratio', type=float, default=0.0,
+                        help='Ratio of noisy interactions to prune per batch (0.0 to disable)')
+    parser.add_argument('--rerank', choices=['none', 'mmr', 'calib'], default='none',
+                        help='Post-processing re-ranking strategy')
+    parser.add_argument('--eval-protocol', choices=['full', 'loo100', 'cold'], default='full',
+                        help='Evaluation protocol: full (all items), loo100 (leave-one-out + 100 neg), cold (cold-start users)')
+    parser.add_argument('--save-results', type=str, default=None,
+                        help='Path to save metrics in JSON format')
+    
+
     args = parser.parse_args()
     device = torch.device(args.device)
     
     print("=" * 60)
     print(f"Training {args.model.upper()}")
+    print(f"Embedding Initialization: {args.embedding.upper()}")
     print("=" * 60)
     
     # Load data
@@ -365,33 +772,179 @@ def main():
     print(f"Users: {n_users}, Items: {n_items}")
     print(f"Train: {len(data['train_pairs'])}, Test users: {len(data['test_dict'])}")
     
+    # Identify cold-start users (users with <= 3 training interactions)
+    train_dict = data['train_dict']
+    cold_threshold = 3
+    cold_users = {u for u, items in train_dict.items() if len(items) <= cold_threshold}
+    print(f"Cold-start users (≤{cold_threshold} interactions): {len(cold_users)}")
+    
+
+    # Precompute adj_norm for SimGCL / CGRC / BIGCF / IGCL / XSimGCL
+    # Precompute adj_norm for graph-based models
+    graph_models = ['simgcl', 'cgrc', 'bigcf', 'igcl', 'xsimgcl', 'sgl', 'ncl', 'lightgcl', 'directau']
+    if args.model in graph_models:
+        print(f"\nPrecomputing normalized adjacency for {args.model.upper()}...")
+        
+        augmented_pairs = None
+        item_item_edges = None
+        if args.augment == 'llmrec':
+            augment_path = Path('data/processed/augmented_edges.pt')
+            if augment_path.exists():
+                print(f"  Loading augmented interactions from {augment_path}...")
+                aug_data = torch.load(augment_path, weights_only=False)
+                augmented_pairs = aug_data.get('augmented_pairs', None)
+                item_item_edges = aug_data.get('item_item_edges', None) # Still load for CGRC/IGCL
+            else:
+                print(f"  Warning: {augment_path} not found. Running without augmentation.")
+        
+        data['adj_norm'] = compute_normalized_adjacency(n_users, n_items, data['train_pairs'], device, item_item_edges)
+        data['augmented_pairs'] = augmented_pairs # Store for LightGCL
+    
+    # Load pretrained embeddings if requested
+    
+    # Load pretrained embeddings if requested
+    pretrained_emb = load_pretrained_embeddings(args.embedding, n_items, args.hidden_dim, device)
+    
+    # Generate Semantic IDs if requested
+    semantic_ids = None
+    if args.semantic_id_bits > 0:
+        if pretrained_emb is not None:
+            print(f"\nGenerating Semantic IDs ({args.semantic_id_bits} stages)...")
+            semantic_ids, _ = generate_semantic_ids(pretrained_emb, n_codebooks=args.semantic_id_bits, codebook_size=32)
+            semantic_ids = semantic_ids.to(device)
+            print(f"  Generated IDs shape: {semantic_ids.shape}")
+        else:
+            print("\n  Warning: Cannot generate Semantic IDs without pretrained embeddings. Skipping.")
+            
+    # Load User Priors if requested
+    user_priors = None
+    if args.model == 'xsimgcl':
+        prior_path = Path('data/processed/user_priors.pt')
+        if prior_path.exists():
+            print(f"\nLoading User Priors from {prior_path}...")
+            priors = torch.load(prior_path, weights_only=False).to(device)
+            # Alignment: priors might have fewer users than GNN
+            if priors.shape[0] < n_users:
+                print(f"  Padding User Priors: {priors.shape[0]} -> {n_users}")
+                user_priors = torch.zeros((n_users, priors.shape[1]), device=device)
+                user_priors[:priors.shape[0]] = priors
+            else:
+                user_priors = priors
+            print(f"  Final Priors shape: {user_priors.shape}")
+        else:
+            print(f"\n  Warning: User Priors not found at {prior_path}. Running without priors.")
+            
+    # Load Re-ranker if requested
+    re_ranker = None
+    if args.rerank != 'none':
+        print("\nInitializing Re-ranker...")
+        # Get idx2item from pkl
+        with open('data/processed/lightgcl_data.pkl', 'rb') as f:
+            idx_data = pickle.load(f)
+            idx2item = idx_data['idx2item']
+        
+        categories, n_cats = load_item_categories(idx2item)
+        re_ranker = CalibratedReRanker(categories, alpha=0.5, lambda_mmr=0.5)
+        print(f"  Loaded {n_cats} categories for {len(categories)} items.")
+    
     # Create model
-    models_map = {
-        'ngcf': lambda: NGCF(n_users, n_items, args.hidden_dim, args.n_layers),
-        'simplex': lambda: SimpleX(n_users, n_items, args.hidden_dim),
-        'directau': lambda: DirectAU(n_users, n_items, args.hidden_dim),
-        'sgl': lambda: SGL(n_users, n_items, args.hidden_dim, args.n_layers),
-        'simgcl': lambda: SimGCL(n_users, n_items, args.hidden_dim, args.n_layers),
-        'ncl': lambda: NCL(n_users, n_items, args.hidden_dim, args.n_layers),
-        'lightgcl': lambda: LightGCLWrapper(n_users, n_items, args.hidden_dim, args.n_layers, 
-                                              device=args.device, svd_q=args.svd_q, 
-                                              ssl_weight=args.ssl_weight, temp=args.temp),
-    }
-    
-    model = models_map[args.model]()
-    
-    # Special setup for LightGCL (SVD computation + adj_norm creation)
-    if args.model == 'lightgcl':
-        model.setup(data['train_pairs'])
+    if args.model == 'ngcf':
+        model = NGCF(n_users, n_items, embedding_dim=args.hidden_dim, n_layers=args.n_layers).to(device)
+        if pretrained_emb is not None:
+             model.item_embedding.weight.data.copy_(pretrained_emb)
+             print("  Transferred embeddings to NGCF")
+             
+    elif args.model == 'simplex':
+        model = SimpleX(n_users, n_items, embedding_dim=args.hidden_dim).to(device)
+        if pretrained_emb is not None:
+             model.item_embedding.weight.data.copy_(pretrained_emb)
+             print("  Transferred embeddings to SimpleX")
+             
+    elif args.model == 'directau':
+        model = DirectAU(n_users, n_items, embedding_dim=args.hidden_dim).to(device)
+        if pretrained_emb is not None:
+             model.item_embedding.weight.data.copy_(pretrained_emb)
+             print("  Transferred embeddings to DirectAU")
+             
+    elif args.model == 'lightgcl':
+        model = LightGCLWrapper(n_users, n_items, embed_dim=args.hidden_dim, n_layers=args.n_layers, 
+                                device=args.device, svd_q=args.svd_q, ssl_weight=args.ssl_weight, temp=args.temp)
+        model.setup(data['train_pairs'], data.get('augmented_pairs', None)) # Computes SVD
+        
+        if pretrained_emb is not None:
+            # For LightGCL, items are initialized in self.model.E_i_0
+            model.model.E_i_0.data.copy_(pretrained_emb)
+            print("  Transferred embeddings to LightGCL (E_i_0)")
+            
+    elif args.model == 'cgrc':
+        model = CGRC(n_users, n_items, embedding_dim=args.hidden_dim, 
+                     content_dim=pretrained_emb.shape[1] if pretrained_emb is not None else args.hidden_dim,
+                     n_layers=args.n_layers).to(device)
+        if pretrained_emb is not None:
+             # Initialize item embeddings from pretrained
+             model.item_embedding.weight.data.copy_(pretrained_emb)
+             print("  Transferred embeddings to CGRC")
+             
+    elif args.model == 'bigcf':
+        model = BIGCF(n_users, n_items, embedding_dim=args.hidden_dim, n_layers=args.n_layers).to(device)
+        if pretrained_emb is not None:
+             model.item_embedding.weight.data.copy_(pretrained_emb)
+             print("  Transferred embeddings to BIGCF")
+             
+    elif args.model == 'igcl':
+        model = IGCL(n_users, n_items, embedding_dim=args.hidden_dim, n_layers=args.n_layers,
+                     ssl_weight=args.ssl_weight, temp=args.temp).to(device)
+        if pretrained_emb is not None:
+             model.item_embedding.weight.data.copy_(pretrained_emb)
+             print("  Transferred embeddings to IGCL")
+             
+    elif args.model == 'xsimgcl':
+        model = XSimGCL(n_users, n_items, embedding_dim=args.hidden_dim, n_layers=args.n_layers,
+                         ssl_weight=args.ssl_weight, temp=args.temp).to(device)
+        if semantic_ids is not None:
+            model.semantic_layer = SemanticEmbeddingLayer(args.semantic_id_bits, 32, args.hidden_dim).to(device)
+            model.semantic_ids = semantic_ids
+            print("  Initialized XSimGCL with Semantic ID Fusion (Pillar 1)")
+            
+        if user_priors is not None:
+            model.user_prior_layer = UserPriorLayer(user_priors.shape[1], args.hidden_dim).to(device)
+            model.user_priors = user_priors
+            print("  Initialized XSimGCL with User Prior Fusion (Pillar 2)")
+            
+        if pretrained_emb is not None:
+             model.item_embedding.weight.data.copy_(pretrained_emb)
+             print("  Transferred embeddings to XSimGCL")
+             
+    # Add other models as needed...
     else:
+        # Combined logic for models with standard item_embedding
+        if args.model == 'sgl':
+            model = SGL(n_users, n_items, embedding_dim=args.hidden_dim, n_layers=args.n_layers).to(device)
+        elif args.model == 'simgcl':
+            model = SimGCL(n_users, n_items, embedding_dim=args.hidden_dim, n_layers=args.n_layers).to(device)
+        elif args.model == 'ncl':
+             model = NCL(n_users, n_items, embedding_dim=args.hidden_dim, n_layers=args.n_layers).to(device)
+        
+        # Inject embeddings
+        if pretrained_emb is not None:
+            model.item_embedding.weight.data.copy_(pretrained_emb)
+            print(f"  Transferred embeddings to {args.model.upper()}")
+
+    # Ensure model is on the correct device if not handled internally (e.g., LightGCL)
+    if args.model != 'lightgcl':
         model = model.to(device)
     
     print(f"Parameters: {sum(p.numel() for p in model.parameters()):,}")
     
     # Train
-    best_metrics = train_model(model, data, args, device)
-    
-    # Save
+    if hasattr(model, 'forward') and pretrained_emb is not None:
+        model.item_content = pretrained_emb # Attach for evaluate
+        
+    # Run training
+    best_metrics = train_model(model, data, args, device, item_content=pretrained_emb, 
+                               semantic_ids=semantic_ids, user_priors=user_priors, 
+                               re_ranker=re_ranker, cold_users=cold_users)
+
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     save_path = f"models/{args.model}_{timestamp}.pt"
     torch.save({
@@ -413,6 +966,21 @@ def main():
     print(f"  HitRate@5:  {best_metrics.get('hitrate@5', 0):.4f}")
     print(f"  HitRate@10: {best_metrics.get('hitrate@10', 0):.4f}")
     print(f"  MRR:        {best_metrics.get('mrr', 0):.4f}")
+    if 'entropy' in best_metrics:
+        print(f"  Entropy:    {best_metrics['entropy']:.4f}")
+    
+    # Save results json if requested
+    if args.save_results:
+        import json
+        
+        # Helper to serializable
+        def convert(o):
+            if isinstance(o, np.float32): return float(o)
+            return o
+            
+        with open(args.save_results, 'w') as f:
+            json.dump(best_metrics, f, default=convert)
+        print(f"Saved metrics to {args.save_results}")
 
 
 if __name__ == '__main__':

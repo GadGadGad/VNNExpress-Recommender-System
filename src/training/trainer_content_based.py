@@ -192,7 +192,8 @@ class HybridTrainer:
         device: str,
         n_users: int,
         n_items: int,
-        articles_df: pd.DataFrame,
+        articles_df: pd.DataFrame = None,
+        article_texts: List[str] = None,
         text_columns: List[str] = ['title', 'short_description']
     ):
         self.model = model
@@ -203,16 +204,22 @@ class HybridTrainer:
         self.articles_df = articles_df
         self.text_columns = text_columns
         
-        self.article_texts = self._prepare_texts()
-        
+        if article_texts is not None:
+            self.article_texts = article_texts
+        elif articles_df is not None:
+            self.article_texts = self._prepare_texts()
+        else:
+            raise ValueError("Must provide either articles_df or article_texts")
+            
     def _prepare_texts(self) -> List[str]:
         texts = []
-        for _, row in self.articles_df.iterrows():
-            parts = []
-            for col in self.text_columns:
-                if col in row and pd.notna(row[col]):
-                    parts.append(str(row[col]))
-            texts.append(" ".join(parts))
+        if self.articles_df is not None:
+            for _, row in self.articles_df.iterrows():
+                parts = []
+                for col in self.text_columns:
+                    if col in row and pd.notna(row[col]):
+                        parts.append(str(row[col]))
+                texts.append(" ".join(parts))
         return texts
     
     def encode_articles(self, batch_size: int = 32):
@@ -294,6 +301,8 @@ class HybridTrainer:
         metrics = compute_metrics(predictions, test_dict, train_dict, k_list)
         return metrics
     
+
+    
     def train(
         self,
         train_data: List[Tuple[int, int]],
@@ -308,10 +317,17 @@ class HybridTrainer:
         """Full training loop"""
         best_recall = 0.0
         best_epoch = 0
+        best_metrics = {}
         no_improve = 0
         
         # Encode articles first
         self.encode_articles(batch_size=32)
+        
+        # Precompute user profiles (speed optimization)
+        # Convert set to list for compatibility
+        print("\n[Trainer] Precomputing user profiles for training...")
+        full_histories = {k: list(v) for k, v in train_dict.items()}
+        self.model.precompute_user_profiles(full_histories)
         
         print(f"\n{'='*60}")
         print(f"Starting Hybrid Training")
@@ -336,6 +352,7 @@ class HybridTrainer:
                 recall_20 = metrics.get('Recall@20', 0)
                 if recall_20 > best_recall:
                     best_recall = recall_20
+                    best_metrics = metrics.copy()
                     best_epoch = epoch
                     no_improve = 0
                     self.save_model(save_path)
@@ -350,6 +367,11 @@ class HybridTrainer:
         print(f"\n{'='*60}")
         print(f"Training completed!")
         print(f"Best Recall@20: {best_recall:.4f} at epoch {best_epoch}")
+        
+        if best_metrics:
+            print("\nFINAL_METRICS")
+            print_metrics(best_metrics)
+            
         print(f"{'='*60}")
         
         return best_recall

@@ -563,6 +563,18 @@ def run_experiment(args):
         with open(results_path, 'w') as f:
             json.dump(results, f, indent=2)
         print(f"Results saved: {results_path}")
+
+    # Explicit save-results path for external tools
+    if args.save_results:
+        # Convert numpy types to native python types for JSON serialization
+        def convert(o):
+            if isinstance(o, (np.int64, np.int32)): return int(o)
+            if isinstance(o, (np.float64, np.float32)): return float(o)
+            return o
+            
+        with open(args.save_results, 'w') as f:
+            json.dump(metrics, f, default=convert)
+        print(f"Metrics saved to explicit path: {args.save_results}")
     
     return metrics
 
@@ -585,6 +597,7 @@ def main():
     parser.add_argument('--patience', type=int, default=20, help='Early stopping patience')
     parser.add_argument('--k-values', type=str, default='5,10,20', help='K values for top-K metrics')
     parser.add_argument('--save-dir', '-o', default='models', help='Directory to save model')
+    parser.add_argument('--save-results', type=str, default=None, help='Path to save metrics in JSON format')
     parser.add_argument('--cpu', action='store_true', help='Force CPU training')
     
     args = parser.parse_args()

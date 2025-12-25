@@ -69,5 +69,6 @@ Thumbs.db
 *.bcf
 *.nav
 *.pdf
-subprocess
-sys
+
+# --- Temp Files ---
+*.temp_ipynb

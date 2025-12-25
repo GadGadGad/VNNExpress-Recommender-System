@@ -330,6 +330,7 @@ class HybridRecommender(nn.Module):
     Final score = alpha * CF_score + (1-alpha) * Content_score
     """
     
+
     def __init__(
         self,
         n_users: int,
@@ -367,22 +368,16 @@ class HybridRecommender(nn.Module):
         )
         
         # User content preference (aggregated from read articles)
+        # We learn to project the mean article embedding to a user preference space
         self.user_content_projection = nn.Sequential(
             nn.Linear(content_embedding_dim, content_embedding_dim),
             nn.LayerNorm(content_embedding_dim),
             nn.GELU()
         )
         
-        # ========== Fusion Layer ==========
-        # Learns to combine CF and Content scores
-        self.fusion = nn.Sequential(
-            nn.Linear(2, 8),
-            nn.ReLU(),
-            nn.Linear(8, 1)
-        )
-        
         # Cached embeddings
         self.article_content_embeddings: Optional[torch.Tensor] = None
+        self.raw_user_profiles: Optional[torch.Tensor] = None  # Precomputed mean history
         
         print(f"\n[HybridRecommender] Initialized")
         print(f"  Users: {n_users}, Items: {n_items}")
@@ -401,90 +396,138 @@ class HybridRecommender(nn.Module):
         
         self.article_content_embeddings = torch.tensor(embeddings, device=self.device)
         
+    def precompute_user_profiles(self, user_histories: Dict[int, List[int]]):
+        """
+        Precompute raw user profiles (mean of history embeddings)
+        This speeds up training significantly by avoiding loop aggregation in the forward pass.
+        """
+        if self.article_content_embeddings is None:
+            raise ValueError("Must encode articles before computing user profiles")
+            
+        print("[HybridRecommender] Precomputing user profiles...")
+        self.raw_user_profiles = torch.zeros(
+            self.n_users, self.content_embedding_dim, device=self.device
+        )
+        
+        hit_count = 0
+        for user_id, history in user_histories.items():
+            if user_id < self.n_users and len(history) > 0:
+                # Filter valid items
+                valid_items = [i for i in history if i < self.article_content_embeddings.size(0)]
+                if valid_items:
+                    embeds = self.article_content_embeddings[valid_items]
+                    self.raw_user_profiles[user_id] = embeds.mean(dim=0)
+                    hit_count += 1
+                    
+        print(f"  Computed profiles for {hit_count}/{self.n_users} users")
+
     def get_cf_scores(self, users: torch.Tensor) -> torch.Tensor:
         """Get collaborative filtering scores"""
         user_embeds = self.user_cf_embedding(users)  # [batch, cf_dim]
         item_embeds = self.item_cf_embedding.weight  # [n_items, cf_dim]
-        
-        # Dot product
-        scores = torch.mm(user_embeds, item_embeds.T)  # [batch, n_items]
+        scores = torch.mm(user_embeds, item_embeds.T)
         return scores
     
-    def get_content_scores(
-        self,
-        user_histories: Dict[int, List[int]],
-        users: torch.Tensor
-    ) -> torch.Tensor:
-        """Get content-based scores"""
-        batch_size = len(users)
-        scores = torch.zeros(batch_size, self.n_items, device=self.device)
+    def get_content_scores(self, users: torch.Tensor) -> torch.Tensor:
+        """
+        Get content-based scores using precomputed raw profiles
+        """
+        if self.raw_user_profiles is None:
+            raise ValueError("Run precompute_user_profiles first!")
+            
+        # 1. Get raw mean embeddings [batch, dim]
+        raw_profiles = self.raw_user_profiles[users]
         
+        # 2. Project to preference space (TRAINABLE)
+        user_pref = self.user_content_projection(raw_profiles)
+        
+        # 3. Normalize
+        user_pref = F.normalize(user_pref, dim=-1)
         article_embeds = F.normalize(self.article_content_embeddings, dim=-1)
         
-        for i, user_id in enumerate(users.tolist()):
-            history = user_histories.get(user_id, [])
-            
-            if len(history) == 0:
-                continue
-                
-            # Mean of read articles
-            history_embeds = self.article_content_embeddings[history]
-            user_pref = history_embeds.mean(dim=0)
-            user_pref = self.user_content_projection(user_pref)
-            user_pref = F.normalize(user_pref.unsqueeze(0), dim=-1)
-            
-            scores[i] = torch.mm(user_pref, article_embeds.T).squeeze(0)
-            
+        # 4. Dot product with all articles
+        scores = torch.mm(user_pref, article_embeds.T)
+        
         return scores
-    
+
     def forward(
         self,
         users: torch.Tensor,
-        user_histories: Dict[int, List[int]]
+        user_histories: Dict[int, List[int]] = None # Kept for API compatibility, unused if precomputed
     ) -> torch.Tensor:
         """
-        Compute hybrid scores
-        
-        Returns:
-            scores: [batch_size, n_items]
+        Compute hybrid scores for all items
         """
+        # CF Component
         cf_scores = self.get_cf_scores(users)
-        content_scores = self.get_content_scores(user_histories, users)
         
-        # Simple weighted average
-        scores = self.alpha * cf_scores + (1 - self.alpha) * content_scores
-        
-        return scores
+        # Content Component
+        if self.raw_user_profiles is not None:
+            content_scores = self.get_content_scores(users)
+        else:
+            # Fallback (slow, mostly for inference on new users if needed, but we rely on precompute)
+            content_scores = torch.zeros_like(cf_scores)
+            
+        # Hybrid
+        return self.alpha * cf_scores + (1 - self.alpha) * content_scores
     
+    def get_hybrid_score_pointwise(self, users, items):
+        """
+        Compute scores for specific (user, item) pairs.
+        Used for BPR loss.
+        """
+        # --- CF ---
+        u_cf = self.user_cf_embedding(users)
+        i_cf = self.item_cf_embedding(items)
+        cf_score = (u_cf * i_cf).sum(dim=1)
+        
+        # --- Content ---
+        if self.raw_user_profiles is not None:
+            # Get PROJECTED user pref
+            raw_u = self.raw_user_profiles[users]
+            u_pref = self.user_content_projection(raw_u)
+            u_pref = F.normalize(u_pref, dim=-1)
+            
+            # Get item content
+            i_content = self.article_content_embeddings[items]
+            i_content = F.normalize(i_content, dim=-1)
+            
+            content_score = (u_pref * i_content).sum(dim=1)
+        else:
+            content_score = torch.zeros_like(cf_score)
+            
+        # --- Hybrid ---
+        return self.alpha * cf_score + (1 - self.alpha) * content_score
+
     def bpr_loss(
         self,
         users: torch.Tensor,
         pos_items: torch.Tensor,
         neg_items: torch.Tensor,
-        user_histories: Dict[int, List[int]]
+        user_histories: Dict[int, List[int]] = None
     ) -> torch.Tensor:
-        """BPR loss for training"""
-        # CF scores
-        user_embeds = self.user_cf_embedding(users)
-        pos_embeds = self.item_cf_embedding(pos_items)
-        neg_embeds = self.item_cf_embedding(neg_items)
+        """BPR loss optimizing the Hybrid score"""
         
-        pos_cf = (user_embeds * pos_embeds).sum(dim=1)
-        neg_cf = (user_embeds * neg_embeds).sum(dim=1)
+        # If raw profiles not computed, try to compute (if histories passed)
+        if self.raw_user_profiles is None and user_histories is not None:
+             self.precompute_user_profiles(user_histories)
         
-        # Content scores (optional, can be slow)
-        # For now, just use CF loss
+        # Compute Hybrid Scores
+        pos_scores = self.get_hybrid_score_pointwise(users, pos_items)
+        neg_scores = self.get_hybrid_score_pointwise(users, neg_items)
         
-        cf_loss = -F.logsigmoid(pos_cf - neg_cf).mean()
+        # Loss
+        loss = -F.logsigmoid(pos_scores - neg_scores).mean()
         
-        # Regularization
-        reg_loss = 0.01 * (
-            user_embeds.norm(2).pow(2) +
-            pos_embeds.norm(2).pow(2) +
-            neg_embeds.norm(2).pow(2)
+        # Regularization (L2 on CF embeddings)
+        # Optional: Add reg on content projection? Default L2 usually covers weights.
+        reg_loss = 1e-4 * (
+            self.user_cf_embedding(users).norm(2).pow(2) +
+            self.item_cf_embedding(pos_items).norm(2).pow(2) +
+            self.item_cf_embedding(neg_items).norm(2).pow(2)
         ) / len(users)
         
-        return cf_loss + reg_loss
+        return loss + reg_loss
 
 
 class SimCSEVietnameseEncoder(nn.Module):
@@ -600,3 +643,59 @@ try:
     import pandas as pd
 except ImportError:
     pd = None
+
+# ===============================================
+# Standard TF-IDF Recommender (for Demo Fallback)
+# ===============================================
+class TFIDFRecommender:
+    """
+    Standard TF-IDF + Cosine Similarity Recommender
+    """
+    def __init__(self, n_users, n_items, max_features=5000):
+        from sklearn.feature_extraction.text import TfidfVectorizer
+        self.n_users = n_users
+        self.n_items = n_items
+        self.vectorizer = TfidfVectorizer(max_features=max_features)
+        self.article_vectors = None
+        # Not inheriting from nn.Module to keep it lightweight for CPU
+        
+    def encode_articles(self, texts: List[str]):
+        """Fit TF-IDF on texts"""
+        # Ensure imports
+        import operator
+            
+        print(f"[TF-IDF] Fitting on {len(texts)} articles...")
+        self.article_vectors = self.vectorizer.fit_transform(texts)
+        print(f"  Shape: {self.article_vectors.shape}")
+        
+    def recommend(self, history_indices: List[int], k: int = 10):
+        """Recommend items similar to user history (mean profile)"""
+        from sklearn.metrics.pairwise import cosine_similarity
+        import numpy as np
+        
+        if self.article_vectors is None:
+            raise ValueError("Fit model first!")
+            
+        # Filter valid indices
+        # Ensure we don't crash if index out of bounds
+        max_idx = self.article_vectors.shape[0]
+        valid_indices = [i for i in history_indices if i < max_idx]
+        
+        if not valid_indices:
+             return [], []
+             
+        # User profile = Mean of history vectors
+        user_profile = np.asarray(self.article_vectors[valid_indices].mean(axis=0))
+        
+        # Cosine sim (sparse matrix friendly)
+        scores = cosine_similarity(user_profile, self.article_vectors).flatten()
+        
+        # Mask history (set seen scores to -1 so they are not recommended)
+        scores[valid_indices] = -1.0
+        
+        # Top K
+        top_k_indices = scores.argsort()[-k:][::-1]
+        top_k_scores = scores[top_k_indices]
+        
+        # Note: scores are numpy arrays
+        return top_k_indices.tolist(), top_k_scores.tolist()

@@ -13,13 +13,13 @@ from collections import Counter
 import networkx as nx
 import matplotlib.pyplot as plt
 import torch
+import torch.nn.functional as F
+from src.inference.re_ranker import CalibratedReRanker
 
 # Add project root to sys.path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-# -----------------------------------------------------------------------------
-# CONFIG & UTILS
-# -----------------------------------------------------------------------------
+
 st.set_page_config(
     page_title="News RecSys Comprehensive",
     page_icon="📰",
@@ -32,9 +32,64 @@ RAW_DIR = "data/raw"
 MODELS_DIR = "models"
 
 MODEL_OPTIONS = {
-    "CF": ["NGCF", "LightGCL", "SimGCL"], 
-    "CB": ["TF-IDF", "PhoBERT", "Hybrid"]
+    "CF": ["NGCF", "LightGCL", "SimGCL", "XSimGCL", "CGRC", "IGCL", "BIGCF"], 
+    "CB": ["TF-IDF", "PhoBERT", "SimCSE", "Hybrid"]
 }
+
+CATEGORY_MAP = {
+    "giaoduc": "📚 Giáo dục",
+    "khcn": "🔬 Khoa học & Công nghệ",
+    "kinhdoanh": "💼 Kinh doanh",
+    "thegioi": "🌍 Thế giới",
+    "thethao": "⚽ Thể thao",
+    "thoisu": "📰 Thời sự",
+    "giai-tri": "🎬 Giải trí",
+    "suc-khoe": "🏥 Sức khỏe",
+    "xe": "🚗 Xe",
+    "du-lich": "✈️ Du lịch",
+    "N/A": "❓ Khác"
+}
+
+
+def score_to_color(score, base_hue=120, min_lightness=30, max_lightness=70):
+    """Convert score (0-1) to HSL color. Higher score = darker (more saturated)."""
+    score = max(0, min(1, score))  # Clamp to 0-1
+    lightness = max_lightness - score * (max_lightness - min_lightness)
+    saturation = 50 + score * 30  # 50-80%
+    return f"hsl({base_hue}, {saturation:.0f}%, {lightness:.0f}%)"
+
+
+class PhoBERTWrapper:
+    """Wrapper for pre-computed PhoBERT/SimCSE embeddings for recommendation."""
+    
+    def __init__(self, embeddings, articles_df):
+        self.embeddings = embeddings  # Shape: (n_articles, embed_dim)
+        self.articles_df = articles_df
+        # Normalize embeddings for cosine similarity
+        self.embeddings_norm = F.normalize(embeddings, p=2, dim=1)
+    
+    def recommend(self, history_indices, k=10):
+        """Recommend based on cosine similarity to history."""
+        if not history_indices:
+            return [], []
+        
+        # Average embedding of history articles
+        history_embs = self.embeddings_norm[history_indices]
+        query = history_embs.mean(dim=0, keepdim=True)
+        query = F.normalize(query, p=2, dim=1)
+        
+        # Compute similarity to all articles
+        similarities = torch.mm(query, self.embeddings_norm.t()).squeeze()
+        
+        # Exclude history from recommendations
+        for idx in history_indices:
+            similarities[idx] = -float('inf')
+        
+        # Top-k
+        scores, indices = torch.topk(similarities, k=min(k, len(similarities)))
+        return indices.tolist(), scores.tolist()
+
+
 
 @st.cache_data
 def load_resources(data_dir=DATA_DIR, raw_dir=RAW_DIR):
@@ -45,14 +100,13 @@ def load_resources(data_dir=DATA_DIR, raw_dir=RAW_DIR):
         articles_df = pd.read_csv(articles_path)
         articles_df['title'] = articles_df['title'].fillna("Untitled")
         articles_df['short_description'] = articles_df['short_description'].fillna("")
-        # Create Map: URL -> Meta
+        articles_df = articles_df.drop_duplicates(subset=['url'])
         url_to_idx = {url: i for i, url in enumerate(articles_df['url'])}
         meta_map = articles_df.set_index('url')[['title', 'short_description']].to_dict('index')
     else:
-        # Fallback if raw_dir doesn't have articles (e.g. processed context)
-        # Try checking parent or default
         st.error(f"Missing articles.csv in {raw_dir}")
         return None, None, None, None
+
 
     # 2. Mappings (from converted data) - Used for CF
     u_map_path = Path(data_dir) / "user_map.json"
@@ -82,7 +136,28 @@ def load_resources(data_dir=DATA_DIR, raw_dir=RAW_DIR):
         except Exception as e:
             st.warning(f"Error loading User History: {e}")
     
-    return articles_df, user_map_cf, article_map_cf, user_history
+    # 4. Adjacency Matrix & Technical Pillars
+    adj_norm = None
+    semantic_ids = None
+    user_priors = None
+    
+    cf_cache_path = Path(data_dir) / "cf_cache.pt"
+    if cf_cache_path.exists():
+        try:
+            cache = torch.load(cf_cache_path, map_location='cpu', weights_only=False)
+            adj_norm = cache.get('adj_norm')
+        except: pass
+        
+    prior_path = Path(data_dir) / "user_priors.pt"
+    if prior_path.exists():
+        try:
+            user_priors = torch.load(prior_path, map_location='cpu', weights_only=False)
+        except: pass
+        
+    # Semantic IDs are usually generated on the fly or cached. 
+    # For now, we'll try to load them if they exist in a model checkpoint or generate dummy if needed.
+    
+    return articles_df, user_map_cf, article_map_cf, user_history, adj_norm, user_priors
 
 @st.cache_resource
 def load_cf_model(model_name, n_users, n_items):
@@ -96,6 +171,14 @@ def load_cf_model(model_name, n_users, n_items):
             from src.models.lightgcl import LightGCL as ModelClass
         elif model_name.lower() == 'simgcl':
             from src.models.simgcl import SimGCL as ModelClass
+        elif model_name.lower() == 'xsimgcl':
+            from src.models.xsimgcl import XSimGCL as ModelClass
+        elif model_name.lower() == 'cgrc':
+            from src.models.cgrc import CGRC as ModelClass
+        elif model_name.lower() == 'igcl':
+            from src.models.igcl import IGCL as ModelClass
+        elif model_name.lower() == 'bigcf':
+            from src.models.bigcf import BIGCF as ModelClass
         else:
             return None
 
@@ -108,6 +191,26 @@ def load_cf_model(model_name, n_users, n_items):
         config = checkpoint.get('config', {})
         state_dict = checkpoint['model_state_dict']
         
+        # Check for size mismatch in checkpoint
+        checkpoint_n_users = config.get('n_users', None)
+        checkpoint_n_items = config.get('n_items', None)
+        
+        # Also check from state_dict shapes
+        for key in ['E_u_0', 'user_embedding.weight']:
+            if key in state_dict:
+                checkpoint_n_users = state_dict[key].shape[0]
+                break
+        for key in ['E_i_0', 'item_embedding.weight']:
+            if key in state_dict:
+                checkpoint_n_items = state_dict[key].shape[0]
+                break
+        
+        if checkpoint_n_users and checkpoint_n_users != n_users:
+            st.warning(f"⚠️ {model_name} checkpoint was trained on {checkpoint_n_users} users, but current data has {n_users}. **Retrain for best results!**")
+        if checkpoint_n_items and checkpoint_n_items != n_items:
+            st.warning(f"⚠️ {model_name} checkpoint was trained on {checkpoint_n_items} items, but current data has {n_items}. **Retrain for best results!**")
+        
+
         # Init model args
         # Note: Different models have different __init__ args. 
         # Most accept n_users, n_items, embed_dim/emb_dim
@@ -123,14 +226,38 @@ def load_cf_model(model_name, n_users, n_items):
         layers = config.get('layers', config.get('n_layers', [64, 64]))
         if isinstance(layers, int): layers = [dim] * layers # LightGCL uses int n_layers
         
-        if model_name.lower() == 'ngcf':
-             model = ModelClass(n_users, n_items, emb_dim=dim, layers=layers)
-        elif model_name.lower() == 'lightgcl':
-             # LightGCL: n_users, n_items, embed_dim, n_layers
-             n_l = len(layers) if isinstance(layers, list) else layers
-             model = ModelClass(n_users, n_items, embed_dim=dim, n_layers=n_l)
-        elif model_name.lower() == 'simgcl':
-             model = ModelClass(n_users, n_items, embedding_dim=dim)
+        if model_name.lower() in ['ngcf', 'lightgcl', 'simgcl', 'igcl', 'bigcf']:
+             if model_name.lower() == 'ngcf':
+                  # NGCF takes n_layers (int), not layers list
+                  n_l = len(layers) if isinstance(layers, list) else layers
+                  model = ModelClass(n_users, n_items, embedding_dim=dim, n_layers=n_l)
+             elif model_name.lower() == 'lightgcl':
+                  n_l = len(layers) if isinstance(layers, list) else layers
+                  model = ModelClass(n_users, n_items, embedding_dim=dim, n_layers=n_l)
+
+             elif model_name.lower() == 'simgcl':
+                  model = ModelClass(n_users, n_items, embedding_dim=dim)
+             elif model_name.lower() == 'igcl':
+                  model = ModelClass(n_users, n_items, embedding_dim=dim, n_layers=layers[0] if isinstance(layers, list) else layers)
+             elif model_name.lower() == 'bigcf':
+                  model = ModelClass(n_users, n_items, embedding_dim=dim, n_layers=layers[0] if isinstance(layers, list) else layers)
+        
+        elif model_name.lower() == 'xsimgcl':
+            n_l = layers[0] if isinstance(layers, list) else layers
+            model = ModelClass(n_users, n_items, embedding_dim=dim, n_layers=n_l)
+            
+            # Re-init layers for Semantic IDs and User Priors if they exist in state_dict
+            if 'semantic_layer.weight' in state_dict:
+                from scripts.train_cf_models import SemanticEmbeddingLayer
+                s_dim = state_dict['semantic_layer.weight'].shape[1]
+                model.semantic_layer = SemanticEmbeddingLayer(s_dim, dim)
+            if 'user_prior_layer.weight' in state_dict:
+                from scripts.train_cf_models import UserPriorLayer
+                p_dim = state_dict['user_prior_layer.weight'].shape[1]
+                model.user_prior_layer = UserPriorLayer(p_dim, dim)
+        
+        elif model_name.lower() == 'cgrc':
+            model = ModelClass(n_users, n_items, embedding_dim=dim)
              
         try:
              model.load_state_dict(state_dict, strict=False)
@@ -159,51 +286,127 @@ def load_cb_model(model_type, articles_df):
             return model
             
         elif model_type == 'PhoBERT':
-             # Check if saved embeddings exist?
-             # For demo, mapping raw text to PhoBERT in real-time is slow (CPU).
-             # We might check if `article_embeddings.pt` exists.
-             # Fallback to TF-IDF if too heavy?
-             # Let's try to load if `run_content_based.py` saved something.
-             # Usually `run_content_based.py` saves `content_model.pt`?
-             # If not, let's skip or show warning.
-             st.info("PhoBERT inference requires pre-computed embeddings (heavy). Using dummy standard.")
-             return None
+             # Load pre-computed PhoBERT embeddings
+             emb_path = Path(st.session_state.get('data_dir', DATA_DIR)) / "phobert_embeddings.pt"
+             if emb_path.exists():
+                 try:
+                     emb_dict = torch.load(emb_path, map_location='cpu', weights_only=False)
+                     
+                     # Convert dict (URL -> embedding) to aligned matrix
+                     urls = articles_df['url'].tolist()
+                     embed_dim = list(emb_dict.values())[0].shape[0]
+                     embeddings = torch.zeros(len(urls), embed_dim)
+                     
+                     matched = 0
+                     for i, url in enumerate(urls):
+                         if url in emb_dict:
+                             embeddings[i] = emb_dict[url]
+                             matched += 1
+                     
+                     st.success(f"Loaded PhoBERT embeddings: {embeddings.shape}, matched {matched}/{len(urls)} articles")
+                     return PhoBERTWrapper(embeddings, articles_df)
+                 except Exception as e:
+                     st.warning(f"Failed to load PhoBERT embeddings: {e}")
+                     return None
+             else:
+                 st.warning(f"PhoBERT embeddings not found at {emb_path}. Run training first.")
+                 return None
+             
+        elif model_type == 'SimCSE':
+             # Load pre-computed SimCSE embeddings if they exist
+             emb_path = Path(st.session_state.get('data_dir', DATA_DIR)) / "simcse_embeddings.pt"
+             if emb_path.exists():
+                 try:
+                     emb_dict = torch.load(emb_path, map_location='cpu', weights_only=False)
+                     
+                     # Convert dict to aligned matrix
+                     urls = articles_df['url'].tolist()
+                     embed_dim = list(emb_dict.values())[0].shape[0] if emb_dict else 768
+                     embeddings = torch.zeros(len(urls), embed_dim)
+                     
+                     matched = 0
+                     for i, url in enumerate(urls):
+                         if url in emb_dict:
+                             embeddings[i] = emb_dict[url]
+                             matched += 1
+                     
+                     st.success(f"Loaded SimCSE embeddings: {embeddings.shape}, matched {matched}/{len(urls)} articles")
+                     return PhoBERTWrapper(embeddings, articles_df)
+                 except Exception as e:
+                     st.warning(f"Failed to load SimCSE embeddings: {e}")
+                     return None
+             else:
+                 st.warning(f"SimCSE embeddings not found. Run training first.")
+                 return None
+             
+
+             
+
              
         return None
     except Exception as e:
         st.error(f"CB Load Error: {e}")
         return None
 
-def get_recs(model, model_type, user_idx, history_urls, article_map, articles_df, k=10):
+def get_recs(model, model_type, user_idx, history_urls, article_map, articles_df, k=10, 
+             adj_norm=None, user_priors=None, semantic_ids=None):
     try:
         import torch
         if model_type in MODEL_OPTIONS["CF"]:
-            # CF Logical
             idx_to_url = {v: k for k, v in article_map.items()}
+            model.eval()
             with torch.no_grad():
-                # Extract embeddings depends on model structure
-                # NGCF: user_embedding, item_embedding
-                # LightGCL: embedding_user, embedding_item
-                # SimGCL: user_emb, item_emb (via forward)
+                # Handling XSimGCL and other champions
+                if model_type.lower() == 'xsimgcl':
+                    # XSimGCL prediction with fusion
+                    # We need to pad user_priors if mismatch (handled in load_resources/main)
+                    u_idx_torch = torch.tensor([user_idx])
+                    scores = model.predict(adj_norm, users=u_idx_torch, 
+                                          semantic_ids=semantic_ids, 
+                                          user_priors=user_priors).squeeze()
+                elif hasattr(model, 'forward'):
+                    # Generic GNN-based
+                    # Check for size mismatch before calling forward
+                    model_n_users = None
+                    if hasattr(model, 'n_users'):
+                        model_n_users = model.n_users
+                    elif hasattr(model, 'E_u_0'):
+                        model_n_users = model.E_u_0.shape[0]
+                    elif hasattr(model, 'user_embedding'):
+                        model_n_users = model.user_embedding.weight.shape[0]
+                    
+                    if model_n_users and user_idx >= model_n_users:
+                        st.error(f"⚠️ User index {user_idx} >= model capacity ({model_n_users}). Model needs retraining!")
+                        return []
+                    
+                    if adj_norm is not None:
+                         # Most champions (LightGCL, SimGCL, IGCL, BIGCF)
+                         try:
+                             user_all, item_all = model(adj_norm)
+                             scores = torch.mm(user_all[user_idx].unsqueeze(0), item_all.t()).squeeze()
+                         except Exception as e:
+                             st.error(f"Model forward failed: {e}. Try retraining the model.")
+                             return []
+                    else:
+                         # Fallback to embeddings if no graph
+                         # Support different naming: user_embedding, E_u_0, etc.
+                         if hasattr(model, 'user_embedding'):
+                             u_emb = model.user_embedding.weight[user_idx]
+                             i_embs = model.item_embedding.weight
+                         elif hasattr(model, 'E_u_0'):
+                             u_emb = model.E_u_0[user_idx]
+                             i_embs = model.E_i_0
+                         else:
+                             st.warning(f"Model {model_type} has no recognized embedding layer")
+                             return []
+                         scores = torch.matmul(u_emb, i_embs.t())
+
+
                 
-                # Unified forward if possible, or manual extraction
-                if hasattr(model, 'user_embedding'): # NGCF
-                    u_emb = model.user_embedding.weight[user_idx]
-                    i_embs = model.item_embedding.weight
-                elif hasattr(model, 'embedding_user'): # LightGCL
-                    u_emb = model.embedding_user.weight[user_idx]
-                    i_embs = model.embedding_item.weight
-                else: # Generic/SimGCL (might need edge_index)
-                    # SimGCL often needs graph for propagation
-                    # If we don't have graph here, we use base embeddings (Matrix Factorization style)
-                    # or fail.
-                    return []
-                
-                scores = torch.matmul(u_emb, i_embs.t())
-                vals, indices = torch.topk(scores, k=min(k, len(i_embs)))
+                vals, indices = torch.topk(scores, k=min(k, len(scores)))
                 
             recs = []
-            for idx, score in zip(indices.numpy(), vals.numpy()):
+            for idx, score in zip(indices.cpu().numpy(), vals.cpu().numpy()):
                 url = idx_to_url.get(idx, None)
                 if url: recs.append((url, float(score)))
             return recs
@@ -219,15 +422,30 @@ def get_recs(model, model_type, user_idx, history_urls, article_map, articles_df
                 if idx < len(articles_df):
                      recs.append((articles_df.iloc[idx]['url'], float(sc)))
             return recs
+        
+        elif model_type in ['PhoBERT', 'SimCSE']:
+            # CB using PhoBERTWrapper
+            url_to_idx = {url: i for i, url in enumerate(articles_df['url'])}
+            hist_indices = [url_to_idx[u] for u in history_urls if u in url_to_idx]
+            if not hist_indices: 
+                st.warning("No history found for this user.")
+                return []
+            top, scores = model.recommend(hist_indices, k=k)
+            recs = []
+            for idx, sc in zip(top, scores):
+                if idx < len(articles_df):
+                     recs.append((articles_df.iloc[idx]['url'], float(sc)))
+            return recs
+            
+
             
     except Exception as e:
         st.error(f"Inference Error: {e}")
         return []
 
-# -----------------------------------------------------------------------------
-# MAIN
-# -----------------------------------------------------------------------------
+
 def main():
+
     st.title("📰 Comprehensive RecSys Dashboard")
     
     # Session State for Paths
@@ -246,9 +464,12 @@ def main():
     if global_articles_path.exists():
         try:
             df_g = pd.read_csv(global_articles_path)
-            if 'category' in df_g.columns:
-                cats = sorted(df_g['category'].dropna().unique().tolist())
+            # Check for source_category or category column
+            cat_col = 'source_category' if 'source_category' in df_g.columns else 'category'
+            if cat_col in df_g.columns:
+                cats = sorted(df_g[cat_col].dropna().unique().tolist())
                 categories.extend(cats)
+
         except: pass
         
     selected_ds = st.sidebar.selectbox("Active Dataset", categories)
@@ -282,8 +503,10 @@ def main():
                     df_r = pd.read_csv(Path(RAW_DIR)/"replies.csv")
                     
                     # Filter Articles
-                    df_a_sub = df_a[df_a['category'] == selected_ds]
+                    cat_col = 'source_category' if 'source_category' in df_a.columns else 'category'
+                    df_a_sub = df_a[df_a[cat_col] == selected_ds]
                     valid_urls = set(df_a_sub['url'])
+
                     
                     # Filter Replies (Users who commented on these articles)
                     # Note: Original 'replies.csv' has 'article_url'.
@@ -344,83 +567,199 @@ def main():
         pass
 
     # Load Data (Using Session Ptrs)
-    articles_df, user_map_cf, article_map_cf, user_history = load_resources(
+    res = load_resources(
         st.session_state['data_dir'], 
         st.session_state['raw_dir']
     )
-    
-    if articles_df is None:
+    if res[0] is None:
         st.sidebar.error("Data Load Failed. Check paths.")
         return
+        
+    articles_df, user_map_cf, article_map_cf, user_history, adj_norm, user_priors = res
+    
+    # Optional: Generate Semantic IDs (Pillar 1)
+    # For demo, we use a fixed bits/stages if not cached
+    semantic_ids = None
+    if 'xsimgcl' in [m.lower() for m in MODEL_OPTIONS["CF"]]:
+        from src.models.semantic_id import generate_semantic_ids
+        # Try to load pretrained embeddings for Semantic ID generation
+        # (This might be slow if not cached, but small articles.csv makes it ok)
+        try:
+             # Look for article_embeddings.pt
+             emb_path = Path(st.session_state['data_dir']) / "article_embeddings.pt"
+             if emb_path.exists():
+                 pretrained = torch.load(emb_path, map_location='cpu', weights_only=False)
+                 semantic_ids = generate_semantic_ids(pretrained, bits=3)
+        except: pass
     
     # Sidebar Controls
     st.sidebar.divider()
     st.sidebar.header("🕹️ Controls")
     
-    # User
-    user_ids = sorted(list(user_history.keys()))
+    # Min interactions filter
+    min_interactions = st.sidebar.slider("Min Interactions", 1, 50, 3, help="Filter users by minimum reading history")
+    
+    # User - filter by min interactions
+    user_ids = sorted([uid for uid, hist in user_history.items() if len(hist) >= min_interactions])
+    st.sidebar.caption(f"📌 {len(user_ids)} users with ≥{min_interactions} interactions")
+    
+    user_options = ["📊 All Users (Overview)"] + user_ids
     default_u = 0
-    selected_user = st.sidebar.selectbox("Select User", user_ids, index=default_u)
+    selected_user_option = st.sidebar.selectbox("Select User", user_options, index=default_u)
     
-    # Tabs
-    tab_infer, tab_train, tab_stats, tab_graph = st.tabs(["🔮 Inference", "🛠️ Training", "📊 Stats", "🕸️ Graph"])
+    # Determine if we're in "All Users" mode
+    all_users_mode = selected_user_option == "📊 All Users (Overview)"
+    selected_user = user_ids[0] if (all_users_mode and user_ids) else selected_user_option
     
-    # --- TAB 1: INFERENCE ---
-    with tab_infer:
+
+
+    # Tabs - Split CF and CB
+    tab_cf, tab_cb, tab_train, tab_stats, tab_graph = st.tabs(["🤝 CF Inference", "📝 CB Inference", "🛠️ Training", "📊 Stats", "🕸️ Graph"])
+
+    
+    # --- TAB 1: CF INFERENCE ---
+    with tab_cf:
+        st.header("🤝 Collaborative Filtering")
+        st.caption("Graph-based: Learn user preferences from interaction patterns")
+        
         col_L, col_R = st.columns([1, 2])
         
         with col_L:
-            st.subheader("Config")
-            # Model Selection
-            model_cat = st.radio("Category", ["CF (Collaborative)", "CB (Content-Based)"])
-            if "CF" in model_cat:
-                model_name = st.selectbox("Model", MODEL_OPTIONS["CF"])
-            else:
-                model_name = st.selectbox("Model", MODEL_OPTIONS["CB"])
-                
-            k = st.slider("Top K", 5, 20, 10)
+            st.subheader("CF Config")
+            cf_model_name = st.selectbox("CF Model", MODEL_OPTIONS["CF"], key="cf_model")
+            k_cf = st.slider("Top K", 5, 20, 10, key="k_cf")
             
-            # Show History
+            # User History
             st.divider()
-            st.write(f"**History ({len(user_history.get(selected_user, []))})**")
-            url_to_meta = articles_df.set_index('url')[['title', 'short_description']].to_dict('index')
-            for u in user_history.get(selected_user, [])[-5:]:
-                st.caption(f"- {url_to_meta.get(u, {}).get('title', 'Unknown')}")
-                
+            if all_users_mode:
+                st.write("**All Users Mode**")
+                n_sample_cf = st.slider("Sample Size", 5, 50, 10, key="n_cf")
+            else:
+                st.write(f"**History ({len(user_history.get(selected_user, []))})**")
+                url_to_meta = articles_df.set_index('url')[['title', 'short_description']].to_dict('index')
+                for u in user_history.get(selected_user, [])[-5:]:
+                    st.caption(f"- {str(url_to_meta.get(u, {}).get('title', 'Unknown'))[:40]}")
+        
         with col_R:
-            st.subheader(f"Results: {model_name}")
+            st.subheader(f"CF Results: {cf_model_name}")
             
-            # RERANKING CONTROLS
-            # Only show if not Hybrid (Hybrid already mixes)
-            use_rerank = False
-            if model_name != "Hybrid":
-                with st.expander("🚀 Reranking Options (MMR)", expanded=False):
-                    use_rerank = st.checkbox("Enable Diversity Reranking", value=False)
-                    lambda_mmr = st.slider("Diversity Factor (Lambda)", 0.0, 1.0, 0.7, help="Higher = More Relevant, Lower = More Diverse")
+            if all_users_mode:
+                # Batch mode
+                model = load_cf_model(cf_model_name, len(user_map_cf), len(article_map_cf))
+                if model:
+                    import random
+                    sample_users = random.sample(list(user_map_cf.keys()), min(n_sample_cf, len(user_map_cf)))
                     
-            recs = []
-            
-            # Routing
-            if model_name in MODEL_OPTIONS["CF"]:
-                if selected_user in user_map_cf:
-                     model = load_cf_model(model_name, len(user_map_cf), len(article_map_cf))
-                     if model:
-                         recs = get_recs(model, model_name, user_map_cf[selected_user], [], article_map_cf, articles_df, k)
-                     else: st.warning(f"Model {model_name} not found. Please train it.")
+                    results = []
+                    url_to_meta = articles_df.set_index('url')[['title', 'short_description']].to_dict('index')
+                    
+                    with st.spinner(f"Generating CF recommendations for {len(sample_users)} users..."):
+                        for user_id in sample_users:
+                            user_idx = user_map_cf[user_id]
+                            user_recs = get_recs(model, cf_model_name, user_idx, [], article_map_cf, articles_df, k_cf,
+                                            adj_norm=adj_norm, user_priors=user_priors, semantic_ids=semantic_ids)
+                            
+                            for rank, (url, score) in enumerate(user_recs[:k_cf], 1):
+                                title = str(url_to_meta.get(url, {}).get('title', 'Unknown'))[:35]
+                                results.append({
+                                    "User": str(user_id)[:12],
+                                    "Rank": rank,
+                                    "Article": title,
+                                    "Score": f"{score:.3f}"
+                                })
+                    
+                    st.dataframe(pd.DataFrame(results), use_container_width=True, height=400)
+                    st.success(f"Generated {len(results)} recommendations.")
                 else:
-                    st.info(f"❄️ Cold Start Detected (User not in CF training set).")
-                    st.warning(f"Falling back to Content-Based (TF-IDF) for model: {model_name}")
-                    model = load_cb_model('TF-IDF', articles_df)
-                    recs = get_recs(model, 'TF-IDF', 0, user_history.get(selected_user, []), {}, articles_df, k)
-                    
-            elif model_name == 'TF-IDF':
-                model = load_cb_model('TF-IDF', articles_df)
-                recs = get_recs(model, 'TF-IDF', 0, user_history.get(selected_user, []), {}, articles_df, k)
+                    st.warning(f"Model {cf_model_name} not found. Train it first.")
+            else:
+                # Single user mode
+                if selected_user in user_map_cf:
+                    model = load_cf_model(cf_model_name, len(user_map_cf), len(article_map_cf))
+                    if model:
+                        recs = get_recs(model, cf_model_name, user_map_cf[selected_user], [], article_map_cf, articles_df, k_cf,
+                                      adj_norm=adj_norm, user_priors=user_priors, semantic_ids=semantic_ids)
+                        
+                        url_to_meta = articles_df.set_index('url')[['title', 'short_description', 'source_category']].to_dict('index')
+                        
+                        for i, (url, score) in enumerate(recs):
+                            meta = url_to_meta.get(url, {'title': 'Unknown', 'short_description': '', 'source_category': 'N/A'})
+                            title = str(meta.get('title', 'Unknown'))[:70]
+                            desc = str(meta.get('short_description', ''))[:150]
+                            cat_raw = meta.get('source_category', 'N/A')
+                            cat = CATEGORY_MAP.get(cat_raw, f"📁 {cat_raw}")
+                            
+                            # Score color: green for high, yellow for medium
+                            score_color = score_to_color(score, base_hue=120)  # Green gradient
+                            
+
+                            st.markdown(f"""
+                            <div style="padding:12px; margin:8px 0; border-radius:10px; background:linear-gradient(135deg, rgba(100,100,100,0.1), rgba(100,100,100,0.05)); border-left:4px solid {score_color};">
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span style="color:#888; font-weight:bold;">#{i+1}</span>
+                                    <span style="background:{score_color}; color:white; padding:2px 8px; border-radius:12px; font-size:0.8em;">{score:.3f}</span>
+                                </div>
+                                <div style="font-weight:bold; margin:4px 0;">{title}</div>
+                                <div style="color:#666; font-size:0.9em;">{desc}...</div>
+                                <div style="margin-top:6px;">
+                                    <span style="font-size:0.85em;">{cat}</span>
+                                    <a href="{url}" target="_blank" style="float:right; text-decoration:none;">🔗 Read</a>
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
+
+                    else:
+                        st.warning(f"Model {cf_model_name} not found. Please train it.")
+                else:
+                    st.warning(f"❄️ Cold Start: User not in CF training set. Try CB tab instead.")
+    
+    # --- TAB 2: CB INFERENCE ---
+    with tab_cb:
+        st.header("📝 Content-Based Filtering")
+        st.caption("Text-based: Recommend articles similar to user's reading history")
+        
+        col_L2, col_R2 = st.columns([1, 2])
+        
+        with col_L2:
+            st.subheader("CB Config")
+            cb_model_name = st.selectbox("CB Model", MODEL_OPTIONS["CB"], key="cb_model")
+            k_cb = st.slider("Top K", 5, 20, 10, key="k_cb")
+            
+            # User History for CB
+            st.divider()
+            history_urls = user_history.get(selected_user, [])
+            st.write(f"**📚 Reading History ({len(history_urls)})** - Used as query")
+            
+            if history_urls:
+                url_to_meta = articles_df.set_index('url')[['title', 'short_description', 'source_category']].to_dict('index')
                 
-            elif model_name == 'Hybrid':
-                # Quick Hybrid reuse
+                # Show history as styled cards
+                for i, u in enumerate(history_urls[-5:], 1):
+                    meta = url_to_meta.get(u, {})
+                    title = str(meta.get('title', 'Unknown'))[:60]
+                    cat_raw = meta.get('source_category', 'N/A')
+                    cat = CATEGORY_MAP.get(cat_raw, f"📁 {cat_raw}")
+
+                    with st.container():
+                        st.markdown(f"""
+                        <div style="padding:8px; margin:4px 0; border-radius:8px; background:rgba(100,100,100,0.1);">
+                            <span style="color:#888;">#{i}</span> <b>{title}</b>
+                            <br><small style="color:#666;">{cat}</small>
+
+                        </div>
+                        """, unsafe_allow_html=True)
+            else:
+                st.info("No reading history for this user")
+
+        
+        with col_R2:
+            st.subheader(f"CB Results: {cb_model_name}")
+            
+            if cb_model_name == 'TF-IDF':
+                model = load_cb_model('TF-IDF', articles_df)
+                recs = get_recs(model, 'TF-IDF', 0, user_history.get(selected_user, []), {}, articles_df, k_cb)
+            elif cb_model_name == 'Hybrid':
                 st.info("Hybrid = Interleaving CF (NGCF) + CB (TF-IDF)")
-                # Fetch both
                 cf_model = load_cf_model('NGCF', len(user_map_cf), len(article_map_cf))
                 cb_model = load_cb_model('TF-IDF', articles_df)
                 
@@ -428,85 +767,58 @@ def main():
                 cb_recs = []
                 
                 if cf_model and selected_user in user_map_cf:
-                    cf_recs = get_recs(cf_model, 'NGCF', user_map_cf[selected_user], [], article_map_cf, articles_df, k)
+                    cf_recs = get_recs(cf_model, 'NGCF', user_map_cf[selected_user], [], article_map_cf, articles_df, k_cb)
                 if cb_model:
-                     cb_recs = get_recs(cb_model, 'TF-IDF', 0, user_history.get(selected_user, []), {}, articles_df, k)
+                    cb_recs = get_recs(cb_model, 'TF-IDF', 0, user_history.get(selected_user, []), {}, articles_df, k_cb)
                 
                 # Interleave
+                recs = []
                 seen = set()
                 for i in range(max(len(cf_recs), len(cb_recs))):
                     if i < len(cf_recs):
                         u, s = cf_recs[i]
                         if u not in seen: recs.append((u, s)); seen.add(u)
                     if i < len(cb_recs):
-                         u, s = cb_recs[i]
-                         if u not in seen: recs.append((u, s)); seen.add(u)
-                    if len(recs) >= k: break
-                     
-            # APPLY RERANKING
-            if use_rerank and len(recs) > 1:
-                try:
-                    from sklearn.feature_extraction.text import TfidfVectorizer
-                    from sklearn.metrics.pairwise import cosine_similarity
-                    
-                    st.info(f"Reranking {len(recs)} items with MMR (Lambda={lambda_mmr})...")
-                    
-                    # 1. Get Text for candidates
-                    cand_urls = [r[0] for r in recs]
-                    cand_scores = [r[1] for r in recs]
-                    
-                    # Lookup text
-                    meta_list = [url_to_meta.get(u, {'title': '', 'short_description': ''}) for u in cand_urls]
-                    corpus = [str(m['title']) + " " + str(m['short_description']) for m in meta_list]
-                    
-                    # 2. Compute Similarity Matrix (TF-IDF on the fly for small K is fast)
-                    vectorizer = TfidfVectorizer().fit_transform(corpus)
-                    sim_matrix = cosine_similarity(vectorizer)
-                    
-                    # 3. MMR Greedy
-                    S = [] # Selected indices
-                    R = list(range(len(recs))) # Candidate indices
-                    
-                    # Select 1st item (highest score)
-                    S.append(R.pop(0))
-                    
-                    while len(S) < min(k, len(recs)) and len(R) > 0:
-                        best_mmr = -float('inf')
-                        best_cand_idx_in_R = -1
-                        
-                        for i, r_idx in enumerate(R):
-                            # Relevance
-                            relevance = cand_scores[r_idx]
-                             # Normalize Score? 
-                            # If scores are small (0.01), they might be outweighed by Sim (0.5).
-                            # Normalize scores to 0-1 range locally?
-                            # Simplify: relevance 
-                            
-                            # Diversity Penalty: Max sim with already selected
-                            # Sim is 0..1
-                            max_sim = max([sim_matrix[r_idx, s_idx] for s_idx in S])
-                            
-                            mmr_score = lambda_mmr * relevance - (1 - lambda_mmr) * max_sim
-                            
-                            if mmr_score > best_mmr:
-                                best_mmr = mmr_score
-                                best_cand_idx_in_R = i
-                        
-                        if best_cand_idx_in_R != -1:
-                            S.append(R.pop(best_cand_idx_in_R))
-                            
-                    # Reorder recs
-                    recs = [recs[i] for i in S]
-                    
-                except Exception as e:
-                    st.warning(f"Reranking failed: {e}")
-                    
-            # Render
+                        u, s = cb_recs[i]
+                        if u not in seen: recs.append((u, s)); seen.add(u)
+                    if len(recs) >= k_cb: break
+            else:
+                # PhoBERT, SimCSE
+                model = load_cb_model(cb_model_name, articles_df)
+                if model:
+                    recs = get_recs(model, cb_model_name, 0, user_history.get(selected_user, []), {}, articles_df, k_cb)
+                else:
+                    recs = []
+                    st.warning(f"Model {cb_model_name} not found.")
+            
+            # Render CB results
+            url_to_meta = articles_df.set_index('url')[['title', 'short_description', 'source_category']].to_dict('index')
             for i, (url, score) in enumerate(recs):
-                meta = url_to_meta.get(url, {'title': 'Unknown', 'short_description': ''})
-                with st.expander(f"#{i+1} {meta['title']} ({score:.3f})"):
-                    st.write(meta['short_description'])
-                    st.markdown(f"[Read]({url})")
+                meta = url_to_meta.get(url, {'title': 'Unknown', 'short_description': '', 'source_category': 'N/A'})
+                title = str(meta.get('title', 'Unknown'))[:70]
+                desc = str(meta.get('short_description', ''))[:150]
+                cat_raw = meta.get('source_category', 'N/A')
+                cat = CATEGORY_MAP.get(cat_raw, f"📁 {cat_raw}")
+                
+                score_color = score_to_color(score, base_hue=210)  # Blue gradient
+
+                
+                st.markdown(f"""
+                <div style="padding:12px; margin:8px 0; border-radius:10px; background:linear-gradient(135deg, rgba(33,150,243,0.1), rgba(33,150,243,0.02)); border-left:4px solid {score_color};">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="color:#888; font-weight:bold;">#{i+1}</span>
+                        <span style="background:{score_color}; color:white; padding:2px 8px; border-radius:12px; font-size:0.8em;">{score:.3f}</span>
+                    </div>
+                    <div style="font-weight:bold; margin:4px 0;">{title}</div>
+                    <div style="color:#666; font-size:0.9em;">{desc}...</div>
+                    <div style="margin-top:6px;">
+                        <span style="font-size:0.85em;">{cat}</span>
+                        <a href="{url}" target="_blank" style="float:right; text-decoration:none;">🔗 Read</a>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+
 
     # --- TAB 2: TRAINING ---
     with tab_train:
@@ -522,7 +834,11 @@ def main():
                 train_model_name = st.selectbox("Target Model", MODEL_OPTIONS["CB"])
         with c3:
             epochs = st.number_input("Epochs", 1, 100, 10)
-            use_all_data = st.checkbox("Train on Full Data (Demo)", value=False, help="Use ALL data for training (No Test Split). Solves Cold Start for existing users.")
+            use_all_data = st.checkbox("Train on Full Data (Demo)", value=False)
+            denoise_ratio = st.slider("Adaptive Denoising Ratio", 0.0, 0.5, 0.0, 0.05, 
+                                      help="Prune noisy interactions during early training (Phase 6)")
+            eval_protocol = st.selectbox("Evaluation Protocol", ["full", "loo100", "cold"],
+                                         help="full=all items (hard), loo100=100 neg (paper-style), cold=cold-start users")
             
         start = st.button("🚀 Start Training Process", type="primary")
         
@@ -533,12 +849,26 @@ def main():
             # Build Command
             if train_model_name in MODEL_OPTIONS["CF"]:
                 script = "scripts/train_cf_models.py"
-                cmd = [sys.executable, script, "--model", train_model_name.lower(), "--epochs", str(epochs), "--no-cache"]
-                if use_all_data:
-                    cmd.append("--use-all-data")
+                cmd = [sys.executable, script, "--model", train_model_name.lower(), "--epochs", str(epochs),
+                       "--eval-protocol", eval_protocol]
+                if denoise_ratio > 0:
+                    cmd.extend(["--denoise-ratio", str(denoise_ratio)])
+
             else:
-                script = "scripts/run_content_based.py"
-                cmd = [sys.executable, script, "--model", train_model_name.lower().replace("-",""), "--epochs", str(epochs)]
+                # Content-Based models
+                if train_model_name == 'TF-IDF':
+                    st.success("TF-IDF does not require pre-training! It fits instantly when used for inference.")
+                    st.info("Simply select TF-IDF in the Inference tab to use it.")
+                    st.stop()
+                elif train_model_name == 'Hybrid':
+                    st.info("Hybrid model training...")
+                    script = "scripts/run_content_based.py"
+                    cmd = [sys.executable, script, "--model", "hybrid", "--epochs", str(epochs)]
+                else:
+                    # PhoBERT, SimCSE
+                    script = "scripts/run_content_based.py"
+                    model_arg = train_model_name.lower().replace("-","")
+                    cmd = [sys.executable, script, "--model", model_arg, "--epochs", str(epochs)]
             
             # Exec
             try:
@@ -572,33 +902,207 @@ def main():
         if files:
             latest = max(files, key=os.path.getctime)
             with open(latest) as f: st.dataframe(json.load(f))
+        
+        # Batch Recommendations
+        st.divider()
+        st.subheader("📋 Batch Recommendations (Sample Users)")
+        st.write("Generate recommendations for multiple users at once.")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            batch_model = st.selectbox("Model for Batch", MODEL_OPTIONS["CF"], key="batch_model")
+            n_sample_users = st.slider("Sample Users", 5, 50, 10)
+        with col2:
+            batch_k = st.slider("Top-K per User", 3, 20, 5)
+        
+        if st.button("🚀 Generate Batch Recommendations"):
+            if batch_model and len(user_map_cf) > 0:
+                model = load_cf_model(batch_model, len(user_map_cf), len(article_map_cf))
+                if model:
+                    with st.spinner("Generating recommendations..."):
+                        import random
+                        sample_users = random.sample(list(user_map_cf.keys()), min(n_sample_users, len(user_map_cf)))
+                        
+                        results = []
+                        idx_to_url = {v: k for k, v in article_map_cf.items()}
+                        url_to_title = dict(zip(articles_df['url'], articles_df['title']))
+                        
+                        for user_id in sample_users:
+                            user_idx = user_map_cf[user_id]
+                            recs = get_recs(model, batch_model, user_idx, [], article_map_cf, articles_df, batch_k,
+                                           adj_norm=adj_norm, user_priors=user_priors, semantic_ids=semantic_ids)
+                            
+                            for rank, (url, score) in enumerate(recs[:batch_k], 1):
+                                title = url_to_title.get(url, "Unknown")[:40]
+                                results.append({
+                                    "User": user_id[:10] + "..." if len(str(user_id)) > 10 else user_id,
+                                    "Rank": rank,
+                                    "Article": title,
+                                    "Score": f"{score:.3f}"
+                                })
+                        
+                        df_results = pd.DataFrame(results)
+                        st.dataframe(df_results, use_container_width=True)
+                        st.success(f"Generated {len(results)} recommendations for {len(sample_users)} users.")
+                else:
+                    st.warning(f"Model {batch_model} not found. Train it first.")
+            else:
+                st.warning("No users or model available.")
             
+
     # --- TAB 4: GRAPH ---
     with tab_graph:
         st.header("🕸️ Graph Inspector")
         
         c1, c2 = st.columns(2)
         with c1:
-            st.subheader("📂 Available Graphs (Current Context)")
+            st.subheader("📂 Available Graphs")
             # list files in data_dir
             curr_dir = Path(st.session_state.get('data_dir', DATA_DIR))
             graph_files = list(curr_dir.glob("*.pt"))
+            graph_names = [gf.name for gf in graph_files]
+            
             if graph_files:
-                for gf in graph_files:
-                    st.code(f"{gf.name} ({gf.stat().st_size / 1024:.1f} KB)")
+                selected_graph = st.selectbox("Select Graph for EDA", graph_names)
+                selected_path = curr_dir / selected_graph
+                st.caption(f"Size: {selected_path.stat().st_size / 1024:.1f} KB")
+                
+                if st.button("📊 Load & Analyze Graph"):
+                    with st.spinner("Loading graph..."):
+                        try:
+                            data = torch.load(selected_path, weights_only=False)
+                            st.session_state['eda_graph'] = data
+                            st.session_state['eda_graph_name'] = selected_graph
+                        except Exception as e:
+                            st.error(f"Failed to load: {e}")
+                
+                # Display EDA if loaded
+                if 'eda_graph' in st.session_state and st.session_state.get('eda_graph_name') == selected_graph:
+                    data = st.session_state['eda_graph']
+                    st.success(f"Loaded: {selected_graph}")
+                    
+                    # Detect graph type
+                    is_hetero = hasattr(data, 'node_types') or hasattr(data, 'edge_types')
+                    
+                    if is_hetero:
+                        st.markdown("**Type:** Heterogeneous Graph")
+                        
+                        # Node types
+                        st.markdown("**Node Types:**")
+                        for nt in data.node_types:
+                            n_nodes = data[nt].x.shape[0] if hasattr(data[nt], 'x') else data[nt].num_nodes
+                            feat_dim = data[nt].x.shape[1] if hasattr(data[nt], 'x') and data[nt].x is not None else 0
+                            st.write(f"  - `{nt}`: {n_nodes} nodes, {feat_dim}D features")
+                        
+                        # Edge types
+                        st.markdown("**Edge Types:**")
+                        for et in data.edge_types:
+                            edge_index = data[et].edge_index
+                            n_edges = edge_index.shape[1]
+                            st.write(f"  - `{et}`: {n_edges} edges")
+                            
+                    else:
+                        st.markdown("**Type:** Homogeneous Graph")
+                        n_nodes = data.x.shape[0] if hasattr(data, 'x') and data.x is not None else data.num_nodes
+                        n_edges = data.edge_index.shape[1] if hasattr(data, 'edge_index') else 0
+                        feat_dim = data.x.shape[1] if hasattr(data, 'x') and data.x is not None else 0
+                        
+                        col_a, col_b, col_c = st.columns(3)
+                        col_a.metric("Nodes", n_nodes)
+                        col_b.metric("Edges", n_edges)
+                        col_c.metric("Features", feat_dim)
+                        
+                        # Density
+                        if n_nodes > 0:
+                            density = n_edges / (n_nodes * (n_nodes - 1)) if n_nodes > 1 else 0
+                            st.write(f"**Density:** {density:.6f}")
+                        
+                        # Sample edges
+                        if hasattr(data, 'edge_index') and data.edge_index.shape[1] > 0:
+                            st.markdown("**Sample Edges (first 10):**")
+                            ei = data.edge_index[:, :10].T.tolist()
+                            st.dataframe(ei, column_config={"0": "Source", "1": "Target"})
+                            
+                            # Draw sample graph
+                            if st.button("🎨 Draw Sample Subgraph (50 nodes)"):
+                                import networkx as nx
+                                import matplotlib.pyplot as plt
+                                
+                                # Take first 50 nodes and their edges
+                                sample_nodes = set(range(min(50, n_nodes)))
+                                edges = data.edge_index.T.tolist()
+                                sample_edges = [(s, t) for s, t in edges if s in sample_nodes and t in sample_nodes]
+                                
+                                G = nx.Graph()
+                                G.add_nodes_from(sample_nodes)
+                                G.add_edges_from(sample_edges[:200])  # Limit edges
+                                
+                                fig, ax = plt.subplots(figsize=(10, 8))
+                                pos = nx.spring_layout(G, seed=42)
+                                nx.draw(G, pos, ax=ax, node_size=100, node_color='steelblue', 
+                                       edge_color='gray', alpha=0.7, with_labels=False)
+                                ax.set_title(f"Sample Subgraph ({len(G.nodes)} nodes, {len(G.edges)} edges)")
+                                st.pyplot(fig)
+                                plt.close()
             else:
                 st.warning("No .pt graph files found.")
+
                 
         with c2:
-            st.subheader("🛠️ Possible Graph Types")
-            st.write("We can construct the following from Raw Data:")
-            st.markdown("""
-            - **User-Article Bipartite**: Basic Interaction Graph (Comments).
-            - **User-User**: Shared Interest Graph (Users commenting on same articles).
-            - **Article-Article**: Content Similarity (KNN) or Co-occurrences.
-            - **Heterogeneous**: Combination of all above nodes and edges.
-            """)
-            st.info("To generate these, use 'convert_to_gnn.py' or Pipeline.")
+            st.subheader("🛠️ Generate Graph")
+            st.write("Select a graph type and generate from raw data:")
+            
+            graph_type_options = {
+                "User-Article Bipartite": "user-article",
+                "User-User (Shared Interest)": "user-user",
+                "Article-Article (Co-occurrence)": "article-article",
+                "Full Heterogeneous": "hetero",
+                "All Graph Types": "all"
+            }
+            selected_graph_type = st.selectbox("Graph Type", list(graph_type_options.keys()))
+            add_text_features = st.checkbox("Add Text Features (TF-IDF)", value=True)
+            
+            if st.button("🔧 Generate Graph", type="primary"):
+                graph_arg = graph_type_options[selected_graph_type]
+                raw_dir = st.session_state.get('raw_dir', RAW_DIR)
+                data_dir = st.session_state.get('data_dir', DATA_DIR)
+                
+                cmd = [
+                    sys.executable, "src/data/convert_to_gnn.py",
+                    "--graph-type", graph_arg,
+                    "--articles", f"{raw_dir}/articles.csv",
+                    "--replies", f"{raw_dir}/replies.csv",
+                    "--output", data_dir
+                ]
+                if add_text_features:
+                    cmd.append("--add-text-features")
+                
+                st.info(f"Running: `{' '.join(cmd[-6:])}`...")
+                log_area = st.empty()
+                
+                try:
+                    process = subprocess.Popen(
+                        cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                        text=True, bufsize=1, universal_newlines=True
+                    )
+                    logs = []
+                    while True:
+                        line = process.stdout.readline()
+                        if not line and process.poll() is not None:
+                            break
+                        if line:
+                            logs.append(line.strip())
+                            log_area.code("\n".join(logs[-20:]))
+                    
+                    if process.returncode == 0:
+                        st.success(f"Graph '{selected_graph_type}' generated successfully!")
+                        st.cache_data.clear()
+                        st.rerun()
+                    else:
+                        st.error("Graph generation failed.")
+                except Exception as e:
+                    st.error(f"Error: {e}")
+
 
         st.divider()
         st.subheader("Visualize User Ego Graph")
@@ -646,83 +1150,103 @@ def main():
                           url_to_title = dict(zip(articles_df['url'], articles_df['title']))
 
                           if target_user_id not in u_map:
-                               st.error("User ID not found in mapping.")
+                               # Try checking if it's an index
+                               if target_user_id.isdigit():
+                                   val = int(target_user_id)
+                                   idx_to_user = {v: k for k,v in u_map.items()}
+                                   if val in idx_to_user:
+                                       u_idx = val
+                                       target_user_id = idx_to_user[val]
+                                       st.success(f"Interpreted '{val}' as Index. User ID: {target_user_id}")
+                                   else:
+                                        st.error(f"User ID '{target_user_id}' not found in mapping (and not a valid index).")
+                                        st.stop()
+                               else:
+                                   st.error(f"User ID '{target_user_id}' not found in mapping.")
+                                   st.stop()
                           else:
                                u_idx = u_map[target_user_id]
                                st.write(f"Visualizing User Index: {u_idx}")
 
-                               # Build NX
-                               G = nx.Graph()
-                               G.add_node("User", color='red', label=f'User {target_user_id}', size=20)
-                               
-                               # 1. User -> Article Edges
-                               # Edge index for ('user', 'comments', 'article') or ('user', 'writes', 'comment') -> ('comment', 'on', 'article')?
-                               # convert_to_gnn saves ('user', 'comments', 'article') directly if direct_edge=True?
-                               # Standard: ('user', 'comments', 'article')
-                               try:
-                                   if ('user', 'comments', 'article') in data.edge_index_dict:
-                                       edge_index = data['user', 'comments', 'article'].edge_index
-                                   else:
-                                       # Maybe comments?
-                                       edge_index = data['user', 'writes', 'comment'].edge_index # Indirect?
-                                       # We need User-Article.
-                                       # Let's assume User-Article exist.
-                                       st.warning("Direct User-Article edges not found. Checking keys...")
-                                       st.write(data.edge_types)
-                                       edge_index = None
 
-                                   if edge_index is not None:
-                                       mask = edge_index[0] == u_idx
-                                       connected_articles = edge_index[1][mask].tolist()
+                          # Build NX Graph (always executed after u_idx is set)
+                          import networkx as nx
+                          import matplotlib.pyplot as plt
+                          
+                          G = nx.Graph()
+
+                          G.add_node("User", color='red', label=f'User {target_user_id}', size=20)
+                          
+                          # 1. User -> Article Edges
+                          try:
+                              if ('user', 'comments', 'article') in data.edge_index_dict:
+                                  edge_index = data['user', 'comments', 'article'].edge_index
+                              else:
+                                  st.warning("Direct User-Article edges not found. Checking keys...")
+                                  st.write(data.edge_types)
+                                  edge_index = None
+
+                              if edge_index is not None:
+                                  mask = edge_index[0] == u_idx
+                                  connected_articles = [int(x) for x in edge_index[1][mask].tolist()]
+                                  
+                                  st.write(f"Read {len(connected_articles)} articles.")
+                                  
+                                  added_articles = set()
+                                  for aid in connected_articles:
+                                       url = inv_a_map.get(aid, "Unknown")
+                                       title = str(url_to_title.get(url, f"Article {aid}"))[:30]
+                                       G.add_node(f"A_{aid}", color='blue', label=title, size=10)
+                                       G.add_edge("User", f"A_{aid}")
+                                       added_articles.add(aid)
+
                                        
-                                       st.write(f"Read {len(connected_articles)} articles.")
+                                  # 2. Article -> Similar Article (KNN)
+                                  if ('article', 'similar_to', 'article') in data.edge_index_dict:
+                                       sim_index = data['article', 'similar_to', 'article'].edge_index
+                                       src_sim = sim_index[0]
+                                       mask_sim = torch.isin(src_sim, torch.tensor(list(added_articles)))
                                        
-                                       added_articles = set()
-                                       for aid in connected_articles:
-                                            url = inv_a_map.get(aid, "Unknown")
-                                            title = url_to_title.get(url, f"Article {aid}")[:30]
-                                            G.add_node(aid, color='blue', label=title, size=10)
-                                            G.add_edge("User", aid, color='black')
-                                            added_articles.add(aid)
-                                            
-                                       # 2. Article -> Similar Article (KNN)
-                                       if ('article', 'similar_to', 'article') in data.edge_index_dict:
-                                            sim_index = data['article', 'similar_to', 'article'].edge_index
-                                            src_sim = sim_index[0]
-                                            # Find neighbors of added_articles
-                                            # Uses tensor mask
-                                            mask_sim = torch.isin(src_sim, torch.tensor(list(added_articles)))
-                                            
-                                            s_nodes = src_sim[mask_sim].tolist()
-                                            d_nodes = sim_index[1][mask_sim].tolist()
-                                            
-                                            count_sim = 0
-                                            for s, d in zip(s_nodes, d_nodes):
-                                                if count_sim > 50: break # Limit
-                                                if d not in G.nodes:
-                                                     url = inv_a_map.get(d, "Unknown")
-                                                     title = url_to_title.get(url, f"Sim {d}")[:30]
-                                                     G.add_node(d, color='green', label=title, size=8)
-                                                G.add_edge(s, d, color='gray', style='dashed')
-                                                count_sim += 1
-                                            st.write(f"Added {count_sim} similarity edges.")
-                                   
-                                   # Plot
-                                   fig, ax = plt.subplots(figsize=(10, 8))
-                                   pos = nx.spring_layout(G, k=0.3)
-                                   
-                                   # Colors
-                                   colors = [G.nodes[n]['color'] for n in G.nodes()]
-                                   sizes = [G.nodes[n]['size']*30 for n in G.nodes()]
-                                   labels = nx.get_node_attributes(G, 'label')
-                                   
-                                   nx.draw(G, pos, ax=ax, node_color=colors, node_size=sizes, with_labels=False)
-                                   nx.draw_networkx_labels(G, pos, labels, font_size=8)
-                                   
-                                   st.pyplot(fig)
-                                   st.info("Red: User | Blue: Read History | Green: Similar Articles (KNN)")
-                                   
-                               except Exception as e:
-                                   st.error(f"Error drawing graph: {e}")
+                                       s_nodes = [int(x) for x in src_sim[mask_sim].tolist()]
+                                       d_nodes = [int(x) for x in sim_index[1][mask_sim].tolist()]
+                                       
+                                       count_sim = 0
+                                       for s, d in zip(s_nodes, d_nodes):
+                                           if count_sim > 50: break
+                                           d_node = f"A_{d}"
+                                           s_node = f"A_{s}"
+                                           if d_node not in G.nodes:
+                                                url = inv_a_map.get(d, "Unknown")
+                                                title = str(url_to_title.get(url, f"Sim {d}"))[:30]
+                                                G.add_node(d_node, color='green', label=title, size=8)
+                                           if s_node in G.nodes:
+                                               G.add_edge(s_node, d_node)
+                                           count_sim += 1
+                                       st.write(f"Added {count_sim} similarity edges.")
+
+                              
+                              # Plot
+                              fig, ax = plt.subplots(figsize=(10, 8))
+                              pos = nx.spring_layout(G, k=0.3)
+                              
+                              # Safe access for node attributes
+                              colors = [G.nodes[n].get('color', 'gray') for n in G.nodes()]
+                              sizes = [G.nodes[n].get('size', 10)*30 for n in G.nodes()]
+                              labels = {n: G.nodes[n].get('label', str(n)) for n in G.nodes()}
+
+                              
+                              nx.draw(G, pos, ax=ax, node_color=colors, node_size=sizes, with_labels=False)
+                              nx.draw_networkx_labels(G, pos, labels, font_size=8)
+                              
+                              st.pyplot(fig)
+                              st.info("Red: User | Blue: Read History | Green: Similar Articles (KNN)")
+                              
+                          except Exception as e:
+                              import traceback
+                              st.error(f"Error drawing graph: {e}")
+                              st.code(traceback.format_exc())
+
+
+
 if __name__ == "__main__":
     main()

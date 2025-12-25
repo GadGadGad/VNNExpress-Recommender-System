@@ -639,18 +639,22 @@ class GNNDataConverter:
         data['user', 'comments', 'article'].edge_index = torch.stack([src, dst])
         
         # User -> User (shared articles, min 2)
-        user_articles = self.replies.groupby('user_idx')['article_idx'].apply(set).to_dict()
-        user_user_edges = []
-        user_ids = list(user_articles.keys())
-        
-        print("   → Computing user-user edges...")
-        for i in range(len(user_ids)):
-            u1 = user_ids[i]
-            for j in range(i + 1, len(user_ids)):
-                u2 = user_ids[j]
-                if len(user_articles[u1] & user_articles[u2]) >= 2:
-                    user_user_edges.append([u1, u2])
-                    user_user_edges.append([u2, u1])
+        if hasattr(self, 'no_aux_edges') and self.no_aux_edges:
+             print("   Skipping user-user edges (ablation)...")
+             user_user_edges = []
+        else:
+             user_articles = self.replies.groupby('user_idx')['article_idx'].apply(set).to_dict()
+             user_user_edges = []
+             user_ids = list(user_articles.keys())
+             
+             print("   → Computing user-user edges...")
+             for i in range(len(user_ids)):
+                u1 = user_ids[i]
+                for j in range(i + 1, len(user_ids)):
+                    u2 = user_ids[j]
+                    if len(user_articles[u1] & user_articles[u2]) >= 2:
+                        user_user_edges.append([u1, u2])
+                        user_user_edges.append([u2, u1])
         
         if user_user_edges:
             data['user', 'interacts_with', 'user'].edge_index = torch.tensor(
@@ -659,7 +663,10 @@ class GNNDataConverter:
         
         data = T.ToUndirected()(data)
         
-        save_path = self.output_dir / 'full_hetero_graph.pt'
+        data = T.ToUndirected()(data)
+        
+        filename = 'full_hetero_graph_no_aux.pt' if (hasattr(self, 'no_aux_edges') and self.no_aux_edges) else 'full_hetero_graph.pt'
+        save_path = self.output_dir / filename
         torch.save(data, save_path)
         self._save_mappings()
         
@@ -794,6 +801,11 @@ def main():
         action='store_true',
         help='Also export to DGL format'
     )
+    parser.add_argument(
+        '--no-aux-edges',
+        action='store_true',
+        help='Skip generation of auxiliary edges (user-user, article-article) in hetero graph'
+    )
     
     # Negative sampling options
     parser.add_argument(
@@ -854,6 +866,8 @@ def main():
         min_user_interactions=args.min_user_interactions,
         min_article_interactions=args.min_article_interactions,
     )
+    # Pass ablation flag to converter instance
+    converter.no_aux_edges = args.no_aux_edges
     
     # Note: K-core filtering is now done automatically in _load_data() via iterative filtering
     

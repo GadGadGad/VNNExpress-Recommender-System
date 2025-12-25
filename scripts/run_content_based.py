@@ -71,6 +71,9 @@ def parse_args():
                         default=['title', 'short_description'],
                         help='Article columns to use for text encoding')
     
+    parser.add_argument('--save-results', type=str, default=None,
+                        help='Path to save metrics as JSON')
+    
     return parser.parse_args()
 
 
@@ -175,6 +178,14 @@ def run_phobert_model(args, data_dict):
                 print(f"  {i+1}. [{score:.4f}] {text}...")
             break
     
+    if args.save_results:
+        try:
+            import json
+            with open(args.save_results, 'w') as f:
+                json.dump(metrics, f, indent=4)
+        except Exception as e:
+            print(f"Error saving results: {e}")
+            
     return metrics
 
 
@@ -210,7 +221,7 @@ def run_hybrid_model(args, data_dict):
         {'params': model.user_cf_embedding.parameters()},
         {'params': model.item_cf_embedding.parameters()},
         {'params': model.user_content_projection.parameters()},
-        {'params': model.fusion.parameters()},
+
     ], lr=args.lr)
     
     # Initialize trainer
@@ -220,7 +231,8 @@ def run_hybrid_model(args, data_dict):
         device=device,
         n_users=data_dict['n_users'],
         n_items=data_dict['n_items'],
-        articles_df=articles_df,
+        article_texts=data_dict['article_texts'],
+        # articles_df=articles_df, # Use article_texts instead
         text_columns=args.text_cols
     )
     
@@ -235,7 +247,14 @@ def run_hybrid_model(args, data_dict):
         save_path='checkpoints/hybrid_best.pth'
     )
     
-    return {'best_recall@20': best_recall}
+    results = {'best_recall@20': best_recall}
+    
+    if args.save_results:
+        import json
+        with open(args.save_results, 'w') as f:
+            json.dump(results, f, indent=4)
+            
+    return results
 
 
 def run_simcse_model(args, data_dict):
@@ -299,6 +318,17 @@ def run_simcse_model(args, data_dict):
             
             scores = torch.mm(user_embed, article_embeds.T).squeeze(0)
             predictions[user_id] = scores.cpu().numpy()
+            
+    # Compute metrics
+    metrics = compute_metrics(predictions, test_dict, train_dict, k_list=[10, 20, 50])
+    print_metrics(metrics)
+    
+    if args.save_results:
+        import json
+        with open(args.save_results, 'w') as f:
+            json.dump(metrics, f, indent=4)
+            
+    return metrics
     
     metrics = compute_metrics(predictions, test_dict, train_dict, k_list=[10, 20, 50])
     print_metrics(metrics)

@@ -32,7 +32,7 @@ def parse_args():
     
     # Method selection
     parser.add_argument('--method', type=str, default='tfidf',
-                        choices=['tfidf', 'bm25', 'word2vec', 'fasttext', 'all'],
+                        choices=['tfidf', 'bm25', 'word2vec', 'fasttext', 'all', 'ensemble'],
                         help='Method to run')
     
     # Data
@@ -63,6 +63,8 @@ def parse_args():
                         help='BM25 k1 parameter')
     parser.add_argument('--bm25_b', type=float, default=0.75,
                         help='BM25 b parameter')
+    parser.add_argument('--bm25_delta', type=float, default=0.5,
+                        help='BM25+ delta parameter (0.0 for Okapi)')
     
     # Word2Vec/FastText parameters
     parser.add_argument('--embedding_path', type=str, default=None,
@@ -166,7 +168,8 @@ def run_bm25(args, data_dict) -> Dict[str, float]:
         use_word_segmentation=args.use_segmentation,
         remove_stopwords=args.remove_stopwords,
         k1=args.bm25_k1,
-        b=args.bm25_b
+        b=args.bm25_b,
+        delta=args.bm25_delta
     )
     
     # Fit
@@ -266,6 +269,214 @@ def run_word2vec(args, data_dict) -> Dict[str, float]:
     return metrics
 
 
+
+# -------------------------------------------------------------------------
+# Ensemble Recommender (Dense + Sparse)
+# -------------------------------------------------------------------------
+def run_ensemble(args, data_dict) -> Dict[str, float]:
+    """Run Ensemble (Dense + Sparse) Recommender"""
+    from src.vietnamese_nlp import TFIDFRecommender
+    import torch
+    import torch.nn.functional as F
+    
+    print("\n" + "=" * 60)
+    print("Ensemble Recommender (TF-IDF + PhoBERT)")
+    print("=" * 60)
+    
+    class EnsembleRecommender(TFIDFRecommender):
+        def __init__(self, dense_path, alpha=0.5, **kwargs):
+            super().__init__(**kwargs)
+            self.alpha = alpha
+            print(f"Loading dense embeddings from {dense_path}...")
+            if os.path.exists(dense_path):
+                self.dense_embeddings = torch.load(dense_path, map_location='cpu')
+                # Normalize
+                self.dense_embeddings = F.normalize(self.dense_embeddings, p=2, dim=1)
+                print(f"Loaded embeddings: {self.dense_embeddings.shape}")
+            else:
+                print(f"Error: {dense_path} not found!")
+                self.dense_embeddings = None
+                
+        def compute_scores(self, user_history, aggregation='mean'):
+            # 1. Sparse Scores (TF-IDF)
+            sparse_scores = super().compute_scores(user_history, aggregation)
+            
+            # 2. Dense Scores (PhoBERT)
+            if self.dense_embeddings is not None and len(user_history) > 0:
+                # User profile = Mean of history embeddings
+                # Check indices
+                valid_indices = [idx for idx in user_history if idx < self.dense_embeddings.shape[0]]
+                if not valid_indices:
+                    dense_scores = np.zeros_like(sparse_scores)
+                else:
+                    history_embeds = self.dense_embeddings[valid_indices]
+                    user_embed = history_embeds.mean(dim=0).unsqueeze(0)
+                    # Normalize user profile?
+                    # Cosine sim requires normalized vectors. 
+                    # History embeds already normalized. Mean might not be.
+                    user_embed = F.normalize(user_embed, p=2, dim=1)
+                    
+                    # Compute similarity
+                    # Dense shape: [N_items, Dim]
+                    # Score shape: [1, N_items]
+                    dense_scores = torch.mm(user_embed, self.dense_embeddings.T).squeeze(0).numpy()
+                    
+                    # Ensure shapes match (just in case TF-IDF has different item count?)
+                    # They should match if data_dict is consistent.
+                    if len(dense_scores) != len(sparse_scores):
+                        # Pad or truncate?
+                        min_len = min(len(dense_scores), len(sparse_scores))
+                        dense_scores = dense_scores[:min_len]
+                        sparse_scores = sparse_scores[:min_len]
+            else:
+                dense_scores = np.zeros_like(sparse_scores)
+                
+            # 3. Combine
+            # Sparse (Cosine) is [-1, 1], usually [0, 1]
+            # Dense (Cosine) is [-1, 1]
+            return self.alpha * dense_scores + (1 - self.alpha) * sparse_scores
+
+    # Initialize
+    # Try different alphas? Default 0.3 for Dense (since it's weaker) vs 0.7 for Sparse?
+    # User asked for Dense + Sparse. Let's try 0.5 first.
+    # Actually, Sparse is 5%, Dense is 0.4%.
+    # 0.5 might dilute Sparse too much.
+    # Let's try alpha=0.2 (20% Dense, 80% Sparse)
+    alpha = args.alpha if hasattr(args, 'alpha') else 0.2
+    print(f"Ensemble Alpha (Dense weight): {alpha}")
+    
+    recommender = EnsembleRecommender(
+        dense_path='checkpoints/phobert_article_embeddings.pt',
+        alpha=alpha,
+        use_preprocessing=True,
+        use_word_segmentation=args.use_segmentation,
+        remove_stopwords=args.remove_stopwords,
+        max_features=args.max_features,
+        ngram_range=tuple(args.ngram_range)
+    )
+    
+    # Fit TF-IDF
+    start_time = time.time()
+    recommender.fit(data_dict['article_texts'])
+    fit_time = time.time() - start_time
+    print(f"\nFit time: {fit_time:.2f}s")
+    
+    # Evaluate
+    print("\n" + "-" * 40)
+    print("Evaluation")
+    print("-" * 40)
+    
+    start_time = time.time()
+    metrics = recommender.evaluate(
+        data_dict['train_dict'],
+        data_dict['test_dict'],
+        k_list=args.k_list
+    )
+    eval_time = time.time() - start_time
+    
+    print_metrics(metrics)
+    print(f"\nEvaluation time: {eval_time:.2f}s")
+    
+    return metrics
+
+
+
+# -------------------------------------------------------------------------
+# Ensemble Recommender (Dense + Sparse)
+# -------------------------------------------------------------------------
+def run_ensemble(args, data_dict) -> Dict[str, float]:
+    """Run Ensemble (Dense + Sparse) Recommender"""
+    from src.vietnamese_nlp import TFIDFRecommender
+    import torch
+    import torch.nn.functional as F
+    
+    print("\n" + "=" * 60)
+    print("Ensemble Recommender (TF-IDF + PhoBERT)")
+    print("=" * 60)
+    
+    class EnsembleRecommender(TFIDFRecommender):
+        def __init__(self, dense_path, alpha=0.5, **kwargs):
+            super().__init__(**kwargs)
+            self.alpha = alpha
+            print(f"Loading dense embeddings from {dense_path}...")
+            if os.path.exists(dense_path):
+                self.dense_embeddings = torch.load(dense_path, map_location='cpu')
+                # Normalize (important for cosine)
+                self.dense_embeddings = F.normalize(self.dense_embeddings, p=2, dim=1)
+                print(f"Loaded embeddings: {self.dense_embeddings.shape}")
+            else:
+                print(f"Error: {dense_path} not found!")
+                self.dense_embeddings = None
+                
+        def compute_scores(self, user_history, aggregation='mean'):
+            # 1. Sparse Scores (TF-IDF)
+            sparse_scores = super().compute_scores(user_history, aggregation)
+            
+            # 2. Dense Scores (PhoBERT)
+            if self.dense_embeddings is not None and len(user_history) > 0:
+                # User profile = Mean of history embeddings
+                # Check valid indices
+                valid_indices = [idx for idx in user_history if idx < self.dense_embeddings.shape[0]]
+                if not valid_indices:
+                    dense_scores = np.zeros_like(sparse_scores)
+                else:
+                    history_embeds = self.dense_embeddings[valid_indices]
+                    user_embed = history_embeds.mean(dim=0).unsqueeze(0)
+                    user_embed = F.normalize(user_embed, p=2, dim=1)
+                    
+                    # Compute similarity [1, N_items]
+                    dense_scores = torch.mm(user_embed, self.dense_embeddings.T).squeeze(0).numpy()
+                    
+                    # Ensure shapes match
+                    if len(dense_scores) != len(sparse_scores):
+                        min_len = min(len(dense_scores), len(sparse_scores))
+                        dense_scores = dense_scores[:min_len]
+                        sparse_scores = sparse_scores[:min_len]
+            else:
+                dense_scores = np.zeros_like(sparse_scores)
+                
+            # 3. Combine
+            return self.alpha * dense_scores + (1 - self.alpha) * sparse_scores
+
+    # Initialize
+    alpha = args.alpha if hasattr(args, 'alpha') else 0.2
+    print(f"Ensemble Alpha (Dense weight): {alpha}")
+    
+    recommender = EnsembleRecommender(
+        dense_path='checkpoints/phobert_article_embeddings.pt',
+        alpha=alpha,
+        use_preprocessing=True,
+        use_word_segmentation=args.use_segmentation,
+        remove_stopwords=args.remove_stopwords,
+        max_features=args.max_features,
+        ngram_range=tuple(args.ngram_range)
+    )
+    
+    # Fit TF-IDF
+    start_time = time.time()
+    recommender.fit(data_dict['article_texts'])
+    fit_time = time.time() - start_time
+    print(f"\nFit time: {fit_time:.2f}s")
+    
+    # Evaluate
+    print("\n" + "-" * 40)
+    print("Evaluation")
+    print("-" * 40)
+    
+    start_time = time.time()
+    metrics = recommender.evaluate(
+        data_dict['train_dict'],
+        data_dict['test_dict'],
+        k_list=args.k_list
+    )
+    eval_time = time.time() - start_time
+    
+    print_metrics(metrics)
+    print(f"\nEvaluation time: {eval_time:.2f}s")
+    
+    return metrics
+
+
 def run_all_methods(args, data_dict) -> Dict[str, Dict[str, float]]:
     """Run and compare all methods"""
     results = {}
@@ -275,6 +486,13 @@ def run_all_methods(args, data_dict) -> Dict[str, Dict[str, float]]:
         results['TF-IDF'] = run_tfidf(args, data_dict)
     except Exception as e:
         print(f"[Error] TF-IDF failed: {e}")
+    
+    # Ensemble (0.2 Dense)
+    try:
+        args.alpha = 0.2
+        results['Ensemble (0.2)'] = run_ensemble(args, data_dict)
+    except Exception as e:
+        print(f"[Error] Ensemble failed: {e}")
         
     # BM25
     try:
@@ -287,8 +505,18 @@ def run_all_methods(args, data_dict) -> Dict[str, Dict[str, float]]:
         results['Word2Vec'] = run_word2vec(args, data_dict)
     except Exception as e:
         print(f"[Error] Word2Vec failed: {e}")
+
+    # Ensemble (0.2 Dense)
+    try:
+        args.alpha = 0.2
+        results['Ensemble (0.2)'] = run_ensemble(args, data_dict)
+    except Exception as e:
+        print(f"[Error] Ensemble failed: {e}")
     
     return results
+
+
+
 
 
 def print_metrics(metrics: Dict[str, float]):
@@ -407,6 +635,8 @@ def main():
         print_comparison(all_results)
     elif args.method == 'tfidf':
         run_tfidf(args, data_dict)
+    elif args.method == 'ensemble':
+        run_ensemble(args, data_dict)
     elif args.method == 'bm25':
         run_bm25(args, data_dict)
     elif args.method in ['word2vec', 'fasttext']:
