@@ -111,19 +111,31 @@ def build_user_category_graph(articles_path, replies_path, output_dir, min_inter
     }
     
     # For CF training, create user-article pairs through category
-    # We'll store original interactions for training
-    train_pairs = []
-    train_dict = defaultdict(set)
-    
+    interactions = []
     for _, row in merged.iterrows():
         u_idx = user_map[row['user_id']]
         if row['article_url'] in article_map:
             a_idx = article_map[row['article_url']]
-            train_pairs.append((u_idx, a_idx))
-            train_dict[u_idx].add(a_idx)
+            interactions.append((u_idx, a_idx))
     
-    data['train_pairs'] = train_pairs
-    data['train_dict'] = dict(train_dict)
+    # Shuffle and split
+    np.random.seed(42)
+    np.random.shuffle(interactions)
+    split = int(len(interactions) * 0.8)
+    
+    train_pairs = interactions[:split]
+    test_pairs = interactions[split:]
+    
+    train_dict = defaultdict(set)
+    for u, i in train_pairs: train_dict[u].add(i)
+    test_dict = defaultdict(set)
+    for u, i in test_pairs: test_dict[u].add(i)
+
+    data.update({
+        'train_pairs': train_pairs,
+        'train_dict': dict(train_dict),
+        'test_dict': dict(test_dict)
+    })
     
     output_path = Path(output_dir) / 'user_category_graph.pt'
     Path(output_dir).mkdir(parents=True, exist_ok=True)
@@ -202,11 +214,20 @@ def build_reaction_weighted_graph(articles_path, replies_path, output_dir, min_i
     user_features = torch.randn(n_users, 64)
     article_features = torch.randn(n_articles, 64)
     
-    # Training data
-    train_pairs = list(zip(src, dst))
+    # Shuffle and split
+    interactions = list(zip(src, dst))
+    np.random.seed(42)
+    np.random.shuffle(interactions)
+    split = int(len(interactions) * 0.8)
+    
+    train_pairs = interactions[:split]
+    test_pairs = interactions[split:]
+    
     train_dict = defaultdict(set)
-    for u, a in train_pairs:
-        train_dict[u].add(a)
+    for u, i in train_pairs: train_dict[u].add(i)
+    
+    test_dict = defaultdict(set)
+    for u, i in test_pairs: test_dict[u].add(i)
     
     data = {
         'user_features': user_features,
@@ -219,11 +240,14 @@ def build_reaction_weighted_graph(articles_path, replies_path, output_dir, min_i
         'article_map': article_map,
         'train_pairs': train_pairs,
         'train_dict': dict(train_dict),
+        'test_dict': dict(test_dict),
         'graph_type': 'reaction_weighted'
     }
     
     output_path = Path(output_dir) / 'reaction_weighted_graph.pt'
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
     torch.save(data, output_path)
+
     
     print(f"  Edges: {edge_index.shape[1]}")
     print(f"  Avg weight: {weights.mean():.2f}")
@@ -342,7 +366,9 @@ def build_article_article_category_graph(articles_path, replies_path, output_dir
     }
     
     output_path = Path(output_dir) / 'article_article_category_graph.pt'
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
     torch.save(data, output_path)
+
     
     print(f"  Category edges: {len(category_edges)}")
     print(f"  Shared-user edges: {len(shared_user_edges)}")

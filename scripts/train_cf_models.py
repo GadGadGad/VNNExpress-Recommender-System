@@ -187,11 +187,100 @@ def load_data(data_path, min_interactions=2):
     import pandas as pd
     from torch_geometric.data import HeteroData
     
-    # Check for cached data
-    cache_path = Path(data_path) / 'cf_cache.pt'
+    # Check if data_path is already a file or a directory
+    p = Path(data_path)
+    if p.is_file():
+        cache_path = p
+    else:
+        cache_path = p / 'cf_cache.pt'
+
     if cache_path.exists():
         print(f"Loading cached data from {cache_path}...")
-        return torch.load(cache_path, weights_only=False)
+        data = torch.load(cache_path, weights_only=False)
+        
+        # Normalization for different graph types
+        if 'n_items' not in data:
+            if 'n_articles' in data:
+                data['n_items'] = data['n_articles']
+            elif 'n_categories' in data:
+                # If training on categories as items
+                data['n_items'] = data['n_categories']
+        
+        if 'item_map' in data and 'article_map' not in data:
+            data['article_map'] = data['item_map']
+            
+        # Handle PyG Data/HeteroData objects or dicts missing standard CF keys
+        from torch_geometric.data import Data, HeteroData
+        required_keys = ['train_pairs', 'train_dict', 'test_dict', 'edge_index']
+        
+        if isinstance(data, (Data, HeteroData)) or any(k not in data for k in required_keys):
+            print("  Ensuring interaction data and splits...")
+            edge_index = None
+            if isinstance(data, HeteroData):
+                if ('user', 'comments', 'article') in data.edge_types:
+                    edge_index = data['user', 'comments', 'article'].edge_index
+                else:
+                    # Fallback to first user-item like relation
+                    edge_index = next(iter(data.edge_index_dict.values()))
+                n_users = data['user'].num_nodes
+                n_items = data['article'].num_nodes
+            elif isinstance(data, Data):
+                edge_index = data.edge_index
+                n_users = data.num_nodes # Approximate if not specified
+                n_items = data.num_nodes
+            elif isinstance(data, dict):
+                # Try to get interactions from either edge_index or existing train_pairs
+                if 'edge_index' in data:
+                    edge_index = data['edge_index']
+                elif 'train_pairs' in data:
+                    # Already have pairs, but maybe missing test_dict
+                    interactions = list(set(data['train_pairs']))
+                else:
+                    return data # Can't extract
+            
+            if edge_index is not None:
+                interactions = list(set(zip(edge_index[0].tolist(), edge_index[1].tolist())))
+            
+            # Get n_users/n_items from dictionary if not set by graph extraction
+            if 'n_users' not in locals(): n_users = data.get('n_users', 0)
+            if 'n_items' not in locals(): n_items = data.get('n_items', 0)
+
+            np.random.seed(42)
+            np.random.shuffle(interactions)
+            split = int(len(interactions) * 0.8)
+            
+            data_dict = {
+                'n_users': n_users,
+                'n_items': n_items,
+                'train_pairs': interactions[:split],
+                'test_dict': {}, # Simplified
+                'train_dict': {}
+            }
+            # Fill dicts
+            for u, i in interactions[:split]:
+                if u not in data_dict['train_dict']: data_dict['train_dict'][u] = set()
+                data_dict['train_dict'][u].add(i)
+            # test dict
+            for u, i in interactions[split:]:
+                if u not in data_dict['test_dict']: data_dict['test_dict'][u] = set()
+                data_dict['test_dict'][u].add(i)
+            
+            if 'edge_index' not in data_dict or data_dict['edge_index'] is None:
+                # Bipartite graph edge index
+                train_users = torch.tensor([u for u, i in data_dict['train_pairs']], dtype=torch.long)
+                train_items = torch.tensor([i for u, i in data_dict['train_pairs']], dtype=torch.long)
+                data_dict['edge_index'] = torch.stack([
+                    torch.cat([train_users, train_items + n_users]),
+                    torch.cat([train_items + n_users, train_users])
+                ], dim=0)
+
+            # Keep original fields if it was a dict
+            if isinstance(data, dict):
+                data.update(data_dict)
+                return data
+            return data_dict
+
+        return data
     
     print("Processing data...")
     replies = pd.read_csv(Path(data_path).parent / 'raw' / 'replies.csv')
@@ -265,13 +354,18 @@ def load_data(data_path, min_interactions=2):
     data = {
         'n_users': n_users,
         'n_items': n_items,
+        'user_map': user_map,
+        'article_map': article_map,
         'edge_index': edge_index,
         'train_pairs': train_pairs,
         'train_dict': train_dict,
         'test_dict': test_dict,
     }
     
+    # Ensure directory exists
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
     torch.save(data, cache_path)
+
     return data
 
 
@@ -602,6 +696,11 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
     patience_counter = 0
     
     pbar = tqdm(range(args.epochs), desc=f"Training {args.model.upper()}", ncols=100)
+    
+    if args.epochs == 0:
+        print("Epochs set to 0. Exiting after data preparation.")
+        return {'status': 'consolidated'}
+
     for epoch in pbar:
         model.train()
         total_loss = 0
@@ -763,6 +862,7 @@ def main():
     print("=" * 60)
     print(f"Training {args.model.upper()}")
     print(f"Embedding Initialization: {args.embedding.upper()}")
+    print(f"Data Path: {args.data_path}")
     print("=" * 60)
     
     # Load data
@@ -786,14 +886,15 @@ def main():
         print(f"\nPrecomputing normalized adjacency for {args.model.upper()}...")
         
         augmented_pairs = None
-        item_item_edges = None
+        item_item_edges = data.get('article_edge_index') or data.get('user_category_edge_index') or data.get('cat_article_edges')
+        
         if args.augment == 'llmrec':
             augment_path = Path('data/processed/augmented_edges.pt')
             if augment_path.exists():
                 print(f"  Loading augmented interactions from {augment_path}...")
                 aug_data = torch.load(augment_path, weights_only=False)
                 augmented_pairs = aug_data.get('augmented_pairs', None)
-                item_item_edges = aug_data.get('item_item_edges', None) # Still load for CGRC/IGCL
+                item_item_edges = aug_data.get('item_item_edges', item_item_edges) 
             else:
                 print(f"  Warning: {augment_path} not found. Running without augmentation.")
         
@@ -947,6 +1048,10 @@ def main():
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     save_path = f"models/{args.model}_{timestamp}.pt"
+    
+    # Ensure directory exists
+    Path("models").mkdir(parents=True, exist_ok=True)
+    
     torch.save({
         'model_state_dict': model.state_dict(),
         'n_users': n_users,
@@ -954,6 +1059,7 @@ def main():
         'config': vars(args),
         'metrics': best_metrics
     }, save_path)
+
     print(f"\nModel saved: {save_path}")
     print(f"\nBest Metrics:")
     print(f"  Recall@1:   {best_metrics.get('recall@1', 0):.4f}")

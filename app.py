@@ -15,6 +15,10 @@ import matplotlib.pyplot as plt
 import torch
 import torch.nn.functional as F
 from src.inference.re_ranker import CalibratedReRanker
+import random
+import shutil
+from src.models.semantic_id import generate_semantic_ids
+
 
 # Add project root to sys.path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -27,6 +31,53 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# --- UI/UX Customization ---
+st.markdown("""
+<style>
+    /* Navigation Bar (Radio) */
+    div.row-widget.stRadio > div {
+        flex-direction: row;
+        justify-content: center;
+        background-color: #f0f2f6;
+        padding: 5px;
+        border-radius: 12px;
+        gap: 5px;
+    }
+    div.row-widget.stRadio > div > label {
+        flex: 1;
+        text-align: center;
+        padding: 8px 16px;
+        border-radius: 8px;
+        background-color: transparent;
+        border: none;
+        transition: all 0.2s ease;
+        margin: 0;
+    }
+    div.row-widget.stRadio > div > label:hover {
+        background-color: #e0e2e6;
+    }
+    div.row-widget.stRadio > div > label[data-baseweb="radio"] {
+        background-color: white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        font-weight: bold;
+    }
+
+    /* Metric Cards */
+    div[data-testid="stMetric"] {
+        background-color: #ffffff;
+        border: 1px solid #e0e0e0;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    /* Global Typography */
+    h1, h2, h3 {
+        color: #1a1a1a; 
+        font-family: 'Inter', sans-serif;
+    }
+</style>
+""", unsafe_allow_html=True)
 DATA_DIR = "data/processed"
 RAW_DIR = "data/raw"
 MODELS_DIR = "models"
@@ -93,9 +144,11 @@ class PhoBERTWrapper:
 
 @st.cache_data
 def load_resources(data_dir=DATA_DIR, raw_dir=RAW_DIR):
-    """Load static data: Articles, Mappings"""
+    status = {"errors": [], "warnings": []}
+    
     # 1. Articles
     articles_path = Path(raw_dir) / "articles.csv"
+    articles_df = pd.DataFrame() # Default empty
     if articles_path.exists():
         articles_df = pd.read_csv(articles_path)
         articles_df['title'] = articles_df['title'].fillna("Untitled")
@@ -104,8 +157,8 @@ def load_resources(data_dir=DATA_DIR, raw_dir=RAW_DIR):
         url_to_idx = {url: i for i, url in enumerate(articles_df['url'])}
         meta_map = articles_df.set_index('url')[['title', 'short_description']].to_dict('index')
     else:
-        st.error(f"Missing articles.csv in {raw_dir}")
-        return None, None, None, None
+        status["errors"].append(f"Missing articles.csv in {raw_dir}")
+        return None, None, None, None, None, None, status
 
 
     # 2. Mappings (from converted data) - Used for CF
@@ -120,8 +173,20 @@ def load_resources(data_dir=DATA_DIR, raw_dir=RAW_DIR):
     if a_map_path.exists():
         with open(a_map_path) as f: article_map_cf = json.load(f)
 
-    # 3. Interactions (Raw) -> User History
-    replies_path = Path(RAW_DIR) / "replies.csv"
+    # 3. Adjacency Matrix & Mappings (from converted data cache) - Priority
+    adj_norm = None
+    cf_cache_path = Path(data_dir) / "cf_cache.pt"
+    if cf_cache_path.exists():
+        try:
+            cache = torch.load(cf_cache_path, map_location='cpu', weights_only=False)
+            adj_norm = cache.get('adj_norm')
+            # Cache mappings take priority over JSON files if they exist there
+            if 'user_map' in cache: user_map_cf = cache['user_map']
+            if 'article_map' in cache: article_map_cf = cache['article_map']
+        except: pass
+
+    # 4. Interactions (Raw) -> User History & Fallback Mappings
+    replies_path = Path(raw_dir) / "replies.csv"
     user_history = {}
     if replies_path.exists():
         try:
@@ -131,33 +196,43 @@ def load_resources(data_dir=DATA_DIR, raw_dir=RAW_DIR):
                 try: return str(int(float(x)))
                 except: return str(x)
             col = 'user_id' if 'user_id' in df_rep.columns else 'reply_user_id'
-            df_rep[col] = df_rep[col].apply(clean)
-            user_history = df_rep.groupby(col)['article_url'].apply(list).to_dict()
+            if col in df_rep.columns:
+                df_rep[col] = df_rep[col].apply(clean)
+                user_history = df_rep.groupby(col)['article_url'].apply(list).to_dict()
+                
+                # Fallback for user_map_cf only if STILL missing
+                if not user_map_cf:
+                    counts = df_rep[col].value_counts()
+                    valid_u = counts[counts >= 2].index
+                    user_ids = sorted([uid for uid in df_rep[col].unique() if uid in valid_u])
+                    user_map_cf = {uid: i for i, uid in enumerate(user_ids)}
+                    status["warnings"].append("user_map_missing")
         except Exception as e:
-            st.warning(f"Error loading User History: {e}")
+            status["warnings"].append(f"history_load_error: {e}")
     
-    # 4. Adjacency Matrix & Technical Pillars
-    adj_norm = None
-    semantic_ids = None
+    # Fallback for article_map_cf only if STILL missing
+    if not article_map_cf and not user_history == {}:
+        all_interacted = []
+        for urls in user_history.values(): all_interacted.extend(urls)
+        from collections import Counter
+        counts = Counter(all_interacted)
+        valid_a = [url for url, c in counts.items() if c >= 2]
+        article_map_cf = {url: i for i, url in enumerate(sorted(valid_a))}
+        status["warnings"].append("article_map_missing")
+
+    # 5. Technical Pillars (Priors)
     user_priors = None
-    
-    cf_cache_path = Path(data_dir) / "cf_cache.pt"
-    if cf_cache_path.exists():
+    a_priors_path = Path(data_dir) / "user_priors.pt"
+    if a_priors_path.exists():
         try:
-            cache = torch.load(cf_cache_path, map_location='cpu', weights_only=False)
-            adj_norm = cache.get('adj_norm')
-        except: pass
-        
-    prior_path = Path(data_dir) / "user_priors.pt"
-    if prior_path.exists():
-        try:
-            user_priors = torch.load(prior_path, map_location='cpu', weights_only=False)
-        except: pass
+            user_priors = torch.load(a_priors_path, map_location='cpu', weights_only=False)
+        except Exception as e:
+            status["warnings"].append(f"Failed to load user priors: {e}")
         
     # Semantic IDs are usually generated on the fly or cached. 
     # For now, we'll try to load them if they exist in a model checkpoint or generate dummy if needed.
     
-    return articles_df, user_map_cf, article_map_cf, user_history, adj_norm, user_priors
+    return articles_df, user_map_cf, article_map_cf, user_history, adj_norm, user_priors, status
 
 @st.cache_resource
 def load_cf_model(model_name, n_users, n_items):
@@ -572,17 +647,36 @@ def main():
         st.session_state['raw_dir']
     )
     if res[0] is None:
-        st.sidebar.error("Data Load Failed. Check paths.")
+        if res[-1]["errors"]:
+            st.sidebar.error(res[-1]["errors"][0])
+        else:
+            st.sidebar.error("Data Load Failed. Check paths.")
         return
         
-    articles_df, user_map_cf, article_map_cf, user_history, adj_norm, user_priors = res
+    articles_df, user_map_cf, article_map_cf, user_history, adj_norm, user_priors, data_status = res
+    
+    # Handle Warnings from load_resources
+    if "user_map_missing" in data_status["warnings"]:
+        st.warning("⚠️ User mappings missing. Built temporary map from raw interactions. Indices might not match trained models!")
+        if st.button("🔧 Re-sync User Mappings", key="sync_u"):
+            with st.spinner("Syncing..."):
+                cmd = [sys.executable, "scripts/train_cf_models.py", "--epochs", "0", "--data-path", st.session_state['data_dir']]
+                subprocess.run(cmd)
+                st.rerun()
+    if "article_map_missing" in data_status["warnings"]:
+        st.warning("⚠️ Article mappings missing. Built temporary map from articles.csv.")
+        if st.button("🔧 Re-sync Article Mappings", key="sync_a"):
+             with st.spinner("Syncing..."):
+                cmd = [sys.executable, "src/data/convert_to_gnn.py", "--graph-type", "user-article", "--output", st.session_state['data_dir']]
+                subprocess.run(cmd)
+                st.rerun()
     
     # Optional: Generate Semantic IDs (Pillar 1)
     # For demo, we use a fixed bits/stages if not cached
     semantic_ids = None
     if 'xsimgcl' in [m.lower() for m in MODEL_OPTIONS["CF"]]:
-        from src.models.semantic_id import generate_semantic_ids
         # Try to load pretrained embeddings for Semantic ID generation
+
         # (This might be slow if not cached, but small articles.csv makes it ok)
         try:
              # Look for article_embeddings.pt
@@ -613,12 +707,14 @@ def main():
     
 
 
-    # Tabs - Split CF and CB
-    tab_cf, tab_cb, tab_train, tab_stats, tab_graph = st.tabs(["🤝 CF Inference", "📝 CB Inference", "🛠️ Training", "📊 Stats", "🕸️ Graph"])
+    # Persistent Tabs (Radio styled as tabs)
+    nav = st.radio("Navigation", ["🤝 CF Inference", "📝 CB Inference", "🛠️ Training", "📊 Stats", "🕸️ Graph"], 
+                   key="main_nav", horizontal=True, label_visibility="collapsed")
+    st.divider()
 
     
-    # --- TAB 1: CF INFERENCE ---
-    with tab_cf:
+    # --- PAGE 1: CF INFERENCE ---
+    if nav == "🤝 CF Inference":
         st.header("🤝 Collaborative Filtering")
         st.caption("Graph-based: Learn user preferences from interaction patterns")
         
@@ -694,16 +790,18 @@ def main():
                             
 
                             st.markdown(f"""
-                            <div style="padding:12px; margin:8px 0; border-radius:10px; background:linear-gradient(135deg, rgba(100,100,100,0.1), rgba(100,100,100,0.05)); border-left:4px solid {score_color};">
-                                <div style="display:flex; justify-content:space-between; align-items:center;">
-                                    <span style="color:#888; font-weight:bold;">#{i+1}</span>
-                                    <span style="background:{score_color}; color:white; padding:2px 8px; border-radius:12px; font-size:0.8em;">{score:.3f}</span>
+                            <div style="padding:15px; margin:10px 0; border-radius:12px; background:linear-gradient(135deg, #ffffff, #f9f9f9); border: 1px solid #eee; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-left:5px solid {score_color};">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                    <span style="color:#888; font-weight:bold; font-size:0.9em;">RANK #{i+1}</span>
+                                    <span style="background:{score_color}; color:white; padding:4px 10px; border-radius:20px; font-size:0.85em; font-weight:bold;">{score:.3f}</span>
                                 </div>
-                                <div style="font-weight:bold; margin:4px 0;">{title}</div>
-                                <div style="color:#666; font-size:0.9em;">{desc}...</div>
-                                <div style="margin-top:6px;">
-                                    <span style="font-size:0.85em;">{cat}</span>
-                                    <a href="{url}" target="_blank" style="float:right; text-decoration:none;">🔗 Read</a>
+                                <div style="font-weight:bold; font-size:1.15em; color:#222; margin-bottom:6px; line-height:1.4;">
+                                    <a href="{url}" target="_blank" style="text-decoration:none; color:#2c3e50;">{title}</a>
+                                </div>
+                                <div style="font-size:0.95em; color:#555; margin-bottom:10px; line-height:1.5;">{desc}...</div>
+                                <div style="display:flex; align-items:center; justify-content:space-between;">
+                                    <span style="background:#eef2ff; color:#4f46e5; padding:3px 10px; border-radius:6px; font-size:0.8em; font-weight:500;">{cat}</span>
+                                    <a href="{url}" target="_blank" style="font-size:0.85em; color:#4f46e5; text-decoration:none;">Read More →</a>
                                 </div>
                             </div>
                             """, unsafe_allow_html=True)
@@ -713,8 +811,8 @@ def main():
                 else:
                     st.warning(f"❄️ Cold Start: User not in CF training set. Try CB tab instead.")
     
-    # --- TAB 2: CB INFERENCE ---
-    with tab_cb:
+    # --- PAGE 2: CB INFERENCE ---
+    if nav == "📝 CB Inference":
         st.header("📝 Content-Based Filtering")
         st.caption("Text-based: Recommend articles similar to user's reading history")
         
@@ -820,8 +918,8 @@ def main():
 
 
 
-    # --- TAB 2: TRAINING ---
-    with tab_train:
+    # --- PAGE 3: TRAINING ---
+    if nav == "🛠️ Training":
         st.header("Train New Model")
         
         c1, c2, c3 = st.columns(3)
@@ -840,6 +938,72 @@ def main():
             eval_protocol = st.selectbox("Evaluation Protocol", ["full", "loo100", "cold"],
                                          help="full=all items (hard), loo100=100 neg (paper-style), cold=cold-start users")
             
+            # Graph Selection (only for CF relevant models)
+            selected_graph_path = None
+            if train_cat == "CF Models":
+                st.markdown("---")
+                st.subheader("Graph Architecture")
+                
+                GRAPH_TYPES = {
+                    "Standard Bipartite": "data/processed/cf_cache.pt",
+                    "Reaction-Weighted": "data/processed_graphs/reaction_weighted_graph.pt",
+                    "User-Category Hetero": "data/processed_graphs/user_category_graph.pt",
+                    "Full Hetero (Multi-relational)": "data/processed/full_hetero_graph.pt"
+                }
+                
+                graph_mode = st.radio("Selection Mode", ["Conceptual Types", "Custom File"], horizontal=True)
+                
+                if graph_mode == "Conceptual Types":
+                    selected_type = st.selectbox("Select Graph Type", list(GRAPH_TYPES.keys()))
+                    selected_graph_path = GRAPH_TYPES[selected_type]
+                    
+                    if not os.path.exists(selected_graph_path):
+                        st.warning(f"⚠️ {selected_type} graph file not found at {selected_graph_path}")
+                        
+                        col_build1, col_build2 = st.columns([2, 1])
+                        with col_build1:
+                            st.info("You can build this graph using the generation scripts.")
+                        with col_build2:
+                            if st.button("🔨 Build Graph"):
+                                with st.spinner(f"Building {selected_type}..."):
+                                    if selected_type == "Full Hetero (Multi-relational)":
+                                        script = "src/data/convert_to_gnn.py"
+                                        args = ["--graph-type", "hetero"]
+                                    elif selected_type == "Standard Bipartite":
+                                        script = "src/data/convert_to_gnn.py"
+                                        args = ["--graph-type", "user-article"]
+                                    else:
+                                        script = "scripts/build_alternative_graphs.py"
+                                        type_map = {
+                                            "Reaction-Weighted": "reaction-weighted",
+                                            "User-Category Hetero": "user-category"
+                                        }
+                                        args = ["--graph-type", type_map.get(selected_type)]
+                                    
+                                    if script:
+                                        cmd = [sys.executable, script] + args
+                                        result = subprocess.run(cmd, capture_output=True, text=True)
+                                        if result.returncode == 0:
+                                            st.success("Graph built successfully!")
+                                            st.rerun()
+                                        else:
+                                            st.error(f"Failed to build graph: {result.stderr}")
+                else:
+                    graph_files = glob.glob("data/**/*.pt", recursive=True)
+                    graph_options = {os.path.basename(f): f for f in graph_files}
+                    if graph_options:
+                        default_graph = "cf_cache.pt" if "cf_cache.pt" in graph_options else list(graph_options.keys())[0]
+                        selected_graph_name = st.selectbox("Select .pt File", list(graph_options.keys()), 
+                                                        index=list(graph_options.keys()).index(default_graph))
+                        selected_graph_path = graph_options.get(selected_graph_name)
+                    else:
+                        st.warning("No .pt files found.")
+                        selected_graph_path = "data/processed/cf_cache.pt"
+
+
+
+
+            
         start = st.button("🚀 Start Training Process", type="primary")
         
         if start:
@@ -850,7 +1014,8 @@ def main():
             if train_model_name in MODEL_OPTIONS["CF"]:
                 script = "scripts/train_cf_models.py"
                 cmd = [sys.executable, script, "--model", train_model_name.lower(), "--epochs", str(epochs),
-                       "--eval-protocol", eval_protocol]
+                       "--eval-protocol", eval_protocol, "--data-path", selected_graph_path]
+
                 if denoise_ratio > 0:
                     cmd.extend(["--denoise-ratio", str(denoise_ratio)])
 
@@ -892,10 +1057,19 @@ def main():
             except Exception as e:
                 st.error(str(e))
 
-    # --- TAB 3: STATS ---
-    with tab_stats:
-        st.metric("Users", len(user_history))
-        st.metric("Articles", len(articles_df))
+    # --- PAGE 4: STATS ---
+    if nav == "📊 Stats":
+        col_m1, col_m2, col_m3 = st.columns(3)
+        col_m1.metric("Users", len(user_history))
+        col_m2.metric("Articles", len(articles_df))
+        if col_m3.button("🗑️ Delete All Models", help="Clear models/ directory"):
+             if os.path.exists(MODELS_DIR):
+                 shutil.rmtree(MODELS_DIR)
+                 os.makedirs(MODELS_DIR)
+                 st.success("All models deleted!")
+                 st.rerun()
+
+
         # Add Comparison results
         st.divider()
         files = glob.glob(f"{MODELS_DIR}/comparison_results_*.json")
@@ -920,8 +1094,8 @@ def main():
                 model = load_cf_model(batch_model, len(user_map_cf), len(article_map_cf))
                 if model:
                     with st.spinner("Generating recommendations..."):
-                        import random
                         sample_users = random.sample(list(user_map_cf.keys()), min(n_sample_users, len(user_map_cf)))
+
                         
                         results = []
                         idx_to_url = {v: k for k, v in article_map_cf.items()}
@@ -950,8 +1124,8 @@ def main():
                 st.warning("No users or model available.")
             
 
-    # --- TAB 4: GRAPH ---
-    with tab_graph:
+    # --- PAGE 5: GRAPH ---
+    if nav == "🕸️ Graph":
         st.header("🕸️ Graph Inspector")
         
         c1, c2 = st.columns(2)
@@ -1025,10 +1199,8 @@ def main():
                             
                             # Draw sample graph
                             if st.button("🎨 Draw Sample Subgraph (50 nodes)"):
-                                import networkx as nx
-                                import matplotlib.pyplot as plt
-                                
                                 # Take first 50 nodes and their edges
+
                                 sample_nodes = set(range(min(50, n_nodes)))
                                 edges = data.edge_index.T.tolist()
                                 sample_edges = [(s, t) for s, t in edges if s in sample_nodes and t in sample_nodes]
@@ -1170,10 +1342,8 @@ def main():
 
 
                           # Build NX Graph (always executed after u_idx is set)
-                          import networkx as nx
-                          import matplotlib.pyplot as plt
-                          
                           G = nx.Graph()
+
 
                           G.add_node("User", color='red', label=f'User {target_user_id}', size=20)
                           

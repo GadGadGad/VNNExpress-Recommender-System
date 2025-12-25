@@ -480,7 +480,9 @@ def main():
     print(tabulate(results_sorted, headers='keys', tablefmt='grid'))
     
     # Save results
+    os.makedirs("models", exist_ok=True)
     results_path = f"models/comparison_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+
     with open(results_path, 'w') as f:
         json.dump(results_sorted, f, indent=2)
     
