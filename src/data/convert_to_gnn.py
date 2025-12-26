@@ -21,6 +21,8 @@ Usage:
 import argparse
 import json
 import os
+import re
+import datetime
 from pathlib import Path
 from collections import defaultdict
 from typing import Dict, Tuple, Optional, List
@@ -74,10 +76,39 @@ class GNNDataConverter:
         
         self._load_data()
         
+    def _parse_vn_date(self, date_str):
+        """Parse VnExpress date strings to datetime objects."""
+        if not isinstance(date_str, str) or not date_str or date_str.lower() == 'nan':
+            return None
+        
+        now = datetime.datetime.now()
+        
+        # Relative: "Xh trước"
+        match_h = re.search(r'(\d+)h trước', date_str)
+        if match_h:
+            return now - datetime.timedelta(hours=int(match_h.group(1)))
+            
+        # Relative: "Xp trước"
+        match_p = re.search(r'(\d+)p trước', date_str)
+        if match_p:
+            return now - datetime.timedelta(minutes=int(match_p.group(1)))
+            
+        # Absolute: "HH:MM DD/MM"
+        match_dt = re.search(r'(\d{1,2}):(\d{1,2})\s+(\d{1,2})/(\d{1,2})', date_str)
+        if match_dt:
+            h, m, d, mon = map(int, match_dt.groups())
+            year = now.year
+            try:
+                dt = datetime.datetime(year, mon, d, h, m)
+                if dt > now: dt = dt.replace(year=year-1)
+                return dt
+            except: return None
+        return None
+
     def _load_data(self):
-        """Load and preprocess all data sources."""
+        """Load and preprocess all data sources with Temporal & Social support."""
         print("=" * 60)
-        print("GNN Data Converter - Loading Data")
+        print("GNN Data Converter - Loading Data (Temporal + Social)")
         print("=" * 60)
         
         print(f"\nLoading articles from {self.articles_path}...")
@@ -85,34 +116,65 @@ class GNNDataConverter:
         print(f"   → {len(self.articles):,} articles loaded")
         
         print(f"Loading replies from {self.replies_path}...")
-        self.replies = pd.read_csv(self.replies_path)
-        
-        self.replies = self.replies[self.replies['parent_user_id'] != 'NO_COMMENT'].copy()
+        raw_replies = pd.read_csv(self.replies_path)
         
         def clean_id(val):
             try:
-                if pd.isna(val) or val == '' or str(val).lower() == 'nan':
-                    return None
+                if pd.isna(val) or val == '' or str(val).lower() == 'nan': return None
                 return str(int(float(val)))
-            except:
-                return str(val)
+            except: return str(val)
+
+        # Process ALL interactions (Parents and Replies)
+        interactions = []
+        social_edges = []
         
-        self.replies['user_id'] = self.replies['reply_user_id'].apply(clean_id)
-        self.replies = self.replies[self.replies['user_id'].notna()].copy()
+        for _, row in tqdm(raw_replies.iterrows(), total=len(raw_replies), desc="   Parsing Interactions"):
+            p_id = clean_id(row['parent_user_id'])
+            r_id = clean_id(row['reply_user_id'])
+            url = row['article_url']
+            
+            # 1. Parent Interaction
+            if p_id:
+                p_date = self._parse_vn_date(row['parent_date'])
+                interactions.append({
+                    'user_id': p_id, 'article_url': url, 
+                    'date': p_date, 'reactions': row.get('parent_reactions', 0)
+                })
+            
+            # 2. Reply Interaction
+            if r_id:
+                r_date = self._parse_vn_date(row['reply_date'])
+                interactions.append({
+                    'user_id': r_id, 'article_url': url, 
+                    'date': r_date, 'reactions': row.get('reply_reactions', 0)
+                })
+                
+                # 3. Social Signal (User-User Reply)
+                if p_id:
+                    social_edges.append({'from': r_id, 'to': p_id, 'type': 'reply'})
+
+        self.replies = pd.DataFrame(interactions).dropna(subset=['user_id', 'article_url'])
+        self.social_df = pd.DataFrame(social_edges)
         
-        print(f"   → {len(self.replies):,} interactions after cleaning")
+        print(f"   → {len(self.replies):,} initial interactions captured")
         
-        # Create ID mappings    
+        # Apply Time Decay (lambda=0.01 for daily decay)
+        if 'date' in self.replies.columns and self.replies['date'].notna().any():
+            max_date = self.replies['date'].max()
+            self.replies['days_ago'] = (max_date - self.replies['date']).dt.total_seconds() / (24 * 3600)
+            self.replies['time_decay'] = np.exp(-0.01 * self.replies['days_ago'].fillna(30))
+            print(f"   → Applied Time Decay (Avg weight: {self.replies['time_decay'].mean():.3f})")
+        else:
+            self.replies['time_decay'] = 1.0
+
+        # Iterative K-Core filtering
         prev_len = 0
         iteration = 0
-        
         while len(self.replies) != prev_len:
             prev_len = len(self.replies)
             iteration += 1
-            
             user_counts = self.replies['user_id'].value_counts()
             valid_users = user_counts[user_counts >= self.min_user_interactions].index
-            
             article_counts = self.replies['article_url'].value_counts()
             valid_articles = article_counts[article_counts >= self.min_article_interactions].index
             
@@ -121,20 +183,13 @@ class GNNDataConverter:
                 (self.replies['article_url'].isin(valid_articles))
             ].copy()
             
-        print(f"   After {iteration} iterations: {len(self.replies):,} interactions")
+        print(f"   After {iteration} k-core iterations: {len(self.replies):,} interactions")
         
         valid_article_urls = self.replies['article_url'].unique()
-        original_articles = len(self.articles)
         self.articles = self.articles[self.articles['url'].isin(valid_article_urls)].copy()
         
-        unique_users = self.replies['user_id'].nunique()
-        unique_articles = self.replies['article_url'].nunique()
-        
-        print(f"   Users: {unique_users:,}")
-        print(f"   Articles: {unique_articles:,} (removed {original_articles - len(self.articles):,})")
-        
-        density = len(self.replies) / (unique_users * unique_articles) * 100
-        print(f"   New density: {density:.4f}%")
+        density = len(self.replies) / (self.replies['user_id'].nunique() * len(self.articles)) * 100
+        print(f"   Cleaned density: {density:.4f}%")
         
         self._create_mappings()
         
@@ -243,9 +298,12 @@ class GNNDataConverter:
         dst = torch.tensor(self.replies['article_idx'].values, dtype=torch.long)
         data['user', 'comments', 'article'].edge_index = torch.stack([src, dst])
         
-        reactions = pd.to_numeric(self.replies['parent_reactions'], errors='coerce').fillna(1).values
-        reactions = np.clip(reactions, 1, None)  # Min weight of 1
-        data['user', 'comments', 'article'].edge_weight = torch.tensor(reactions, dtype=torch.float32)
+        reactions = pd.to_numeric(self.replies['reactions'], errors='coerce').fillna(0).values
+        reactions = np.clip(reactions, 0, None)
+        
+        # Combine reaction weight with time decay
+        edge_weights = (1.0 + np.log1p(reactions)) * self.replies['time_decay'].values
+        data['user', 'comments', 'article'].edge_weight = torch.tensor(edge_weights, dtype=torch.float32)
         
         data = T.ToUndirected()(data)
         
@@ -337,25 +395,26 @@ class GNNDataConverter:
                         break
                         
         elif strategy == 'hard':
-            # Hard negative sampling now falls back to popularity-based
-            # (category column no longer available)
-            print("   -> Hard negative sampling (using popularity-based as fallback)...")
+            print("   -> Hard negative sampling (Popularity-based from other categories)...")
+            # Sample "popular" items that this user has NOT interacted with
+            # but which are globally popular, making them "tricky" negatives.
             article_counts = self.replies['article_idx'].value_counts()
             article_probs = article_counts / article_counts.sum()
             popular_articles = article_probs.index.values
-            probs = article_probs.values
+            p_vals = article_probs.values
             
             user_indices = self.replies['user_idx'].unique()
+            user_recs = self.replies.groupby('user_idx')['article_idx'].apply(set).to_dict()
             
-            for _ in tqdm(range(num_negatives), desc="   Generating negatives"):
-                for user_idx in user_indices:
-                    for _ in range(10):  # Max attempts per user
-                        article_idx = np.random.choice(popular_articles, p=probs)
-                        if (user_idx, article_idx) not in positive_set:
+            for _ in range(num_negatives):
+                for user_idx in tqdm(user_indices, desc="   Sampling Hard Negatives"):
+                    pos_set = user_recs.get(user_idx, set())
+                    for _ in range(20): # Max attempts
+                        neg_idx = np.random.choice(popular_articles, p=p_vals)
+                        if neg_idx not in pos_set:
                             neg_users.append(user_idx)
-                            neg_articles.append(article_idx)
+                            neg_articles.append(neg_idx)
                             break
-                    
                     if len(neg_users) >= num_neg_samples:
                         break
                 if len(neg_users) >= num_neg_samples:
@@ -638,28 +697,38 @@ class GNNDataConverter:
         dst = torch.tensor(self.replies['article_idx'].values, dtype=torch.long)
         data['user', 'comments', 'article'].edge_index = torch.stack([src, dst])
         
-        # User -> User (shared articles, min 2)
-        if hasattr(self, 'no_aux_edges') and self.no_aux_edges:
-             print("   Skipping user-user edges (ablation)...")
-             user_user_edges = []
-        else:
-             user_articles = self.replies.groupby('user_idx')['article_idx'].apply(set).to_dict()
-             user_user_edges = []
-             user_ids = list(user_articles.keys())
-             
-             print("   → Computing user-user edges...")
-             for i in range(len(user_ids)):
+        # User -> User (Social Reply Network)
+        if hasattr(self, 'social_df') and not self.social_df.empty:
+            # Map IDs to indices
+            self.social_df['from_idx'] = self.social_df['from'].map(self.user_map)
+            self.social_df['to_idx'] = self.social_df['to'].map(self.user_map)
+            
+            valid_social = self.social_df.dropna(subset=['from_idx', 'to_idx'])
+            if not valid_social.empty:
+                print(f"   → Adding {len(valid_social):,} social reply edges...")
+                data['user', 'replied_to', 'user'].edge_index = torch.tensor(
+                    valid_social[['from_idx', 'to_idx']].values.T, dtype=torch.long
+                )
+        
+        # User -> User (Shared Interest - Latent)
+        if not (hasattr(self, 'no_aux_edges') and self.no_aux_edges):
+            user_articles = self.replies.groupby('user_idx')['article_idx'].apply(set).to_dict()
+            shared_edges = []
+            user_ids = list(user_articles.keys())
+            
+            print("   → Computing latent user-user edges (shared articles >= 2)...")
+            for i in range(len(user_ids)):
                 u1 = user_ids[i]
-                for j in range(i + 1, len(user_ids)):
+                for j in range(i + 1, min(i + 500, len(user_ids))): # Limit search for speed
                     u2 = user_ids[j]
                     if len(user_articles[u1] & user_articles[u2]) >= 2:
-                        user_user_edges.append([u1, u2])
-                        user_user_edges.append([u2, u1])
-        
-        if user_user_edges:
-            data['user', 'interacts_with', 'user'].edge_index = torch.tensor(
-                user_user_edges, dtype=torch.long
-            ).T
+                        shared_edges.append([u1, u2])
+                        shared_edges.append([u2, u1])
+            
+            if shared_edges:
+                data['user', 'interacts_with', 'user'].edge_index = torch.tensor(
+                    shared_edges, dtype=torch.long
+                ).T
         
         data = T.ToUndirected()(data)
         

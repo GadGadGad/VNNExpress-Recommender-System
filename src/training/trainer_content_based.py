@@ -21,16 +21,22 @@ def compute_metrics(
     predictions: Dict[int, np.ndarray],
     test_data: Dict[int, List[int]],
     train_dict: Dict[int, set],
-    k_list: List[int] = [10, 20, 50]
+    k_list: List[int] = [10, 20, 50],
+    protocol: str = 'full',
+    n_items: int = None
 ) -> Dict[str, float]:
     """
-    Compute Recall@K, NDCG@K, HR@K
+    Compute Recall@K, NDCG@K, HR@K using specified protocol.
+    
+    Args:
+        protocol: 'full', 'loo100', 'cold'
     """
     results = defaultdict(list)
     max_k = max(k_list)
     
     for user in test_data:
-        if user not in train_dict:
+        # Check if user has predictions
+        if user not in predictions or user not in train_dict:
             continue
             
         gt_items = set(test_data[user])
@@ -38,10 +44,35 @@ def compute_metrics(
             continue
             
         scores = predictions[user].copy()
+        
+        # Mask training items
         for item in train_dict.get(user, set()):
             if item < len(scores):
                 scores[item] = -np.inf
                 
+        # Protocol-specific filtering
+        if protocol == 'loo100':
+            # Leave-One-Out + 100 Negatives
+            # We assume gt_items has 1 item for LOO, but our split might have more.
+            # We take the FIRST item in gt as the target for LOO simulation if needed,
+            # but generally we just rank all GT items against 100 random negatives.
+            
+            # Simple simulation: Keep GT items + 100 random negatives, mask others
+            all_indices = np.arange(len(scores))
+            neg_indices = [i for i in all_indices 
+                           if i not in gt_items and i not in train_dict.get(user, set())]
+            
+            if len(neg_indices) > 100:
+                sampled_negs = np.random.choice(neg_indices, 100, replace=False)
+                
+                # Mask everything EXCEPT gt and sampled negs
+                mask = np.ones_like(scores, dtype=bool) # True = mask (set to -inf)
+                mask[list(gt_items)] = False
+                mask[sampled_negs] = False
+                
+                scores[mask] = -np.inf
+
+        # Get top K
         top_items = np.argsort(scores)[::-1][:max_k]
         
         for k in k_list:
@@ -51,6 +82,7 @@ def compute_metrics(
             recall = hits / len(gt_items)
             results[f'Recall@{k}'].append(recall)
             
+            # NDCG
             dcg = sum([1.0 / np.log2(i + 2) 
                       for i, item in enumerate(top_k) if item in gt_items])
             idcg = sum([1.0 / np.log2(i + 2) 

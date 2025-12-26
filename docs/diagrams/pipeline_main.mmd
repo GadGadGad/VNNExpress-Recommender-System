@@ -1,0 +1,53 @@
+flowchart TB
+    subgraph DataCollection["📥 Data Collection"]
+        A1[VnExpress Articles]
+        A2[User Comments/Replies]
+        A3[User Profiles]
+    end
+
+    subgraph Preprocessing["📊 Preprocessing"]
+        B1[K-Core Filtering]
+        B2[ID Mapping]
+        B3["Time Decay Weighting"]
+        B4["Social Edge Extraction"]
+        B5[Feature Extraction]
+    end
+
+    subgraph Training["🧠 Model Training"]
+        subgraph CF["Collaborative Filtering"]
+            C1[XSimGCL]
+            C2[LightGCL]
+            C3[SimGCL]
+            C4[NGCF]
+        end
+        subgraph CB["Content-Based"]
+            C5[PhoBERT]
+            C6[TF-IDF]
+        end
+    end
+
+    subgraph Inference["🔮 Inference"]
+        D1[CF Scoring]
+        D2[CB Scoring]
+        D3["Hybrid Blending"]
+    end
+
+    subgraph PostProcess["📰 Post-Processing"]
+        E1["1. Freshness Boost"]
+        E2["2. Calibration"]
+        E3["3. MMR Diversity"]
+    end
+
+    F[📋 Top-K Recommendations]
+
+    A1 --> B1
+    A2 --> B1
+    A3 --> B1
+    B1 --> B2 --> B3 --> B4 --> B5
+    B5 --> C1 & C2 & C3 & C4
+    B5 --> C5 & C6
+    C1 & C2 & C3 & C4 --> D1
+    C5 & C6 --> D2
+    D1 --> D3
+    D2 --> D3
+    D3 --> E1 --> E2 --> E3 --> F

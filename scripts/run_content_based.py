@@ -35,14 +35,20 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Content-Based Model Training')
     
     # Model selection
+    # Model selection
     parser.add_argument('--model', type=str, default='phobert',
-                        choices=['phobert', 'hybrid', 'simcse'],
-                        help='Model type: phobert, hybrid, simcse')
+                        choices=['phobert', 'hybrid', 'simcse', 'tfidf', 'e5'],
+                        help='Model type: phobert, hybrid, simcse, tfidf, e5')
     
     # Data
     parser.add_argument('--data_path', type=str, default='data')
     parser.add_argument('--force_reload', action='store_true',
                         help='Force reload data from raw files')
+    
+    # Eval
+    parser.add_argument('--eval-protocol', type=str, default='full',
+                        choices=['full', 'loo100', 'cold'],
+                        help='Evaluation protocol: full, loo100, cold')
     
     # Model hyperparameters
     parser.add_argument('--embedding_dim', type=int, default=256)
@@ -156,7 +162,8 @@ def run_phobert_model(args, data_dict):
             predictions[user_id] = scores.cpu().numpy()
     
     # Compute metrics
-    metrics = compute_metrics(predictions, test_dict, train_dict, k_list=[10, 20, 50])
+    metrics = compute_metrics(predictions, test_dict, train_dict, 
+                              k_list=[10, 20, 50], protocol=args.eval_protocol)
     print_metrics(metrics)
     
     # Demo recommendations
@@ -320,7 +327,8 @@ def run_simcse_model(args, data_dict):
             predictions[user_id] = scores.cpu().numpy()
             
     # Compute metrics
-    metrics = compute_metrics(predictions, test_dict, train_dict, k_list=[10, 20, 50])
+    metrics = compute_metrics(predictions, test_dict, train_dict, 
+                              k_list=[10, 20, 50], protocol=args.eval_protocol)
     print_metrics(metrics)
     
     if args.save_results:
@@ -333,6 +341,157 @@ def run_simcse_model(args, data_dict):
     metrics = compute_metrics(predictions, test_dict, train_dict, k_list=[10, 20, 50])
     print_metrics(metrics)
     
+    return metrics
+
+
+def run_tfidf_model(args, data_dict):
+    """Run TF-IDF Content-Based Model"""
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.metrics.pairwise import cosine_similarity
+    from src.training.trainer_content_based import compute_metrics, print_metrics
+    from tqdm import tqdm
+    
+    print("\n" + "=" * 60)
+    print("Running TF-IDF Model")
+    print("=" * 60)
+    
+    article_texts = data_dict['article_texts']
+    
+    # 1. Compute TF-IDF Matrix
+    print("Computing TF-IDF matrix...")
+    vectorizer = TfidfVectorizer(max_features=5000, stop_words=None) 
+    # Note: Vietnamese stop words could be added here if available
+    tfidf_matrix = vectorizer.fit_transform(article_texts)
+    
+    # 2. Predict for valid test users
+    print("Generating predictions...")
+    train_dict = data_dict['train_dict']
+    test_dict = data_dict['test_dict']
+    
+    predictions = {}
+    
+    # Get user profiles (average of history items)
+    # This can be slow for many users, so we batch or iterate
+    # For simplicity, let's iterate test users
+    
+    for user_id in tqdm(test_dict.keys(), desc="Predicting"):
+        history = list(train_dict.get(user_id, set()))
+        if not history:
+            continue
+            
+        # Get indices of history items
+        # data_dict['article_texts'] is a list, aligned with item_id 0..N-1
+        # BUT we must ensure item_ids in train_dict match list indices.
+        # usually load_content_data ensures item_id 0..N-1 maps to the list index.
+        
+        user_profile = np.asarray(tfidf_matrix[history].mean(axis=0)) # (1, vocab)
+        
+        # Calculate cosine similarity with ALL items
+        # (1, vocab) dot (n_items, vocab).T -> (1, n_items)
+        scores = cosine_similarity(user_profile, tfidf_matrix).flatten()
+        predictions[user_id] = scores
+        
+    # 3. Compute Metrics
+    metrics = compute_metrics(predictions, test_dict, train_dict, 
+                              k_list=[10, 20, 50], protocol=args.eval_protocol)
+    print_metrics(metrics)
+    
+    if args.save_results:
+        import json
+        with open(args.save_results, 'w') as f:
+            json.dump(metrics, f, indent=4)
+            
+    return metrics
+
+
+def run_e5_model(args, data_dict):
+    """Run Multilingual-E5 Content-Based Model"""
+    from src.models.content_based import ContentBasedRecommender
+    from src.training.trainer_content_based import compute_metrics, print_metrics
+    import torch.nn.functional as F
+    
+    print("\n" + "=" * 60)
+    print("Running Multilingual-E5 Model")
+    print("=" * 60)
+    
+    device = args.device if torch.cuda.is_available() else 'cpu'
+    model_name = "intfloat/multilingual-e5-small"
+    
+    # Reuse PhOBERT wrapper but with E5
+    # E5 expects "query: " and "passage: " prefixes usually, but for similarity 
+    # straightforward encoding often works. We'll stick to simple encoding for now.
+    
+    model = ContentBasedRecommender(
+        n_users=data_dict['n_users'],
+        n_items=data_dict['n_items'],
+        embedding_dim=384, # E5-small dim
+        bert_model=model_name,
+        max_length=args.max_length,
+        freeze_bert=True,
+        device=device
+    ).to(device)
+    
+    article_texts = data_dict['article_texts']
+    
+    # E5 specific: Add "passage: " prefix for document encoding is recommended
+    # But ContentBasedRecommender.encode_articles doesn't do prefixes.
+    # We will modify the input texts slightly before passing
+    print("Adding 'passage: ' prefix for E5 encoding...")
+    e5_texts = [f"passage: {t}" for t in article_texts]
+    
+    embeddings_path = 'checkpoints/e5_article_embeddings.pt'
+    if not args.force_reload and os.path.exists(embeddings_path):
+        print(f"Loading cached embeddings from {embeddings_path}")
+        model.load_embeddings(embeddings_path)
+    else:
+        print(f"Encoding {len(e5_texts)} articles with E5...")
+        # We need to manually call the encoder because wrapper expects 'texts'
+        # The wrapper's encode_articles calls self.phobert_encoder(texts)
+        model.encode_articles(e5_texts, batch_size=32)
+        os.makedirs('checkpoints', exist_ok=True)
+        model.save_embeddings(embeddings_path)
+        
+    # Evaluate
+    print("\n" + "-" * 40)
+    print(f"Evaluating E5 (Protocol: {args.eval_protocol})")
+    print("-" * 40)
+    
+    model.eval()
+    predictions = {}
+    train_dict = data_dict['train_dict']
+    test_dict = data_dict['test_dict']
+    
+    with torch.no_grad():
+        for user_id in tqdm(test_dict.keys(), desc="Predicting"):
+            history = list(train_dict.get(user_id, set()))
+            if not history:
+                continue
+                
+            # user profile = mean of item embeddings
+            # For query side, E5 usually expects "query: ". 
+            # But here we are doing Item-Item centroid. 
+            # Ideally: user_embed = Mean(Item_Embeddings).
+            # This is symmetric similarity.
+            
+            user_embed = model.get_user_preference(history)
+            user_embed = F.normalize(user_embed.unsqueeze(0), dim=-1)
+            article_embeds = F.normalize(model.article_embeddings, dim=-1)
+            
+            scores = torch.mm(user_embed, article_embeds.T).squeeze(0)
+            predictions[user_id] = scores.cpu().numpy()
+            
+    metrics = compute_metrics(predictions, test_dict, train_dict, 
+                              k_list=[10, 20, 50], protocol=args.eval_protocol)
+    print_metrics(metrics)
+    
+    if args.save_results:
+        try:
+            import json
+            with open(args.save_results, 'w') as f:
+                json.dump(metrics, f, indent=4)
+        except Exception:
+            pass
+            
     return metrics
 
 
@@ -369,9 +528,16 @@ def main():
     if args.model == 'phobert':
         metrics = run_phobert_model(args, data_dict)
     elif args.model == 'hybrid':
+        # Hybrid logic is more complex and might need separate handling for full/loo
+        # Assuming run_hybrid_model handles its own eval loop; we might need to update it too
+        # but for now let's focus on pure CB models
         metrics = run_hybrid_model(args, data_dict)
     elif args.model == 'simcse':
         metrics = run_simcse_model(args, data_dict)
+    elif args.model == 'tfidf':
+        metrics = run_tfidf_model(args, data_dict)
+    elif args.model == 'e5':
+        metrics = run_e5_model(args, data_dict)
     else:
         raise ValueError(f"Unknown model: {args.model}")
     

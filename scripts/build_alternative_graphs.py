@@ -378,13 +378,169 @@ def build_article_article_category_graph(articles_path, replies_path, output_dir
     return data
 
 
+def build_category_category_graph(articles_path, replies_path, output_dir, min_interactions=2):
+    """
+    Priority 4: Category-Category Graph (Co-occurrence)
+    Categories are connected if users frequently read both.
+    """
+    print("\n" + "=" * 60)
+    print("Building Category-Category Co-occurrence Graph")
+    print("=" * 60)
+    
+    articles = pd.read_csv(articles_path)
+    replies = pd.read_csv(replies_path)
+    replies['user_id'] = replies['reply_user_id'].apply(clean_id)
+    replies = replies[replies['user_id'].notna()].copy()
+    
+    # Merge to get categories (use suffixes to avoid column conflict)
+    merged = replies.merge(articles[['url', 'source_category']], left_on='article_url', right_on='url', suffixes=('', '_article'))
+    
+    # Use the category from articles (source_category or source_category_article depending on conflict)
+    cat_col = 'source_category_article' if 'source_category_article' in merged.columns else 'source_category'
+    
+    # Get user -> categories
+    user_cats = merged.groupby('user_id')[cat_col].apply(set).to_dict()
+    
+    categories = articles['source_category'].unique()
+    cat_map = {c: i for i, c in enumerate(categories)}
+    n_cats = len(cat_map)
+    
+    edges = defaultdict(int)
+    
+    # Count co-occurrences
+    print(f"  Analysing {len(user_cats)} users for category co-occurrence...")
+    for uid, cats in user_cats.items():
+        cat_list = list(cats)
+        if len(cat_list) > 1:
+            for i in range(len(cat_list)):
+                for j in range(i+1, len(cat_list)):
+                    c1, c2 = cat_list[i], cat_list[j]
+                    k = tuple(sorted((c1, c2)))
+                    edges[k] += 1
+    
+    # Thresholding?
+    src, dst, w = [], [], []
+    for (c1, c2), count in edges.items():
+        if count >= min_interactions:
+            idx1, idx2 = cat_map[c1], cat_map[c2]
+            src.extend([idx1, idx2])
+            dst.extend([idx2, idx1])
+            w.extend([count, count])
+            
+    edge_index = torch.tensor([src, dst], dtype=torch.long)
+    edge_weight = torch.tensor(w, dtype=torch.float32)
+    
+    # Features (Identity)
+    x = torch.eye(n_cats)
+    
+    data = {
+        'x': x,
+        'edge_index': edge_index,
+        'edge_weight': edge_weight,
+        'cat_map': cat_map,
+        'n_nodes': n_cats,
+        'graph_type': 'category_category'
+    }
+    
+    output_path = Path(output_dir) / 'category_category_graph.pt'
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+    torch.save(data, output_path)
+    print(f"  Nodes: {n_cats}, Edges: {edge_index.shape[1]}")
+    print(f"  Saved to: {output_path}")
+    return data
+
+
+def build_user_author_graph(articles_path, replies_path, output_dir, min_interactions=2):
+    """
+    Priority 5: User-Author Bipartite Graph
+    """
+    print("\n" + "=" * 60)
+    print("Building User-Author Graph")
+    print("=" * 60)
+    
+    articles = pd.read_csv(articles_path)
+    # Clean authors
+    articles['author'] = articles['author'].fillna('Unknown').apply(lambda x: x.strip())
+    
+    replies = pd.read_csv(replies_path)
+    replies['user_id'] = replies['reply_user_id'].apply(clean_id)
+    replies = replies[replies['user_id'].notna()].copy()
+    
+    # Merge
+    merged = replies.merge(articles[['url', 'author']], left_on='article_url', right_on='url')
+    
+    # Filter
+    author_counts = merged['author'].value_counts()
+    valid_authors = author_counts[author_counts >= min_interactions].index
+    merged = merged[merged['author'].isin(valid_authors)]
+    
+    users = merged['user_id'].unique()
+    authors = merged['author'].unique()
+    
+    user_map = {u: i for i, u in enumerate(users)}
+    author_map = {a: i for i, a in enumerate(authors)}
+    
+    n_users = len(user_map)
+    n_authors = len(author_map)
+    
+    # Edges
+    pair_counts = merged.groupby(['user_id', 'author']).size()
+    
+    src, dst, w = [], [], []
+    for (uid, auth), count in pair_counts.items():
+        src.append(user_map[uid])
+        dst.append(author_map[auth])
+        w.append(count)
+        
+    edge_index = torch.tensor([src, dst], dtype=torch.long)
+    edge_weight = torch.tensor(w, dtype=torch.float32)
+    
+    # Create standard train/test splits for this graph too!
+    train_pairs, test_pairs = [], []
+    interactions = list(zip(src, dst))
+    np.random.seed(42)
+    np.random.shuffle(interactions)
+    split = int(len(interactions) * 0.8)
+    
+    train_pairs = interactions[:split]
+    test_pairs = interactions[split:]
+    
+    train_dict = defaultdict(set)
+    for u, i in train_pairs: train_dict[u].add(i)
+    test_dict = defaultdict(set)
+    for u, i in test_pairs: test_dict[u].add(i)
+    
+    data = {
+        'n_users': n_users,
+        'n_items': n_authors, # Authors as items
+        'user_features': torch.randn(n_users, 64),
+        'author_features': torch.randn(n_authors, 64),
+        'edge_index': edge_index,
+        'edge_weight': edge_weight,
+        'user_map': user_map,
+        'author_map': author_map,
+        'train_pairs': train_pairs, 
+        'train_dict': dict(train_dict),
+        'test_dict': dict(test_dict),
+        'graph_type': 'user_author'
+    }
+    
+    output_path = Path(output_dir) / 'user_author_graph.pt'
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+    torch.save(data, output_path)
+    
+    print(f"  Users: {n_users}, Authors: {n_authors}")
+    print(f"  Edges: {len(src)}")
+    print(f"  Saved to: {output_path}")
+    return data
+
 def main():
     parser = argparse.ArgumentParser(description='Build alternative graph types')
     parser.add_argument('--articles', default='data/raw/articles.csv')
     parser.add_argument('--replies', default='data/raw/replies.csv')
     parser.add_argument('--output', default='data/processed_graphs')
     parser.add_argument('--min-interactions', type=int, default=2)
-    parser.add_argument('--graph-type', choices=['all', 'user-category', 'reaction-weighted', 'article-article'],
+    parser.add_argument('--graph-type', choices=['all', 'user-category', 'reaction-weighted', 'article-article', 'category-category', 'user-author'],
                         default='all')
     args = parser.parse_args()
     
@@ -396,6 +552,13 @@ def main():
     
     if args.graph_type in ['all', 'article-article']:
         build_article_article_category_graph(args.articles, args.replies, args.output, args.min_interactions)
+
+    if args.graph_type in ['all', 'category-category']:
+        build_category_category_graph(args.articles, args.replies, args.output, args.min_interactions)
+
+    if args.graph_type in ['all', 'user-author']:
+        build_user_author_graph(args.articles, args.replies, args.output, args.min_interactions)
+
     
     print("\n" + "=" * 60)
     print("All graphs built successfully!")

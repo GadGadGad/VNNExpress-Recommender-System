@@ -15,7 +15,7 @@ import pickle
 import pandas as pd
 from pathlib import Path
 from tqdm import tqdm
-from tqdm import tqdm
+
 from datetime import datetime
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -65,17 +65,24 @@ class UserPriorLayer(nn.Module):
     def forward(self, user_priors):
         return self.proj(user_priors)
 
-def compute_normalized_adjacency(n_users, n_items, train_pairs, device, item_item_edges=None):
+def compute_normalized_adjacency(n_users, n_items, train_pairs, device, 
+                                 item_item_edges=None, user_user_edges=None, 
+                                 edge_weights=None, social_weight=1.0):
     """Compute normalized adjacency matrix for GCN-based models."""
     row = np.array([u for u, i in train_pairs])
     col = np.array([i for u, i in train_pairs])
-    data = np.ones(len(train_pairs), dtype=np.float32)
+    
+    if edge_weights is not None:
+        data = edge_weights
+        if len(data) != len(train_pairs):
+            print(f"  Warning: edge_weight size ({len(data)}) != train_pairs ({len(train_pairs)}). Clipping.")
+            data = data[:len(train_pairs)]
+    else:
+        data = np.ones(len(train_pairs), dtype=np.float32)
+        
     R = sp.coo_matrix((data, (row, col)), shape=(n_users, n_items))
     
     # Construct (N+M)x(N+M) matrix
-    # A = [0, R
-    #      R.T, 0]
-    
     adj_mat = sp.dok_matrix((n_users + n_items, n_users + n_items), dtype=np.float32)
     adj_mat = adj_mat.tolil()
     R = R.tolil()
@@ -83,14 +90,23 @@ def compute_normalized_adjacency(n_users, n_items, train_pairs, device, item_ite
     adj_mat[:n_users, n_users:] = R
     adj_mat[n_users:, :n_users] = R.T
     
-    # Add Item-Item edges if provided (S matrix for LLMRec)
+    # Add Item-Item edges (LLMRec/Semantic)
     if item_item_edges is not None:
-        print(f"  Injecting {item_item_edges.shape[1]} item-item semantic edges into adjacency...")
-        s_row = item_item_edges[0].numpy()
-        s_col = item_item_edges[1].numpy()
+        print(f"  Injecting item-item semantic edges into adjacency...")
+        s_row = item_item_edges[0].numpy() if torch.is_tensor(item_item_edges) else item_item_edges[0]
+        s_col = item_item_edges[1].numpy() if torch.is_tensor(item_item_edges) else item_item_edges[1]
         for u, v in zip(s_row, s_col):
             adj_mat[n_users + u, n_users + v] = 1.0
             adj_mat[n_users + v, n_users + u] = 1.0
+
+    # Add User-User edges (Social/Latent)
+    if user_user_edges is not None:
+        print(f"  Injecting user-user social edges into adjacency (weight={social_weight})...")
+        u_row = user_user_edges[0].numpy() if torch.is_tensor(user_user_edges) else user_user_edges[0]
+        u_col = user_user_edges[1].numpy() if torch.is_tensor(user_user_edges) else user_user_edges[1]
+        for u, v in zip(u_row, u_col):
+            adj_mat[u, v] = social_weight
+            adj_mat[v, u] = social_weight
             
     adj_mat = adj_mat.tocoo()
     
@@ -193,18 +209,19 @@ def load_data(data_path, min_interactions=2):
         cache_path = p
     else:
         cache_path = p / 'cf_cache.pt'
-
+        if not cache_path.exists():
+            cache_path = p / 'graph_with_negatives.pt'
+            if not cache_path.exists():
+                cache_path = p / 'user_article_graph.pt'
+        
     if cache_path.exists():
-        print(f"Loading cached data from {cache_path}...")
         data = torch.load(cache_path, weights_only=False)
         
         # Normalization for different graph types
+        if 'n_users' not in data:
+            data['n_users'] = data.get('num_users') or data.get('n_users') or 0
         if 'n_items' not in data:
-            if 'n_articles' in data:
-                data['n_items'] = data['n_articles']
-            elif 'n_categories' in data:
-                # If training on categories as items
-                data['n_items'] = data['n_categories']
+            data['n_items'] = data.get('num_articles') or data.get('num_items') or data.get('n_articles') or 0
         
         if 'item_map' in data and 'article_map' not in data:
             data['article_map'] = data['item_map']
@@ -232,38 +249,66 @@ def load_data(data_path, min_interactions=2):
                 # Try to get interactions from either edge_index or existing train_pairs
                 if 'edge_index' in data:
                     edge_index = data['edge_index']
+                elif 'graph' in data and hasattr(data['graph'], 'edge_index_dict'):
+                    # HeteroGraph in dict
+                    edge_index = data['graph']['user', 'comments', 'article'].edge_index
                 elif 'train_pairs' in data:
-                    # Already have pairs, but maybe missing test_dict
                     interactions = list(set(data['train_pairs']))
+                elif 'splits' in data:
+                    # Will be handled below in pre-defined splits block
+                    pass
                 else:
-                    return data # Can't extract
+                    return data
             
             if edge_index is not None:
                 interactions = list(set(zip(edge_index[0].tolist(), edge_index[1].tolist())))
             
             # Get n_users/n_items from dictionary if not set by graph extraction
-            if 'n_users' not in locals(): n_users = data.get('n_users', 0)
-            if 'n_items' not in locals(): n_items = data.get('n_items', 0)
+            if 'n_users' not in locals(): 
+                n_users = data.get('n_users') or data.get('num_users') or 0
+            if 'n_items' not in locals(): 
+                n_items = data.get('n_items') or data.get('num_articles') or data.get('num_items') or 0
 
-            np.random.seed(42)
-            np.random.shuffle(interactions)
-            split = int(len(interactions) * 0.8)
-            
-            data_dict = {
-                'n_users': n_users,
-                'n_items': n_items,
-                'train_pairs': interactions[:split],
-                'test_dict': {}, # Simplified
-                'train_dict': {}
-            }
-            # Fill dicts
-            for u, i in interactions[:split]:
-                if u not in data_dict['train_dict']: data_dict['train_dict'][u] = set()
-                data_dict['train_dict'][u].add(i)
-            # test dict
-            for u, i in interactions[split:]:
-                if u not in data_dict['test_dict']: data_dict['test_dict'][u] = set()
-                data_dict['test_dict'][u].add(i)
+            if isinstance(data, dict) and 'splits' in data:
+                print("  Using pre-defined splits from graph data...")
+                splits = data['splits']
+                train_pairs = list(zip(splits['train']['pos_users'].tolist(), splits['train']['pos_articles'].tolist()))
+                test_dict = {}
+                for u, i in zip(splits['test']['pos_users'].tolist(), splits['test']['pos_articles'].tolist()):
+                    if u not in test_dict: test_dict[u] = set()
+                    test_dict[u].add(i)
+                train_dict = {}
+                for u, i in train_pairs:
+                    if u not in train_dict: train_dict[u] = set()
+                    train_dict[u].add(i)
+                
+                data_dict = {
+                    'n_users': n_users,
+                    'n_items': n_items,
+                    'train_pairs': train_pairs,
+                    'test_dict': test_dict,
+                    'train_dict': train_dict
+                }
+            else:
+                np.random.seed(42)
+                np.random.shuffle(interactions)
+                split = int(len(interactions) * 0.8)
+                
+                data_dict = {
+                    'n_users': n_users,
+                    'n_items': n_items,
+                    'train_pairs': interactions[:split],
+                    'test_dict': {}, 
+                    'train_dict': {}
+                }
+                # Fill dicts
+                for u, i in interactions[:split]:
+                    if u not in data_dict['train_dict']: data_dict['train_dict'][u] = set()
+                    data_dict['train_dict'][u].add(i)
+                # test dict
+                for u, i in interactions[split:]:
+                    if u not in data_dict['test_dict']: data_dict['test_dict'][u] = set()
+                    data_dict['test_dict'][u].add(i)
             
             if 'edge_index' not in data_dict or data_dict['edge_index'] is None:
                 # Bipartite graph edge index
@@ -369,23 +414,33 @@ def load_data(data_path, min_interactions=2):
     return data
 
 
-def sample_batch(train_pairs, train_dict, n_items, batch_size):
+def sample_batch(train_pairs, train_dict, n_items, batch_size, neg_ratio=1, sampling='random', item_probs=None):
     """Sample a batch with negative items."""
     indices = np.random.choice(len(train_pairs), min(batch_size, len(train_pairs)), replace=False)
     users, pos_items, neg_items = [], [], []
     
+    # Pre-sample negatives if popular strategy is used
+    if sampling == 'popular' and item_probs is not None:
+        popular_items = np.arange(n_items)
+    
     for idx in indices:
         u, pos = train_pairs[idx]
-        users.append(u)
-        pos_items.append(pos)
         
-        # Sample negative
-        neg = np.random.randint(0, n_items)
-        while neg in train_dict.get(u, set()):
-            neg = np.random.randint(0, n_items)
-        neg_items.append(neg)
+        for _ in range(neg_ratio):
+            users.append(u)
+            pos_items.append(pos)
+            
+            # Sample negative
+            if sampling == 'popular' and item_probs is not None:
+                neg = np.random.choice(popular_items, p=item_probs)
+                while neg in train_dict.get(u, set()):
+                    neg = np.random.choice(popular_items, p=item_probs)
+            else:
+                neg = np.random.randint(0, n_items)
+                while neg in train_dict.get(u, set()):
+                    neg = np.random.randint(0, n_items)
+            neg_items.append(neg)
     
-
     return (
         torch.tensor(users, dtype=torch.long),
         torch.tensor(pos_items, dtype=torch.long),
@@ -586,6 +641,9 @@ def evaluate(model, test_dict, train_dict, n_items, edge_index, k_list=[1, 5, 10
         eval_users = test_dict
     
     for user, test_items in eval_users.items():
+        # Ensure test_items is a set for set operations
+        test_items = set(test_items) if isinstance(test_items, list) else test_items
+        
         if user >= user_emb.size(0):
             continue
             
@@ -700,17 +758,21 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
     if args.epochs == 0:
         print("Epochs set to 0. Exiting after data preparation.")
         return {'status': 'consolidated'}
-
+        
+    item_interaction_counts = np.zeros(n_items)
+    for _, item in train_pairs:
+        item_interaction_counts[item] += 1
+    item_probs = (item_interaction_counts + 1e-6) / (item_interaction_counts.sum() + 1e-6 * n_items)
+    sampling_strategy = 'popular' if args.denoise_ratio > 0 else 'random' # Default to popular if denoising
+    
     for epoch in pbar:
         model.train()
         total_loss = 0
         n_batches = len(train_pairs) // args.batch_size + 1
         
-        # Inner loop progress bar for batches if needed, but epoch bar is usually enough
-        # We'll just stick to epoch bar update
-        
         for _ in range(n_batches):
-            users, pos_items, neg_items = sample_batch(train_pairs, train_dict, n_items, args.batch_size)
+            users, pos_items, neg_items = sample_batch(train_pairs, train_dict, n_items, args.batch_size, args.neg_ratio, 
+                                                      sampling=sampling_strategy, item_probs=item_probs)
             users, pos_items, neg_items = users.to(device), pos_items.to(device), neg_items.to(device)
             
             optimizer.zero_grad()
@@ -854,6 +916,12 @@ def main():
                         help='Evaluation protocol: full (all items), loo100 (leave-one-out + 100 neg), cold (cold-start users)')
     parser.add_argument('--save-results', type=str, default=None,
                         help='Path to save metrics in JSON format')
+    parser.add_argument('--neg-ratio', type=int, default=1,
+                        help='Number of negative samples per positive sample (default: 1)')
+    parser.add_argument('--cold-start', type=int, default=10,
+                        help='Number of cold-start users to evaluate (default: 10)')
+    parser.add_argument('--social-weight', type=float, default=1.0,
+                        help='Weight for social reply edges in adjacency matrix (default: 1.0)')
     
 
     args = parser.parse_args()
@@ -898,7 +966,30 @@ def main():
             else:
                 print(f"  Warning: {augment_path} not found. Running without augmentation.")
         
-        data['adj_norm'] = compute_normalized_adjacency(n_users, n_items, data['train_pairs'], device, item_item_edges)
+        # Check for weights in the data
+        edge_weights = data.get('edge_weight')
+        if edge_weights is not None:
+            if isinstance(edge_weights, torch.Tensor):
+                edge_weights = edge_weights.numpy()
+            print(f"  Found {len(edge_weights)} edge weights. Using weighted adjacency.")
+        
+        # Check for social edges
+        user_user_edges = None
+        social_graph_path = Path(args.data_path) / 'full_hetero_graph.pt'
+        if social_graph_path.exists():
+            print(f"  Loading social signals from {social_graph_path}...")
+            social_data = torch.load(social_graph_path, weights_only=False)
+            if isinstance(social_data, dict) and 'edge_index_dict' in social_data:
+                # If saved as dict
+                edges_dict = social_data['edge_index_dict']
+                user_user_edges = edges_dict.get(('user', 'replied_to', 'user'))
+            elif hasattr(social_data, 'edge_index_dict'):
+                # If PyG HeteroData
+                user_user_edges = social_data['user', 'replied_to', 'user'].edge_index
+        
+        data['adj_norm'] = compute_normalized_adjacency(n_users, n_items, data['train_pairs'], device, 
+                                                       item_item_edges, user_user_edges, 
+                                                       edge_weights=edge_weights, social_weight=args.social_weight)
         data['augmented_pairs'] = augmented_pairs # Store for LightGCL
     
     # Load pretrained embeddings if requested
@@ -1046,8 +1137,9 @@ def main():
                                semantic_ids=semantic_ids, user_priors=user_priors, 
                                re_ranker=re_ranker, cold_users=cold_users)
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    save_path = f"models/{args.model}_{timestamp}.pt"
+    graph_name = Path(args.data_path).stem
+    timestamp = datetime.now().strftime("%m%d_%H%M")
+    save_path = f"models/{args.model}_{graph_name}_{timestamp}.pt"
     
     # Ensure directory exists
     Path("models").mkdir(parents=True, exist_ok=True)
