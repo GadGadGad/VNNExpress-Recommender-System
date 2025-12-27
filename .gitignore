@@ -37,6 +37,7 @@ logs/
 # --- Jupyter Notebooks ---
 .ipynb_checkpoints/
 *.ipynb
+!notebooks/kaggle_train.ipynb
 
 # --- Crawler Cache & Temp Files ---
 crawlers/.cache/
@@ -44,6 +45,7 @@ crawlers/data*
 crawlers/*.log
 .seen_urls*.txt
 *.cache
+results/
 
 # --- Exception ---
 !src/models/

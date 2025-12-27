@@ -86,7 +86,16 @@ class CrawledDataEDA:
         if path.exists():
             print(f"Loading metadata from {path}...")
             df = pd.read_csv(path)
-            print(f"   → {len(df):,} metadata entries loaded")
+            
+            # Filter outliers (count < 10)
+            if 'category' in df.columns:
+                counts = df['category'].value_counts()
+                to_keep = counts[counts >= 10].index
+                initial_len = len(df)
+                df = df[df['category'].isin(to_keep)]
+                print(f"   → {len(df):,} metadata entries loaded (Filtered {initial_len - len(df)} outliers)")
+            else:
+                print(f"   → {len(df):,} metadata entries loaded")
             return df
         else:
             print(f"   [SKIP] metadata.csv not found")

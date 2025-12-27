@@ -154,6 +154,18 @@ class GNNDataConverter:
                     social_edges.append({'from': r_id, 'to': p_id, 'type': 'reply'})
 
         self.replies = pd.DataFrame(interactions).dropna(subset=['user_id', 'article_url'])
+        
+        # LEAKAGE FIX: Deduplicate interactions!
+        # A user might comment multiple times on the same article.
+        # We only want to model the EXISTENCE of interest, so we keep the first interaction.
+        # This prevents "Train on Comment 1, Test on Comment 2".
+        initial_len = len(self.replies)
+        self.replies['date'] = pd.to_datetime(self.replies['date'])
+        self.replies = self.replies.sort_values('date').drop_duplicates(
+            subset=['user_id', 'article_url'], keep='first'
+        )
+        print(f"   → Deduplicated interactions: {initial_len:,} -> {len(self.replies):,} (Removed {initial_len - len(self.replies):,})")
+
         self.social_df = pd.DataFrame(social_edges)
         
         print(f"   → {len(self.replies):,} initial interactions captured")
@@ -463,7 +475,8 @@ class GNNDataConverter:
         pos_articles = self.replies['article_idx'].values
         num_positives = len(pos_users)
         
-        indices = np.random.permutation(num_positives)
+        # Use persistent indices for consistency
+        indices = self._get_split_indices(seed)
         train_end = int(num_positives * train_ratio)
         val_end = int(num_positives * (train_ratio + val_ratio))
         
@@ -662,6 +675,45 @@ class GNNDataConverter:
         
         return data
     
+        return data
+    
+        return data
+    
+    def _get_split_indices(self, seed=42):
+        """Get or generate persistent random permutation indices."""
+        import numpy as np
+        import os
+        
+        split_file = self.output_dir / 'split_indices.pt'
+        num_positives = len(self.replies)
+        
+        if split_file.exists():
+            print(f"   [INFO] Loading existing split indices from {split_file}...")
+            indices = torch.load(split_file, weights_only=False)
+            if len(indices) != num_positives:
+                print(f"   [WARNING] Mismatch. Regenerating...")
+            else:
+                return indices.numpy() if torch.is_tensor(indices) else indices
+        
+        print(f"   [INFO] Generating and saving new split indices to {split_file}...")
+        np.random.seed(seed)
+        indices = np.random.permutation(num_positives)
+        torch.save(indices, split_file)
+        return indices
+
+    def _get_train_mask(self, seed=42, train_ratio=0.8):
+        """Get mask for training interactions."""
+        import numpy as np
+        indices = self._get_split_indices(seed)
+        num_positives = len(indices)
+        
+        train_end = int(num_positives * train_ratio)
+        train_idx = indices[:train_end]
+        
+        mask = np.zeros(num_positives, dtype=bool)
+        mask[train_idx] = True
+        return mask
+
     def build_full_hetero_graph(self) -> 'HeteroData':
         """
         Build full heterogeneous graph with all node types and relations.
@@ -693,8 +745,13 @@ class GNNDataConverter:
         
         # ===== EDGES =====
         # User -> Article (comments)
-        src = torch.tensor(self.replies['user_idx'].values, dtype=torch.long)
-        dst = torch.tensor(self.replies['article_idx'].values, dtype=torch.long)
+        # CRITICAL FIX: Only use training interactions for the graph structure!
+        print("   → Filtering interactions for User-Article edges (removing potential leakage)...")
+        train_mask = self._get_train_mask()
+        train_replies = self.replies[train_mask]
+
+        src = torch.tensor(train_replies['user_idx'].values, dtype=torch.long)
+        dst = torch.tensor(train_replies['article_idx'].values, dtype=torch.long)
         data['user', 'comments', 'article'].edge_index = torch.stack([src, dst])
         
         # User -> User (Social Reply Network)
@@ -712,11 +769,18 @@ class GNNDataConverter:
         
         # User -> User (Shared Interest - Latent)
         if not (hasattr(self, 'no_aux_edges') and self.no_aux_edges):
-            user_articles = self.replies.groupby('user_idx')['article_idx'].apply(set).to_dict()
+            # CRITICAL CHECK FOR LEAKAGE:
+            # We must ONLY use training interactions to infer shared interests.
+            # Otherwise, if we use Test interactions to link users, we leak the Test set structure.
+            print("   → Filtering interactions for Shared Interest edges (removing potential leakage)...")
+            train_mask = self._get_train_mask()
+            train_replies = self.replies[train_mask]
+            
+            user_articles = train_replies.groupby('user_idx')['article_idx'].apply(set).to_dict()
             shared_edges = []
             user_ids = list(user_articles.keys())
             
-            print("   → Computing latent user-user edges (shared articles >= 2)...")
+            print(f"   → Computing latent user-user edges from {len(train_replies)} training interactions (shared >= 2)...")
             for i in range(len(user_ids)):
                 u1 = user_ids[i]
                 for j in range(i + 1, min(i + 500, len(user_ids))): # Limit search for speed

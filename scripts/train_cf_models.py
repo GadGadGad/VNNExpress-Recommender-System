@@ -20,17 +20,14 @@ from datetime import datetime
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.models.ngcf import NGCF
 from src.models.simplex import SimpleX
 from src.models.directau import DirectAU
 from src.models.sgl import SGL
-from src.models.simgcl import SimGCL
+from src.models import NGCF, LightGCL, SimGCL, XSimGCL, MAHGN, SimMAHGN
 from src.models.ncl import NCL
-from src.models.lightgcl import LightGCL
 from src.models.cgrc import CGRC
 from src.models.bigcf import BIGCF
 from src.models.igcl import IGCL
-from src.models.xsimgcl import XSimGCL
 from src.models.semantic_id import generate_semantic_ids
 from src.inference.re_ranker import CalibratedReRanker
 import scipy.sparse as sp
@@ -232,6 +229,16 @@ def load_data(data_path, min_interactions=2):
         
         if isinstance(data, (Data, HeteroData)) or any(k not in data for k in required_keys):
             print("  Ensuring interaction data and splits...")
+            
+            # ATTEMPT TO FIND MASTER SPLITS in the same directory to ensure consistency
+            master_split_path = cache_path.parent / 'graph_with_negatives.pt'
+            master_splits = None
+            if master_split_path.exists() and master_split_path != cache_path:
+                print(f"  Synchronizing splits with master: {master_split_path}")
+                master_data = torch.load(master_split_path, weights_only=False)
+                if isinstance(master_data, dict) and 'splits' in master_data:
+                    master_splits = master_data['splits']
+            
             edge_index = None
             if isinstance(data, HeteroData):
                 if ('user', 'comments', 'article') in data.edge_types:
@@ -241,6 +248,8 @@ def load_data(data_path, min_interactions=2):
                     edge_index = next(iter(data.edge_index_dict.values()))
                 n_users = data['user'].num_nodes
                 n_items = data['article'].num_nodes
+                if 'category' in data.node_types:
+                    n_categories = data['category'].num_nodes
             elif isinstance(data, Data):
                 edge_index = data.edge_index
                 n_users = data.num_nodes # Approximate if not specified
@@ -269,9 +278,9 @@ def load_data(data_path, min_interactions=2):
             if 'n_items' not in locals(): 
                 n_items = data.get('n_items') or data.get('num_articles') or data.get('num_items') or 0
 
-            if isinstance(data, dict) and 'splits' in data:
-                print("  Using pre-defined splits from graph data...")
-                splits = data['splits']
+            if master_splits is not None:
+                print("  Using pre-defined splits from master (graph_with_negatives.pt)...")
+                splits = master_splits
                 train_pairs = list(zip(splits['train']['pos_users'].tolist(), splits['train']['pos_articles'].tolist()))
                 test_dict = {}
                 for u, i in zip(splits['test']['pos_users'].tolist(), splits['test']['pos_articles'].tolist()):
@@ -285,11 +294,16 @@ def load_data(data_path, min_interactions=2):
                 data_dict = {
                     'n_users': n_users,
                     'n_items': n_items,
+                    'n_categories': n_categories if 'n_categories' in locals() else 0,
                     'train_pairs': train_pairs,
                     'test_dict': test_dict,
-                    'train_dict': train_dict
+                    'train_dict': train_dict,
+                    'edge_index': torch.tensor(train_pairs, dtype=torch.long).t(),
+                    'graph': data # Store PyG object if available
                 }
-            else:
+                return data_dict
+
+            if edge_index is not None:
                 np.random.seed(42)
                 np.random.shuffle(interactions)
                 split = int(len(interactions) * 0.8)
@@ -297,6 +311,7 @@ def load_data(data_path, min_interactions=2):
                 data_dict = {
                     'n_users': n_users,
                     'n_items': n_items,
+                    'n_categories': n_categories if 'n_categories' in locals() else 0,
                     'train_pairs': interactions[:split],
                     'test_dict': {}, 
                     'train_dict': {}
@@ -323,12 +338,21 @@ def load_data(data_path, min_interactions=2):
             if isinstance(data, dict):
                 data.update(data_dict)
                 return data
+            
+            # For ma_hgn, preserve edge_index_dict if present in original data
+            if isinstance(data, HeteroData):
+                data_dict['edge_index_dict'] = data.edge_index_dict
+                
             return data_dict
 
         return data
     
     print("Processing data...")
-    replies = pd.read_csv(Path(data_path).parent / 'raw' / 'replies.csv')
+    raw_replies = Path('data/raw/replies.csv')
+    if not raw_replies.exists():
+        raw_replies = Path(data_path).parent / 'raw' / 'replies.csv'
+        
+    replies = pd.read_csv(raw_replies)
     replies = replies[replies['parent_user_id'] != 'NO_COMMENT'].copy()
     
     def clean_id(val):
@@ -465,6 +489,32 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
             print(f"  Warning: {path} not found. Using random initialization.")
             return None
             
+    elif embedding_type == 'vndoc':
+        path = 'checkpoints/vndoc_article_embeddings.pt'
+        if os.path.exists(path):
+            embeddings = torch.load(path, map_location='cpu')
+            print(f"  Loaded VnDoc embeddings: {embeddings.shape}")
+        else:
+            print(f"  Warning: {path} not found. Using random initialization.")
+            return None
+    
+    elif embedding_type in ['bge-m3', 'gte', 'e5-large', 'e5-base', 'vn-sbert']:
+        # Map shortnames to full paths
+        path_map = {
+            'bge-m3': 'checkpoints/bge-m3_article_embeddings.pt',
+            'gte': 'checkpoints/gte-multilingual_article_embeddings.pt',
+            'e5-large': 'checkpoints/e5-large_article_embeddings.pt',
+            'e5-base': 'checkpoints/e5-base_article_embeddings.pt',
+            'vn-sbert': 'checkpoints/vietnamese-sbert_article_embeddings.pt'
+        }
+        path = path_map[embedding_type]
+        if os.path.exists(path):
+            embeddings = torch.load(path, map_location='cpu')
+            print(f"  Loaded {embedding_type} embeddings: {embeddings.shape}")
+        else:
+            print(f"  Warning: {path} not found. Using random initialization.")
+            return None
+            
     elif embedding_type == 'tfidf':
         print("  Computing TF-IDF embeddings (LSA)...")
         import pandas as pd
@@ -473,31 +523,6 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
         
         # Load articles to get text
         try:
-            articles = pd.read_csv('data/raw/articles.csv')
-            texts = []
-            
-            # Map items to text (assuming ordered 0..n_items based on some mapping, 
-            # but here we load raw articles. We need the mapping logic!)
-            # WARNING: scripts/train_cf_models.py doesn't inherently know idx2item mapping 
-            # unless we load it. data/processed/cf_cache.pt MIGHT have it if we modify load_data,
-            # but usually it stores edge_index. 
-            #
-            # However, ContentDataLoader saves 'item2idx' in mapping files?
-            # Let's check 'data/processed/cf_cache.pt' has idx_mapping?
-            # If not, we might be mapping randomly. 
-            #
-            # CRITICAL: We need idx2url mapping to correctly assign text to items.
-            # load_data() in this script loads 'cf_cache.pt'. 
-            # Let's assume for now we load a mapping file or try to reconstruct.
-            #
-            # Actually, let's load `data/processed/mapping.pt` if it exists (LightGCL loader usually creates it)
-            # OR re-load using LightDataLoader logic.
-            #
-            # For simplicity in this context, we'll try to load the original LightGCL Cache if possible,
-            # or assume articles.csv order matches IF they were processed sequentially (risky).
-            # 
-            # Let's try to load 'item2idx' from a standard location if available. 
-            # If not available, we can't reliably assign text.
             pass
             
             # Re-implementation to be safe: Load the full dataloader to get mapping
@@ -597,7 +622,7 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
 
 
 def evaluate(model, test_dict, train_dict, n_items, edge_index, k_list=[1, 5, 10], device='cpu', adj_norm=None, 
-             re_ranker=None, rerank_strategy='none', eval_protocol='full', cold_users=None):
+             re_ranker=None, rerank_strategy='none', eval_protocol='full', cold_users=None, edge_index_dict=None):
     """
     Evaluate model with multiple protocols.
     
@@ -612,7 +637,9 @@ def evaluate(model, test_dict, train_dict, n_items, edge_index, k_list=[1, 5, 10
         if hasattr(model, 'forward'):
             forward_args = model.forward.__code__.co_varnames
             
-            if 'adj_norm' in forward_args and adj_norm is not None:
+            if 'edge_index_dict' in forward_args and edge_index_dict is not None:
+                user_emb, item_emb = model(None, edge_index_dict)
+            elif 'adj_norm' in forward_args and adj_norm is not None:
                 kwargs = {}
                 if 'item_content' in forward_args:
                     kwargs['item_content'] = getattr(model, 'item_content', None)
@@ -743,6 +770,10 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     
     edge_index = data['edge_index'].to(device)
+    edge_index_dict = data.get('edge_index_dict')
+    if edge_index_dict is None and isinstance(data, dict):
+        if 'graph' in data and hasattr(data['graph'], 'edge_index_dict'):
+            edge_index_dict = data['graph'].edge_index_dict
     train_pairs = data['train_pairs']
     train_dict = data['train_dict']
     test_dict = data['test_dict']
@@ -780,7 +811,7 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
             # Different models have different loss signatures
             if hasattr(model, 'calculate_loss'):
                 # Graph-based models need `adj_norm`
-                if args.model in ['simgcl', 'cgrc', 'bigcf', 'igcl', 'xsimgcl', 'sgl', 'ncl']:
+                if args.model in ['simgcl', 'cgrc', 'bigcf', 'igcl', 'xsimgcl', 'sgl', 'ncl', 'sim-mahgn']:
                     graph_structure = data.get('adj_norm')
                     if graph_structure is None:
                         # Fallback if not computed (shouldn't happen if setup is correct)
@@ -796,6 +827,14 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
                      # In main(), `model` is assigned `LightGCLWrapper(...).model`? Or the wrapper itself?
                      # Let's assume wrapper extracts what it needs.
                      graph_structure = data.get('adj_norm') # Pass it anyway
+                elif args.model == 'ma_hgn':
+                    # MA-HGN needs the full heterogeneous edge dictionary
+                    graph_structure = getattr(data, 'edge_index_dict', None)
+                    if graph_structure is None and isinstance(data, dict):
+                        graph_structure = data.get('edge_index_dict')
+                    if graph_structure is None:
+                         # Fallback to bipartite edge_index if no hetero data
+                         graph_structure = edge_index
                 else:
                     graph_structure = edge_index
                 
@@ -823,6 +862,20 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
                     loss, bpr, cl, reg = model.calculate_loss(graph_structure, users, pos_items, neg_items)
                 elif isinstance(model, IGCL):
                     loss, bpr, ssl, reg = model.calculate_loss(graph_structure, users, pos_items, neg_items)
+                elif isinstance(model, SimMAHGN) or args.model in ['ma-hcl', 'ma-hcl-v2']:
+                    # SimMAHGN and MA-HCL need the full heterogeneous edge dictionary
+                    hetero_graph_structure = getattr(data, 'edge_index_dict', None)
+                    if hetero_graph_structure is None and isinstance(data, dict):
+                        # Nested in 'graph' attribute from load_data
+                        if 'graph' in data and hasattr(data['graph'], 'edge_index_dict'):
+                             hetero_graph_structure = data['graph'].edge_index_dict
+                        else:
+                             hetero_graph_structure = data.get('edge_index_dict')
+                             
+                    if hetero_graph_structure is None:
+                         # Fallback to bipartite edge_index if no hetero data
+                         hetero_graph_structure = edge_index
+                    loss, bpr, cl, reg = model.calculate_loss(hetero_graph_structure, users, pos_items, neg_items)
                 else:
                     loss, bpr, reg, ssl = model.calculate_loss(graph_structure, users, pos_items, neg_items)
             elif hasattr(model, 'bpr_loss'):
@@ -850,11 +903,20 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
             pbar.set_postfix({'loss': f"{total_loss:.4f}"})
         
         # Evaluate every 5 epochs
-        if (epoch + 1) % 5 == 0:
-            adj_norm = data.get('adj_norm')
+        if (epoch + 1) % 5 == 0 or epoch == args.epochs - 1:
+            edge_index_dict = None
+            if isinstance(data, dict):
+                edge_index_dict = data.get('edge_index_dict')
+                if edge_index_dict is None and 'graph' in data and hasattr(data['graph'], 'edge_index_dict'):
+                    edge_index_dict = data['graph'].edge_index_dict
+            elif hasattr(data, 'edge_index_dict'):
+                edge_index_dict = data.edge_index_dict
+            
+            adj_norm = data.get('adj_norm') if isinstance(data, dict) else getattr(data, 'adj_norm', None)
+            
             metrics = evaluate(model, test_dict, train_dict, n_items, edge_index, device=device, adj_norm=adj_norm,
                                re_ranker=re_ranker, rerank_strategy=args.rerank, eval_protocol=args.eval_protocol,
-                               cold_users=cold_users)
+                               cold_users=cold_users, edge_index_dict=edge_index_dict)
 
 
             
@@ -885,7 +947,7 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
 
 def main():
     parser = argparse.ArgumentParser(description='Train CF/CL Models')
-    parser.add_argument('--model', '-m', choices=['ngcf', 'simplex', 'directau', 'sgl', 'simgcl', 'ncl', 'lightgcl', 'cgrc', 'bigcf', 'igcl', 'xsimgcl'],
+    parser.add_argument('--model', '-m', choices=['ngcf', 'simplex', 'directau', 'sgl', 'simgcl', 'ncl', 'lightgcl', 'cgrc', 'bigcf', 'igcl', 'xsimgcl', 'ma_hgn', 'sim-mahgn', 'ma-hcl', 'ma-hcl-v2'],
                         default='ngcf', help='Model to train')
     parser.add_argument('--data-path', default='data/processed', help='Data directory')
     parser.add_argument('--epochs', type=int, default=100)
@@ -894,6 +956,7 @@ def main():
     parser.add_argument('--weight-decay', type=float, default=1e-4)
     parser.add_argument('--hidden-dim', type=int, default=64)
     parser.add_argument('--n-layers', type=int, default=3)
+    parser.add_argument('--dropout', type=float, default=0.2, help='Dropout rate (default: 0.2)')
     parser.add_argument('--patience', type=int, default=10)
     parser.add_argument('--device', default='cuda' if torch.cuda.is_available() else 'cpu')
     # LightGCL-specific parameters
@@ -902,8 +965,8 @@ def main():
     parser.add_argument('--temp', type=float, default=0.2, help='LightGCL: Temperature for contrastive loss (default: 0.2)')
     
     # Embedding arguments
-    parser.add_argument('--embedding', choices=['random', 'phobert', 'tfidf'], default='random',
-                        help='Embedding initialization (random, phobert, tfidf)')
+    parser.add_argument('--embedding', choices=['random', 'phobert', 'tfidf', 'vndoc', 'bge-m3', 'gte', 'e5-large', 'e5-base', 'vn-sbert'], default='random',
+                        help='Embedding initialization')
     parser.add_argument('--augment', choices=['none', 'llmrec'], default='none',
                         help='Graph augmentation strategy')
     parser.add_argument('--semantic-id-bits', type=int, default=0,
@@ -922,7 +985,12 @@ def main():
                         help='Number of cold-start users to evaluate (default: 10)')
     parser.add_argument('--social-weight', type=float, default=1.0,
                         help='Weight for social reply edges in adjacency matrix (default: 1.0)')
-    
+    parser.add_argument('--graph-type', choices=['bipartite', 'hetero', 'article', 'category'], default='bipartite',
+                        help='Graph type: bipartite, hetero, article (Article-Augmented), or category (Category Hubs)')
+    # SimMAHGN specific arguments
+    parser.add_argument('--emb-dim', type=int, default=64, help='Embedding dimension for SimMAHGN')
+    parser.add_argument('--cl-rate', type=float, default=0.1, help='Contrastive loss rate for SimMAHGN')
+    parser.add_argument('--eps', type=float, default=0.1, help='Epsilon for SimMAHGN')
 
     args = parser.parse_args()
     device = torch.device(args.device)
@@ -930,11 +998,67 @@ def main():
     print("=" * 60)
     print(f"Training {args.model.upper()}")
     print(f"Embedding Initialization: {args.embedding.upper()}")
+    print(f"Graph Type: {args.graph_type.upper()}")
     print(f"Data Path: {args.data_path}")
     print("=" * 60)
     
-    # Load data
-    data = load_data(args.data_path)
+    # Switch data path based on graph type
+    if args.graph_type == 'hetero':
+        hetero_path = Path(args.data_path) / 'full_hetero_graph.pt'
+        if not hetero_path.exists():
+            hetero_path = Path(args.data_path) / 'all_graphs' / 'full_hetero_graph.pt'
+            
+        if hetero_path.exists():
+            print(f"  Loading Heterogeneous Graph from: {hetero_path}")
+            data = load_data(str(hetero_path))
+        else:
+            print(f"  Warning: {hetero_path} not found. Falling back to default bipartite graph.")
+            data = load_data(args.data_path)
+    elif args.graph_type == 'category':
+        cat_path = Path(args.data_path) / 'all_graphs' / 'category_graph.pt'
+        if not cat_path.exists():
+             cat_path = Path(args.data_path) / 'category_graph.pt'
+             
+        if cat_path.exists():
+            print(f"  Loading Category-Augmented Graph from: {cat_path}")
+            data = load_data(str(cat_path))
+        else:
+            print(f"  Warning: {cat_path} not found. Falling back.")
+            data = load_data(args.data_path)
+
+    elif args.graph_type == 'article':
+        # Load full hetero graph as base to ensure consistent dimensions
+        hetero_path = Path(args.data_path) / 'all_graphs' / 'full_hetero_graph.pt'
+        if hetero_path.exists():
+            print(f"  Loading Full Base Graph from: {hetero_path}")
+            data = load_data(str(hetero_path))
+            
+            # REMOVE Social Edges to ensure purely Article-Augmented experiment
+            if isinstance(data, dict):
+                 if 'edge_index_dict' in data and ('user', 'replied_to', 'user') in data['edge_index_dict']:
+                     print("  Removing Social Edges for Article-Augmented experiment...")
+                     del data['edge_index_dict'][('user', 'replied_to', 'user')]
+            elif hasattr(data, 'edge_index_dict'):
+                 # PyG HeteroData
+                 if ('user', 'replied_to', 'user') in data.edge_types:
+                     print("  Removing Social Edges for Article-Augmented experiment...")
+                     del data['user', 'replied_to', 'user']
+
+        else:
+             print("Full graph not found, falling back (might fail dimensions)")
+             data = load_data(args.data_path)
+        
+        # Load auxiliary Article-Article graph
+        article_path = Path(args.data_path) / 'all_graphs' / 'article_article_graph_users.pt'
+        if article_path.exists():
+            print(f"  Loading Article-Article Edges from: {article_path}")
+            article_data = torch.load(article_path, weights_only=False)
+            data['article_edge_index'] = article_data.edge_index
+        else:
+            print(f"  Warning: {article_path} not found. Using Bipartite only.")
+    else:
+        # Load data (default bipartite)
+        data = load_data(args.data_path)
     n_users, n_items = data['n_users'], data['n_items']
     
     print(f"Users: {n_users}, Items: {n_items}")
@@ -949,12 +1073,17 @@ def main():
 
     # Precompute adj_norm for SimGCL / CGRC / BIGCF / IGCL / XSimGCL
     # Precompute adj_norm for graph-based models
-    graph_models = ['simgcl', 'cgrc', 'bigcf', 'igcl', 'xsimgcl', 'sgl', 'ncl', 'lightgcl', 'directau']
+    graph_models = ['simgcl', 'cgrc', 'bigcf', 'igcl', 'xsimgcl', 'sgl', 'ncl', 'lightgcl', 'directau', 'sim-mahgn', 'ma-hcl', 'ma-hcl-v2']
     if args.model in graph_models:
         print(f"\nPrecomputing normalized adjacency for {args.model.upper()}...")
         
         augmented_pairs = None
-        item_item_edges = data.get('article_edge_index') or data.get('user_category_edge_index') or data.get('cat_article_edges')
+        # Fix ambiguous boolean evaluation for Tensors
+        item_item_edges = data.get('article_edge_index')
+        if item_item_edges is None:
+            item_item_edges = data.get('user_category_edge_index')
+        if item_item_edges is None:
+            item_item_edges = data.get('cat_article_edges')
         
         if args.augment == 'llmrec':
             augment_path = Path('data/processed/augmented_edges.pt')
@@ -1083,6 +1212,53 @@ def main():
              model.item_embedding.weight.data.copy_(pretrained_emb)
              print("  Transferred embeddings to BIGCF")
              
+    elif args.model == 'sim-mahgn':
+        model = SimMAHGN(
+            n_users=n_users,
+            n_items=n_items,
+            embedding_dim=args.emb_dim,
+            n_layers=args.n_layers,
+            dropout=args.dropout,
+            ssl_weight=args.cl_rate,
+            eps=args.eps,
+            temp=args.temp,
+            n_categories=data.get('n_categories', 0)
+        ).to(device)
+        if pretrained_emb is not None:
+             model.item_emb.weight.data.copy_(pretrained_emb)
+             print("  Transferred embeddings to SimMAHGN")
+             
+    elif args.model == 'ma-hcl':
+        from src.models.ma_hcl import MAHCL
+        model = MAHCL(
+            n_users=n_users,
+            n_items=n_items,
+            embedding_dim=args.emb_dim,
+            n_layers=args.n_layers,
+            ssl_weight=args.cl_rate,
+            eps=args.eps,
+            temp=args.temp,
+            n_categories=data.get('n_categories', 0)
+        ).to(device)
+        if pretrained_emb is not None:
+             model.item_emb.weight.data.copy_(pretrained_emb)
+             print("  Transferred embeddings to MA-HCL")
+             
+    elif args.model == 'ma-hcl-v2':
+        from src.models.ma_hcl_v2 import MAHCLV2
+        model = MAHCLV2(
+            n_users=n_users,
+            n_items=n_items,
+            embedding_dim=args.emb_dim,
+            n_layers=args.n_layers,
+            ssl_weight=args.cl_rate,
+            eps=args.eps,
+            temp=args.temp,
+            n_authors=data.get('n_authors', 0)
+        ).to(device)
+        if pretrained_emb is not None:
+             model.item_emb.weight.data.copy_(pretrained_emb)
+             print("  Transferred embeddings to MA-HCL-V2")
     elif args.model == 'igcl':
         model = IGCL(n_users, n_items, embedding_dim=args.hidden_dim, n_layers=args.n_layers,
                      ssl_weight=args.ssl_weight, temp=args.temp).to(device)
@@ -1090,6 +1266,9 @@ def main():
              model.item_embedding.weight.data.copy_(pretrained_emb)
              print("  Transferred embeddings to IGCL")
              
+    elif args.model == 'ma_hgn':
+        model = MAHGN(n_users, n_items, args.hidden_dim, args.n_layers, args.dropout).to(device)
+        
     elif args.model == 'xsimgcl':
         model = XSimGCL(n_users, n_items, embedding_dim=args.hidden_dim, n_layers=args.n_layers,
                          ssl_weight=args.ssl_weight, temp=args.temp).to(device)
@@ -1137,7 +1316,14 @@ def main():
                                semantic_ids=semantic_ids, user_priors=user_priors, 
                                re_ranker=re_ranker, cold_users=cold_users)
 
-    graph_name = Path(args.data_path).stem
+    p = Path(args.data_path)
+    # Priority: If graph is in a variant folder (strict_g2, etc.), use that folder name
+    # Otherwise fallback to the filename stem
+    if p.parent.name in ["strict_g1", "strict_g2", "strict_g3", "regular_g2", "enhanced_v1", "enhanced_v2"]:
+        graph_name = p.parent.name
+    else:
+        graph_name = p.stem
+        
     timestamp = datetime.now().strftime("%m%d_%H%M")
     save_path = f"models/{args.model}_{graph_name}_{timestamp}.pt"
     
@@ -1171,14 +1357,21 @@ def main():
     if args.save_results:
         import json
         
+        # Ensure results go to results/ folder
+        results_path = Path(args.save_results)
+        if not results_path.parent.exists() or results_path.parent == Path('.'):
+            results_dir = Path('results')
+            results_dir.mkdir(exist_ok=True)
+            results_path = results_dir / results_path.name
+        
         # Helper to serializable
         def convert(o):
             if isinstance(o, np.float32): return float(o)
             return o
             
-        with open(args.save_results, 'w') as f:
+        with open(results_path, 'w') as f:
             json.dump(best_metrics, f, default=convert)
-        print(f"Saved metrics to {args.save_results}")
+        print(f"Saved metrics to {results_path}")
 
 
 if __name__ == '__main__':

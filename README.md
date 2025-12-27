@@ -5,13 +5,12 @@ A Graph Neural Network (GNN) based article recommendation system using user-comm
 ## Quick Start
 
 ```bash
-# 1. Install dependencies
 pip install -r requirements.txt
 
-# 2. Run the full pipeline (uses config.yaml)
+# Run the full pipeline
 python scripts/run_pipeline.py
 
-# 3. Or run with custom settings
+# Or run with custom settings
 python scripts/run_pipeline.py --epochs 50 --embedding bert
 ```
 
@@ -49,7 +48,7 @@ Edit `config.yaml` to customize the pipeline:
 ```yaml
 data:
   embedding: "random"          # random | tfidf | phobert
-  min_user_interactions: 2     # k-core filter
+  min_user_interactions: 2
 
 training:
   epochs: 30
@@ -73,7 +72,6 @@ models:
 
 ### Full Pipeline
 ```bash
-# Run complete pipeline with config.yaml
 python scripts/run_pipeline.py
 
 # Override specific settings
@@ -89,20 +87,20 @@ python scripts/run_pipeline.py --models sgl ncl lightgcl
 ### Step-by-Step
 
 ```bash
-# Step 1: Generate PhoBERT embeddings (optional)
+# Generate PhoBERT embeddings (optional)
 python src/data/generate_embeddings.py
 
-# Step 2: Convert data to GNN format
+# Convert data to GNN format
 python src/data/convert_to_gnn.py \
     --output data/processed_phobert \
     --graph-type hetero \
     --use-phobert \
     --min-user-interactions 2
 
-# Step 3: Train individual model
+# Train individual model
 python scripts/train_cf_models.py --model sgl --epochs 30
 
-# Step 4: Train all and compare
+# Train all and compare
 python scripts/train_and_compare_all.py --epochs 30
 ```
 

@@ -4,11 +4,12 @@ Train and Compare All Models
 Trains all available models and outputs a comparison table.
 """
 import subprocess
-import sys
+import argparse
+import subprocess
+import time
 import json
 import os
-import tempfile
-from pathlib import Path
+from tabulate import tabulate
 from datetime import datetime
 from tabulate import tabulate
 import subprocess

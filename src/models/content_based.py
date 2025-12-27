@@ -33,7 +33,8 @@ class PhoBERTEncoder(nn.Module):
         max_length: int = 256,
         pooling: str = "mean",  # "mean", "cls", "max"
         freeze_bert: bool = False,
-        device: str = "cuda"
+        device: str = "cuda",
+        use_raw: bool = False
     ):
         super(PhoBERTEncoder, self).__init__()
         
@@ -51,6 +52,8 @@ class PhoBERTEncoder(nn.Module):
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.bert = AutoModel.from_pretrained(model_name)
         
+        self.use_raw = use_raw
+        
         # PhoBERT hidden size (768 for base, 1024 for large)
         self.bert_hidden_size = self.bert.config.hidden_size
         
@@ -62,6 +65,11 @@ class PhoBERTEncoder(nn.Module):
             nn.Dropout(0.1),
             nn.Linear(embedding_dim * 2, embedding_dim)
         )
+        
+        # Update embedding_dim if using raw
+        if use_raw:
+            self.embedding_dim = self.bert_hidden_size
+            print(f"  Using RAW embeddings (size: {self.embedding_dim})")
         
         if freeze_bert:
             print("  Freezing BERT parameters...")
@@ -118,6 +126,9 @@ class PhoBERTEncoder(nn.Module):
         else:
             raise ValueError(f"Unknown pooling: {self.pooling}")
         
+        if self.use_raw:
+            return pooled
+            
         # Project to embedding_dim
         embeddings = self.projection(pooled)
         
@@ -167,7 +178,8 @@ class ContentBasedRecommender(nn.Module):
         bert_model: str = "vinai/phobert-base",
         max_length: int = 256,
         freeze_bert: bool = True,
-        device: str = "cuda"
+        device: str = "cuda",
+        **kwargs
     ):
         super(ContentBasedRecommender, self).__init__()
         
@@ -183,25 +195,31 @@ class ContentBasedRecommender(nn.Module):
             max_length=max_length,
             pooling="mean",
             freeze_bert=freeze_bert,
-            device=device
+            device=device,
+            use_raw=kwargs.get('use_raw', False)
         )
+        
+        self.embedding_dim = self.article_encoder.embedding_dim
         
         # User preference encoder
         # Aggregates user's reading history into preference embedding
-        self.user_preference_encoder = nn.Sequential(
-            nn.Linear(embedding_dim, embedding_dim),
-            nn.LayerNorm(embedding_dim),
-            nn.GELU(),
-            nn.Dropout(0.1),
-            nn.Linear(embedding_dim, embedding_dim)
-        )
-        
+        if not kwargs.get('use_raw', False):
+            self.user_preference_encoder = nn.Sequential(
+                nn.Linear(self.embedding_dim, self.embedding_dim),
+                nn.LayerNorm(self.embedding_dim),
+                nn.GELU(),
+                nn.Dropout(0.1),
+                nn.Linear(self.embedding_dim, self.embedding_dim)
+            )
+        else:
+            self.user_preference_encoder = nn.Identity()
+            
         # Precomputed article embeddings cache
         self.article_embeddings: Optional[torch.Tensor] = None
         
         print(f"\n[ContentBasedRecommender] Initialized")
         print(f"  Users: {n_users}, Items: {n_items}")
-        print(f"  Embedding dim: {embedding_dim}")
+        print(f"  Embedding dim: {self.embedding_dim}")
         
     def encode_articles(
         self,

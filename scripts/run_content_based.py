@@ -37,8 +37,8 @@ def parse_args():
     # Model selection
     # Model selection
     parser.add_argument('--model', type=str, default='phobert',
-                        choices=['phobert', 'hybrid', 'simcse', 'tfidf', 'e5'],
-                        help='Model type: phobert, hybrid, simcse, tfidf, e5')
+                        choices=['phobert', 'hybrid', 'simcse', 'tfidf', 'e5', 'combined'],
+                        help='Model type: phobert, hybrid, simcse, tfidf, e5, combined')
     
     # Data
     parser.add_argument('--data_path', type=str, default='data')
@@ -62,6 +62,8 @@ def parse_args():
                         help='Freeze BERT parameters')
     parser.add_argument('--alpha', type=float, default=0.5,
                         help='Hybrid alpha (weight for CF)')
+    parser.add_argument('--raw', action='store_true',
+                        help='Use raw BERT embeddings (no projection)')
     
     # Training (for hybrid)
     parser.add_argument('--epochs', type=int, default=100)
@@ -96,7 +98,7 @@ def load_data(data_path: str, text_columns: List[str], force_reload: bool = Fals
     return data_dict, loader
 
 
-def run_phobert_model(args, data_dict):
+def run_phobert_model(args, data_dict, return_scores=False):
     """Run pure content-based PhoBERT model"""
     from src.models.content_based import ContentBasedRecommender
     from src.training.trainer_content_based import compute_metrics, print_metrics
@@ -118,7 +120,8 @@ def run_phobert_model(args, data_dict):
         bert_model=args.bert_model,
         max_length=args.max_length,
         freeze_bert=True,
-        device=device
+        device=device,
+        use_raw=args.raw
     ).to(device)
     
     # Get article texts
@@ -165,6 +168,9 @@ def run_phobert_model(args, data_dict):
     metrics = compute_metrics(predictions, test_dict, train_dict, 
                               k_list=[10, 20, 50], protocol=args.eval_protocol)
     print_metrics(metrics)
+    
+    if return_scores:
+        return metrics, predictions
     
     # Demo recommendations
     print("\n" + "-" * 40)
@@ -287,7 +293,8 @@ def run_simcse_model(args, data_dict):
         bert_model=simcse_model,
         max_length=args.max_length,
         freeze_bert=True,
-        device=device
+        device=device,
+        use_raw=args.raw
     ).to(device)
     
     article_texts = data_dict['article_texts']
@@ -344,7 +351,7 @@ def run_simcse_model(args, data_dict):
     return metrics
 
 
-def run_tfidf_model(args, data_dict):
+def run_tfidf_model(args, data_dict, return_scores=False):
     """Run TF-IDF Content-Based Model"""
     from sklearn.feature_extraction.text import TfidfVectorizer
     from sklearn.metrics.pairwise import cosine_similarity
@@ -396,6 +403,9 @@ def run_tfidf_model(args, data_dict):
                               k_list=[10, 20, 50], protocol=args.eval_protocol)
     print_metrics(metrics)
     
+    if return_scores:
+        return metrics, predictions
+    
     if args.save_results:
         import json
         with open(args.save_results, 'w') as f:
@@ -408,6 +418,7 @@ def run_e5_model(args, data_dict):
     """Run Multilingual-E5 Content-Based Model"""
     from src.models.content_based import ContentBasedRecommender
     from src.training.trainer_content_based import compute_metrics, print_metrics
+    from tqdm import tqdm
     import torch.nn.functional as F
     
     print("\n" + "=" * 60)
@@ -428,7 +439,8 @@ def run_e5_model(args, data_dict):
         bert_model=model_name,
         max_length=args.max_length,
         freeze_bert=True,
-        device=device
+        device=device,
+        use_raw=args.raw
     ).to(device)
     
     article_texts = data_dict['article_texts']
@@ -495,6 +507,65 @@ def run_e5_model(args, data_dict):
     return metrics
 
 
+    return metrics
+
+
+def run_combined_model(args, data_dict):
+    """Run Combined TF-IDF + PhoBERT Model"""
+    from src.training.trainer_content_based import compute_metrics, print_metrics
+    import numpy as np
+    from sklearn.preprocessing import MinMaxScaler
+    
+    print("\n" + "=" * 60)
+    print("Running Combined Model (TF-IDF + PhoBERT)")
+    print("=" * 60)
+    
+    # Run TF-IDF
+    print("\n>>> Phase 1: Running TF-IDF...")
+    _, tfidf_scores = run_tfidf_model(args, data_dict, return_scores=True)
+    
+    # Run PhoBERT
+    print("\n>>> Phase 2: Running PhoBERT...")
+    _, phobert_scores = run_phobert_model(args, data_dict, return_scores=True)
+    
+    print("\n>>> Phase 3: Combining Scores...")
+    train_dict = data_dict['train_dict']
+    test_dict = data_dict['test_dict']
+    
+    combined_predictions = {}
+    alpha = args.alpha
+    print(f"Mixing weight alpha (TF-IDF): {alpha}")
+    
+    # Intersection of users
+    users = set(tfidf_scores.keys()) & set(phobert_scores.keys())
+    
+    for user_id in users:
+        s1 = tfidf_scores[user_id]
+        s2 = phobert_scores[user_id]
+        
+        # Normalize scores to [0, 1] for fair combination
+        if s1.max() > s1.min():
+            s1 = (s1 - s1.min()) / (s1.max() - s1.min())
+            
+        if s2.max() > s2.min():
+            s2 = (s2 - s2.min()) / (s2.max() - s2.min())
+            
+        combined = alpha * s1 + (1 - alpha) * s2
+        combined_predictions[user_id] = combined
+        
+    # Evaluate
+    metrics = compute_metrics(combined_predictions, test_dict, train_dict, 
+                              k_list=[10, 20, 50], protocol=args.eval_protocol)
+    print_metrics(metrics)
+    
+    if args.save_results:
+        import json
+        with open(args.save_results, 'w') as f:
+            json.dump(metrics, f, indent=4)
+            
+    return metrics
+
+
 def main():
     args = parse_args()
     
@@ -538,6 +609,8 @@ def main():
         metrics = run_tfidf_model(args, data_dict)
     elif args.model == 'e5':
         metrics = run_e5_model(args, data_dict)
+    elif args.model == 'combined':
+        metrics = run_combined_model(args, data_dict)
     else:
         raise ValueError(f"Unknown model: {args.model}")
     
@@ -548,3 +621,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
