@@ -51,7 +51,8 @@ class GNNDataConverter:
         add_text_features: bool = False, use_phobert: bool = False,
         text_max_features: int = 1000,
         min_user_interactions: int = 0,
-        min_article_interactions: int = 0
+        min_article_interactions: int = 0,
+        split_strategy: str = 'time'
     ):
         self.articles_path = articles_path
         self.replies_path = replies_path
@@ -65,6 +66,7 @@ class GNNDataConverter:
         self.text_max_features = text_max_features
         self.min_user_interactions = min_user_interactions
         self.min_article_interactions = min_article_interactions
+        self.split_strategy = split_strategy
         
         self.articles = None
         self.replies = None
@@ -704,24 +706,40 @@ class GNNDataConverter:
         return data
     
     def _get_split_indices(self, seed=42):
-        """Get or generate persistent random permutation indices."""
+        """Get indices split by Time or Randomly."""
         import numpy as np
-        import os
         
-        split_file = self.output_dir / 'split_indices.pt'
+        # Lưu tên file cache kèm theo strategy để tránh dùng nhầm file cũ
+        filename = f'split_indices_{self.split_strategy}.pt' 
+        split_file = self.output_dir / filename
         num_positives = len(self.replies)
         
         if split_file.exists():
-            print(f"   [INFO] Loading existing split indices from {split_file}...")
+            print(f"   [INFO] Loading existing split indices ({self.split_strategy}) from {split_file}...")
             indices = torch.load(split_file, weights_only=False)
             if len(indices) != num_positives:
                 print(f"   [WARNING] Mismatch. Regenerating...")
             else:
                 return indices.numpy() if torch.is_tensor(indices) else indices
         
-        print(f"   [INFO] Generating and saving new split indices to {split_file}...")
-        np.random.seed(seed)
-        indices = np.random.permutation(num_positives)
+        print(f"   [INFO] Generating new split indices using strategy: {self.split_strategy.upper()}...")
+        
+        if self.split_strategy == 'time':
+            # --- FIX ERROR #2: TIME-BASED SPLIT ---
+            # Sắp xếp index dựa trên cột 'date'
+            if 'date' not in self.replies.columns:
+                raise ValueError("Cannot use 'time' split strategy because 'date' column is missing.")
+            
+            # Lấy timestamp để sort
+            dates = pd.to_datetime(self.replies['date'])
+            # argsort trả về danh sách index đã sắp xếp tăng dần theo thời gian
+            indices = np.argsort(dates.values)
+            
+        else:
+            # --- OLD WAY: RANDOM SPLIT ---
+            np.random.seed(seed)
+            indices = np.random.permutation(num_positives)
+            
         torch.save(indices, split_file)
         return indices
 
@@ -996,6 +1014,13 @@ def main():
         help='Random seed (default: 42)'
     )
     
+    parser.add_argument(
+        '--split-strategy',
+        choices=['random', 'time'],
+        default='random', 
+        help='Splitting strategy: random (shuffle) or time (chronological)'
+    )
+    
     # K-core filtering options
     parser.add_argument(
         '--min-user-interactions',
@@ -1022,6 +1047,7 @@ def main():
         use_phobert=args.use_phobert,
         min_user_interactions=args.min_user_interactions,
         min_article_interactions=args.min_article_interactions,
+        split_strategy=args.split_strategy
     )
     # Pass ablation flag to converter instance
     converter.no_aux_edges = args.no_aux_edges

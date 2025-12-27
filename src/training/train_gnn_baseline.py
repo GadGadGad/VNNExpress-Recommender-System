@@ -36,11 +36,7 @@ from sklearn.metrics import roc_auc_score
 from tqdm import tqdm
 
 from torch_geometric.data import HeteroData
-<<<<<<< HEAD
-from torch_geometric.nn import SAGEConv, GCNConv, GATConv, LGConv, to_hetero
-=======
 from torch_geometric.nn import SAGEConv, GraphConv, GATConv, to_hetero
->>>>>>> main
 from torch_geometric.transforms import RandomLinkSplit
 
 
@@ -137,37 +133,24 @@ class GATEncoder(nn.Module):
 class LightGCNEncoder(nn.Module):
     """
     LightGCN: Simplified GCN without feature transformation and nonlinearity.
-    FIXED: Uses LGConv to be compatible with to_hetero() tracing.
+    Reference: He et al., "LightGCN: Simplifying and Powering Graph Convolution Network"
     """
     
     def __init__(self, hidden_dim: int, out_dim: int, num_layers: int = 3, dropout: float = 0.0):
         super().__init__()
         self.num_layers = num_layers
-<<<<<<< HEAD
-        # Use PyG's built-in LGConv which handles normalization and message passing correctly
-        # and is compatible with to_hetero tracing
-        self.conv = LGConv() 
-=======
->>>>>>> main
         self.out_proj = nn.Linear(hidden_dim, out_dim) if hidden_dim != out_dim else nn.Identity()
         
     def forward(self, x, edge_index):
         all_embeddings = [x]
         
         for _ in range(self.num_layers):
-<<<<<<< HEAD
-            # LGConv handles the normalized adjacency propagation
-            x = self.conv(x, edge_index)
-=======
             x = self._propagate(x, edge_index)
->>>>>>> main
             all_embeddings.append(x)
         
         x = torch.stack(all_embeddings, dim=0).mean(dim=0)
         x = self.out_proj(x)
         return x
-<<<<<<< HEAD
-=======
     
     def _propagate(self, x, edge_index):
         """Simple message passing (normalized sum)."""
@@ -179,7 +162,6 @@ class LightGCNEncoder(nn.Module):
         out = torch.zeros_like(x)
         out.index_add_(0, row, x[col] * norm.unsqueeze(-1))
         return out
->>>>>>> main
 
 
 def get_model(model_name: str, hidden_dim: int, out_dim: int, 
@@ -296,79 +278,103 @@ class GNNTrainer:
         lr: float = 0.01,
         weight_decay: float = 1e-5,
         neg_sampling_ratio: float = 1.0,
-        scheduler_type: str = 'plateau'
+        scheduler_type: str = 'plateau',
+        # --- NEW PARAMS ---
+        splits: Optional[Dict] = None,   # Nhận split từ bên ngoài
+        neg_strategy: str = 'random'     # Chiến lược negative
     ):
         self.model = model.to(device)
         self.device = device
         self.edge_type = edge_type
         self.neg_ratio = neg_sampling_ratio
+        self.neg_strategy = neg_strategy
+        self.splits = splits
         
-        self.neg_ratio = neg_sampling_ratio
-        
+        # Optimizer & Scheduler (Giữ nguyên)
         params = list(model.parameters())
         for node_type in data.node_types:
             if isinstance(data[node_type].x, nn.Parameter):
                 params.append(data[node_type].x)
-            
-        self.optimizer = torch.optim.Adam(
-            params, lr=lr, weight_decay=weight_decay
-        )
+        self.optimizer = torch.optim.Adam(params, lr=lr, weight_decay=weight_decay)
         
         if scheduler_type == 'plateau':
-            self.scheduler = ReduceLROnPlateau(
-                self.optimizer, mode='min', factor=0.5, patience=10
-            )
+            self.scheduler = ReduceLROnPlateau(self.optimizer, mode='min', factor=0.5, patience=10)
         else:
             self.scheduler = CosineAnnealingLR(self.optimizer, T_max=100)
         
-        self.train_data, self.val_data, self.test_data = self._split_data(data)
+        # --- FIX ERROR 2: Dùng Split có sẵn (Time-based) thay vì RandomLinkSplit ---
+        if self.splits is not None:
+            print("   -> Using pre-computed splits (Time-based / Hard Negatives)")
+            # Gán trực tiếp dữ liệu đã split
+            self.train_data = data # Bản gốc chứa tất cả node features
+            self.val_data = data
+            self.test_data = data
+        else:
+            print("   -> [WARNING] Using RandomLinkSplit (Might cause Data Leakage!)")
+            self.train_data, self.val_data, self.test_data = self._split_data(data)
+
         self.train_data = self.train_data.to(device)
         self.val_data = self.val_data.to(device)
         self.test_data = self.test_data.to(device)
-        self.history = {
-            'train_loss': [],
-            'val_loss': [],
-            'val_auc': []
-        }
+        
+        self.history = {'train_loss': [], 'val_loss': [], 'val_auc': []}
         
     def _split_data(self, data: HeteroData):
-        """Split data into train/val/test."""
+        """Split data into train/val/test (Old Random Method - Fallback)."""
         transform = RandomLinkSplit(
-            num_val=0.1,
-            num_test=0.1,
-            is_undirected=True,
-            add_negative_train_samples=False,
-            neg_sampling_ratio=self.neg_ratio,
+            num_val=0.1, num_test=0.1, is_undirected=True,
+            add_negative_train_samples=False, neg_sampling_ratio=self.neg_ratio,
             edge_types=[self.edge_type],
             rev_edge_types=[(self.edge_type[2], f'rev_{self.edge_type[1]}', self.edge_type[0])]
         )
         return transform(data)
     
-    def _compute_loss(self, data: HeteroData) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Compute BPR loss with negative sampling."""
+    def _compute_loss(self, data: HeteroData, split_name='train') -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Compute BPR loss with support for Precomputed Negatives."""
         z_dict = self.model(data.x_dict, data.edge_index_dict)
         
-        pos_edge_index = data[self.edge_type].edge_label_index
-        user_emb = z_dict['user'][pos_edge_index[0]]
-        item_emb = z_dict['article'][pos_edge_index[1]]
+        # 1. Lấy Positive Edges (Tương tác thật)
+        if self.splits is not None:
+            # Lấy từ dictionary splits truyền vào
+            pos_u = self.splits[split_name]['pos_users'].to(self.device)
+            pos_i = self.splits[split_name]['pos_articles'].to(self.device)
+        else:
+            # Lấy từ RandomLinkSplit
+            pos_edge_index = data[self.edge_type].edge_label_index
+            pos_u, pos_i = pos_edge_index[0], pos_edge_index[1]
+
+        user_emb = z_dict['user'][pos_u]
+        item_emb = z_dict['article'][pos_i]
         pos_scores = (user_emb * item_emb).sum(dim=-1)
         
-        num_neg = int(pos_edge_index.size(1) * self.neg_ratio)
-        neg_users = torch.randint(0, data['user'].num_nodes, (num_neg,), device=self.device)
-        neg_items = torch.randint(0, data['article'].num_nodes, (num_neg,), device=self.device)
-        
-        neg_user_emb = z_dict['user'][neg_users]
-        neg_item_emb = z_dict['article'][neg_items]
+        # 2. Lấy Negative Edges (Tương tác giả)
+        # --- FIX ERROR 3: Hỗ trợ Precomputed Negatives ---
+        if self.neg_strategy == 'precomputed' and self.splits is not None:
+            neg_u = self.splits[split_name]['neg_users'].to(self.device)
+            neg_i = self.splits[split_name]['neg_articles'].to(self.device)
+            
+            # Cắt ngắn nếu kích thước không khớp (do batching hoặc ratio)
+            min_len = min(len(pos_u), len(neg_u))
+            pos_scores = pos_scores[:min_len]
+            
+            neg_user_emb = z_dict['user'][neg_u[:min_len]]
+            neg_item_emb = z_dict['article'][neg_i[:min_len]]
+            
+        else:
+            # Cách cũ: Random ngẫu nhiên
+            num_neg = int(len(pos_u) * self.neg_ratio)
+            neg_users = torch.randint(0, data['user'].num_nodes, (num_neg,), device=self.device)
+            neg_items = torch.randint(0, data['article'].num_nodes, (num_neg,), device=self.device)
+            
+            neg_user_emb = z_dict['user'][neg_users]
+            neg_item_emb = z_dict['article'][neg_items]
+            
         neg_scores = (neg_user_emb * neg_item_emb).sum(dim=-1)
         
         all_scores = torch.cat([pos_scores, neg_scores])
-        all_labels = torch.cat([
-            torch.ones_like(pos_scores),
-            torch.zeros_like(neg_scores)
-        ])
+        all_labels = torch.cat([torch.ones_like(pos_scores), torch.zeros_like(neg_scores)])
         
         loss = F.binary_cross_entropy_with_logits(all_scores, all_labels)
-        
         return loss, pos_scores, neg_scores
     
     def train_epoch(self) -> float:
@@ -376,7 +382,7 @@ class GNNTrainer:
         self.model.train()
         self.optimizer.zero_grad()
         
-        loss, _, _ = self._compute_loss(self.train_data)
+        loss, _, _ = self._compute_loss(self.train_data, 'train')
         
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
@@ -389,7 +395,7 @@ class GNNTrainer:
         """Validate model."""
         self.model.eval()
         
-        loss, pos_scores, neg_scores = self._compute_loss(self.val_data)
+        loss, pos_scores, neg_scores = self._compute_loss(self.val_data, 'val')
         auc = RecommenderMetrics.compute_auc(pos_scores, neg_scores)
         
         return loss.item(), auc
@@ -486,10 +492,16 @@ def run_experiment(args):
     print(f"Device: {device}")
     
     print(f"\nLoading data from {args.data_path}...")
-    if not os.path.exists(args.data_path):
-        raise FileNotFoundError(f"Data not found: {args.data_path}. Run convert_to_gnn.py first!")
+    loaded_content = torch.load(args.data_path, weights_only=False)
     
-    data = torch.load(args.data_path, weights_only=False)
+    splits = None
+    if isinstance(loaded_content, dict) and 'graph' in loaded_content and 'splits' in loaded_content:
+        print("   -> Detected dictionary format with pre-computed SPLITS.")
+        data = loaded_content['graph']
+        splits = loaded_content['splits']
+    else:
+        print("   -> Detected raw HeteroData (will use Random Split).")
+        data = loaded_content
     print(f"   Users: {data['user'].x.shape[0]}")
     print(f"   Articles: {data['article'].x.shape[0]}")
     
@@ -525,7 +537,8 @@ def run_experiment(args):
         lr=args.lr,
         weight_decay=args.weight_decay,
         neg_sampling_ratio=args.neg_ratio,
-        scheduler_type='plateau'
+        splits=splits,
+        neg_strategy=args.neg_strategy
     )
     
     print(f"\nTraining for {args.epochs} epochs...")
@@ -613,6 +626,8 @@ def main():
     parser.add_argument('--lr', type=float, default=0.01, help='Learning rate')
     parser.add_argument('--weight-decay', type=float, default=1e-5, help='Weight decay')
     parser.add_argument('--neg-ratio', type=float, default=1.0, help='Negative sampling ratio')
+    parser.add_argument('--neg-strategy', choices=['random', 'precomputed'], default='random', 
+                        help='Strategy: random (default) or precomputed (load from file)')
     parser.add_argument('--patience', type=int, default=20, help='Early stopping patience')
     parser.add_argument('--k-values', type=str, default='5,10,20', help='K values for top-K metrics')
     parser.add_argument('--save-dir', '-o', default='models', help='Directory to save model')
