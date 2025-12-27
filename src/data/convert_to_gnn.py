@@ -306,16 +306,40 @@ class GNNDataConverter:
         data['user'].x = self._create_user_features()
         data['article'].x = self._create_article_features()
         
-        src = torch.tensor(self.replies['user_idx'].values, dtype=torch.long)
-        dst = torch.tensor(self.replies['article_idx'].values, dtype=torch.long)
-        data['user', 'comments', 'article'].edge_index = torch.stack([src, dst])
+        # --- FIX LEAKAGE START ---
+        print("   → [FIX] Splitting Train/Test to prevent leakage...")
         
-        reactions = pd.to_numeric(self.replies['reactions'], errors='coerce').fillna(0).values
+        # 1. Lấy mask cho tập Train (80%)
+        # Hàm _get_train_mask đã có sẵn trong class của bạn
+        train_mask = self._get_train_mask(train_ratio=0.8) 
+        
+        # 2. Chỉ dùng dữ liệu Train để xây dựng cạnh cho đồ thị (Message Passing)
+        train_replies = self.replies[train_mask]
+        
+        src_train = torch.tensor(train_replies['user_idx'].values, dtype=torch.long)
+        dst_train = torch.tensor(train_replies['article_idx'].values, dtype=torch.long)
+        
+        # Edge Index: Chỉ chứa cạnh Train -> Model không nhìn thấy tương lai
+        data['user', 'comments', 'article'].edge_index = torch.stack([src_train, dst_train])
+        
+        # Label Index: Dùng để tính Loss trong Trainer
+        data['user', 'comments', 'article'].edge_label_index = torch.stack([src_train, dst_train])
+        
+        # 3. Tính trọng số (Reactions + Time Decay) chỉ trên tập Train
+        reactions = pd.to_numeric(train_replies['reactions'], errors='coerce').fillna(0).values
         reactions = np.clip(reactions, 0, None)
         
-        # Combine reaction weight with time decay
-        edge_weights = (1.0 + np.log1p(reactions)) * self.replies['time_decay'].values
+        edge_weights = (1.0 + np.log1p(reactions)) * train_replies['time_decay'].values
         data['user', 'comments', 'article'].edge_weight = torch.tensor(edge_weights, dtype=torch.float32)
+        
+        # 4. (Quan trọng) Lưu cạnh Test riêng để dùng khi Evaluate sau này
+        test_replies = self.replies[~train_mask]
+        src_test = torch.tensor(test_replies['user_idx'].values, dtype=torch.long)
+        dst_test = torch.tensor(test_replies['article_idx'].values, dtype=torch.long)
+        data['user', 'comments', 'article'].test_edge_index = torch.stack([src_test, dst_test])
+        
+        print(f"     Train edges: {len(train_replies)} | Test edges: {len(test_replies)}")
+        # --- FIX LEAKAGE END ---
         
         data = T.ToUndirected()(data)
         
