@@ -46,8 +46,14 @@ class SimMAHGN(MAHGN):
                 key: ei.to(device) if hasattr(ei, 'to') else ei
                 for key, ei in edge_index_dict.items()
             }
+            # Store original embeddings in case HeteroConv doesn't output all node types
+            h_dict_prev = {k: v.clone() for k, v in h_dict.items()}
+            
             # Message Passing
-            h_dict = conv(h_dict, edge_index_dict_gpu)
+            h_dict_new = conv(h_dict, edge_index_dict_gpu)
+            
+            # Merge: use new embeddings if available, else keep previous
+            h_dict = {k: h_dict_new.get(k, h_dict_prev[k]) for k in h_dict_prev.keys()}
             
             # Activation & Dropout
             h_dict = {k: F.leaky_relu(v) for k, v in h_dict.items()}
