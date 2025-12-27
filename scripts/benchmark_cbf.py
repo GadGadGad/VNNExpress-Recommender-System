@@ -39,10 +39,13 @@ def load_pretrained_embeddings(embedding_type, device='cpu'):
     """Load embeddings from checkpoints"""
     base_path = Path("checkpoints")
     path_map = {
+        'tfidf': base_path / 'tfidf_article_embeddings.pt',
         'phobert': base_path / 'phobert_article_embeddings.pt',
         'vndoc': base_path / 'vndoc_article_embeddings.pt',
         'bge-m3': base_path / 'bge-m3_article_embeddings.pt',
-        'vn-sbert': base_path / 'vietnamese-sbert_article_embeddings.pt'
+        'vn-sbert': base_path / 'vietnamese-sbert_article_embeddings.pt',
+        'e5-base': base_path / 'e5-base_article_embeddings.pt',
+        'e5-large': base_path / 'e5-large_article_embeddings.pt'
     }
     
     if embedding_type == 'random':

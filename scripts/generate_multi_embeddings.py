@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 """
 Generate embeddings for multiple Vietnamese/multilingual models.
+Includes TF-IDF with Vietnamese preprocessing.
 """
 import torch
 import pandas as pd
 import json
+import re
 from pathlib import Path
 from tqdm import tqdm
 import argparse
 
-MODELS = {
+# Neural embedding models
+NEURAL_MODELS = {
     'bge-m3': {
         'name': 'BAAI/bge-m3',
         'trust_remote_code': True,
@@ -36,6 +39,96 @@ MODELS = {
         'dim': 768
     }
 }
+
+# All supported model types
+MODELS = list(NEURAL_MODELS.keys()) + ['tfidf']
+
+def preprocess_vietnamese(text):
+    """
+    Preprocess Vietnamese text for TF-IDF.
+    Uses underthesea for word segmentation if available, else simple tokenization.
+    """
+    try:
+        from underthesea import word_tokenize
+        # Word segmentation for Vietnamese
+        text = word_tokenize(text, format="text")
+    except ImportError:
+        try:
+            from pyvi import ViTokenizer
+            text = ViTokenizer.tokenize(text)
+        except ImportError:
+            # Fallback: simple tokenization
+            pass
+    
+    # Lowercase and remove special characters
+    text = text.lower()
+    text = re.sub(r'[^\w\s]', ' ', text)
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
+
+def generate_tfidf_embeddings(data_path='data/processed/strict_g2', output_dir='checkpoints'):
+    """Generate TF-IDF embeddings with Vietnamese preprocessing."""
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    
+    print(f"\n{'='*60}")
+    print("Generating TF-IDF Embeddings with Vietnamese Preprocessing...")
+    print(f"{'='*60}")
+    
+    # Load articles
+    articles_path = Path('data/raw/articles.csv')
+    articles_df = pd.read_csv(articles_path)
+    print(f"Loaded {len(articles_df)} articles")
+    
+    # Load article mapping
+    mapping_path = Path(data_path) / 'article_map.json'
+    if not mapping_path.exists():
+        mapping_path = Path('data/processed/article_map.json')
+    
+    print(f"Loading mapping from: {mapping_path}")
+    with open(mapping_path, 'r') as f:
+        article_map = json.load(f)
+    
+    n_articles = len(article_map)
+    print(f"Article map has {n_articles} articles")
+    
+    url_to_idx = {url: idx for url, idx in article_map.items()}
+    
+    # Prepare texts with preprocessing
+    texts = [''] * n_articles  # Initialize with empty strings
+    
+    print("Preprocessing Vietnamese text...")
+    for _, row in tqdm(articles_df.iterrows(), total=len(articles_df), desc="Preprocessing"):
+        url = row.get('url', '')
+        if url in url_to_idx:
+            title = str(row.get('title', ''))
+            desc = str(row.get('description', ''))
+            raw_text = f"{title}. {desc}"
+            processed_text = preprocess_vietnamese(raw_text)
+            texts[url_to_idx[url]] = processed_text
+    
+    # Generate TF-IDF
+    print("Fitting TF-IDF vectorizer...")
+    vectorizer = TfidfVectorizer(
+        max_features=5000,
+        min_df=2,
+        max_df=0.95,
+        ngram_range=(1, 2)  # Unigrams and bigrams
+    )
+    
+    tfidf_matrix = vectorizer.fit_transform(texts)
+    print(f"TF-IDF shape: {tfidf_matrix.shape}")
+    
+    # Convert to dense tensor
+    embeddings = torch.tensor(tfidf_matrix.toarray(), dtype=torch.float32)
+    print(f"Embeddings shape: {embeddings.shape}")
+    
+    # Save
+    output_path = Path(output_dir) / 'tfidf_article_embeddings.pt'
+    output_path.parent.mkdir(exist_ok=True)
+    torch.save(embeddings, output_path)
+    print(f"Saved TF-IDF embeddings to {output_path}")
+    
+    return output_path
 
 def generate_embeddings(model_key, data_path='data/processed/strict_g2', output_dir='checkpoints'):
     from sentence_transformers import SentenceTransformer
@@ -110,19 +203,23 @@ def generate_embeddings(model_key, data_path='data/processed/strict_g2', output_
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', choices=list(MODELS.keys()) + ['all'], default='all')
+    parser.add_argument('--model', choices=MODELS + ['all'], default='all')
     parser.add_argument('--data-path', default='data/processed/strict_g2', help='Path to graph variant directory')
     parser.add_argument('--output-dir', default='checkpoints')
     args = parser.parse_args()
     
-    if args.model == 'all':
-        for model_key in MODELS.keys():
-            try:
+    models_to_run = MODELS if args.model == 'all' else [args.model]
+    
+    for model_key in models_to_run:
+        try:
+            if model_key == 'tfidf':
+                generate_tfidf_embeddings(args.data_path, args.output_dir)
+            else:
                 generate_embeddings(model_key, args.data_path, args.output_dir)
-            except Exception as e:
-                print(f"Error generating {model_key}: {e}")
-    else:
-        generate_embeddings(args.model, args.data_path, args.output_dir)
+        except Exception as e:
+            print(f"Error generating {model_key}: {e}")
+            import traceback
+            traceback.print_exc()
 
 if __name__ == '__main__':
     main()
