@@ -22,7 +22,7 @@ models/
 checkpoints/
 
 # --- Outputs & Logs ---
-plots/
+# plots/
 logs/
 *.log
 .DS_Store
