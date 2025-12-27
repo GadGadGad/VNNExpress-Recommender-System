@@ -25,7 +25,6 @@ import shutil
 from src.models.semantic_id import generate_semantic_ids
 
 
-# Add project root to sys.path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -36,7 +35,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- UI/UX Customization ---
 st.markdown("""
 <style>
     /* Navigation Bar (Radio) */
@@ -87,42 +85,57 @@ DATA_DIR = "data/processed"
 RAW_DIR = "data/raw"
 MODELS_DIR = "models"
 
-# --- DYNAMIC MODEL DISCOVERY ---
 def discover_trained_models():
     """Scan models/ and checkpoints/ to find which models have available weights."""
     discovered = {
         "CF": [],
-        "CB": ["tf-idf", "lsa", "naivebayes"] # Base procedural models always available
+        "CB": ["tf-idf", "lsa", "naivebayes"], # Base procedural models always available
+        "graph_variants": ["strict_g1", "strict_g2", "strict_g3"] # Default variants
     }
     
     # 1. Discover CF Models (GNNs)
-    cf_catalog = ["LightGCL", "SimGCL", "XSimGCL"]
-    for model_name in cf_catalog:
-        pattern = f"{MODELS_DIR}/{model_name.lower()}_*.pt"
-        if glob.glob(pattern):
-            discovered["CF"].append(model_name)
+    # Search root models/ and any subdirs (like models/models/ from unzipped results)
+    search_dirs = [MODELS_DIR, os.path.join(MODELS_DIR, "models")]
+    cf_catalog = ["MA-HCL", "SimGCL", "XSimGCL", "LightGCL", "Sim-MAHGN"]
+    
+    found_cf = set()
+    found_variants = set()
+    
+    for d in search_dirs:
+        if not os.path.exists(d): continue
+        for f in os.listdir(d):
+            if not f.endswith(".pt"): continue
+            fname = f.lower()
+            for model in cf_catalog:
+                if model.lower() in fname.replace('_', '-'): # handle naming variations
+                    found_cf.add(model)
+                    # Extract variant if possible
+                    for v in ["strict_g1", "strict_g2", "strict_g3"]:
+                        if v in fname:
+                            found_variants.add(v)
+    
+    discovered["CF"] = sorted(list(found_cf)) if found_cf else cf_catalog
+    if found_variants:
+        discovered["graph_variants"] = sorted(list(found_variants))
     
     # 2. Discover CB Models (Embedders)
     emb_map = {
         "vn-sbert": "vietnamese-sbert",
         "bge-m3": "bge-m3",
-        "vndoc": "vietnamese-document-embedding", 
-        "e5-large": "e5-large",
-        "e5-base": "e5-base",
-        "gte": "gte-multilingual",
-        "phobert": "phobert",
-        "simcse": "simcse"
     }
     
     for display_name, file_prefix in emb_map.items():
-        # Check standard checkpoint folder
-        p1 = Path(f"checkpoints/{file_prefix}_article_embeddings.pt")
-        p2 = Path(DATA_DIR) / f"{file_prefix}_embeddings.pt"
-        if p1.exists() or p2.exists():
+        # Check standard checkpoint folder or data dir
+        paths = [
+            Path(f"checkpoints/{file_prefix}_article_embeddings.pt"),
+            Path(DATA_DIR) / f"{file_prefix}_embeddings.pt",
+            Path("models/checkpoints") / f"{file_prefix}_article_embeddings.pt" # Check unzipped
+        ]
+        if any(p.exists() for p in paths):
             discovered["CB"].append(display_name)
             
     # Always include 'session' if we have any dense embeddings
-    if len(discovered["CB"]) > 3: # 3 procedural + at least 1 embedding
+    if len(discovered["CB"]) > 3:
         discovered["CB"].append("session")
         
     return discovered
@@ -131,14 +144,10 @@ MODEL_OPTIONS = discover_trained_models()
 
 
 EMBEDDING_OPTIONS = {
-    "vn-sbert": "VN-SBERT (Best, 540MB)",
-    "bge-m3": "BGE-M3 (2.27GB)",
-    "vndoc": "VnDoc (1.22GB)",
-    "e5-large": "E5-Large (2.24GB)",
-    "e5-base": "E5-Base (1.11GB)",
-    "gte": "GTE-Multilingual (611MB)",
-    "phobert": "PhoBERT (Original)",
-    "random": "Random (Baseline)"
+    "vn-sbert": "VN-SBERT (Standard Semantic, 540MB)",
+    "bge-m3": "BGE-M3 (High Accuracy, 2.27GB)",
+    "tfidf": "TF-IDF (Statistical Baseline)",
+    "random": "Random (Initial State)"
 }
 
 
@@ -299,7 +308,7 @@ class SessionWrapper:
 def load_resources(data_dir=DATA_DIR, raw_dir=RAW_DIR, specific_graph_path=None):
     status = {"errors": [], "warnings": []}
     
-    # ... (Articles loading remains same)
+    # Articles loading
     articles_path = Path(raw_dir) / "articles.csv"
     articles_df = pd.DataFrame() # Default empty
     if articles_path.exists():
@@ -442,21 +451,12 @@ def load_cf_model(model_name, n_users, n_items, graph_name=None):
     """Generic CF Model Loader with graph-aware loading"""
     try:
         import torch
-        # ... (Imports remain same)
-        if model_name.lower() == 'ngcf':
-            from src.models.ngcf import NGCF as ModelClass
-        elif model_name.lower() == 'lightgcl':
+        if model_name.lower() == 'lightgcl':
             from src.models.lightgcl import LightGCL as ModelClass
         elif model_name.lower() == 'simgcl':
             from src.models.simgcl import SimGCL as ModelClass
         elif model_name.lower() == 'xsimgcl':
             from src.models.xsimgcl import XSimGCL as ModelClass
-        elif model_name.lower() == 'cgrc':
-            from src.models.cgrc import CGRC as ModelClass
-        elif model_name.lower() == 'igcl':
-            from src.models.igcl import IGCL as ModelClass
-        elif model_name.lower() == 'bigcf':
-            from src.models.bigcf import BIGCF as ModelClass
         elif model_name.lower() == 'ma-hcl':
             from src.models.ma_hcl import MAHCL as ModelClass
         elif model_name.lower() == 'sim-mahgn':
@@ -466,12 +466,22 @@ def load_cf_model(model_name, n_users, n_items, graph_name=None):
 
         # Find best matching checkpoint
         files = []
-        if graph_name:
-            # Try graph-specific first (e.g., simgcl_strict_g2_*.pt)
-            files = glob.glob(f"{MODELS_DIR}/{model_name.lower()}_{graph_name}_*.pt")
+        search_dirs = [MODELS_DIR, os.path.join(MODELS_DIR, "models")]
         
-        # Fallback to general latest if no graph-specific found
-        if not files:
+        for d in search_dirs:
+            if not os.path.exists(d): continue
+            if graph_name:
+                # Try graph-specific first (e.g., simgcl_strict_g2_*.pt)
+                f_list = glob.glob(f"{d}/{model_name.lower()}_{graph_name}_*.pt")
+                if f_list: files.extend(f_list)
+            
+            # Fallback to general if no graph-specific found in THIS dir
+            if not files:
+                f_list = glob.glob(f"{d}/{model_name.lower()}_*.pt")
+                if f_list: files.extend(f_list)
+            
+        if not files: 
+            # Final fallback: legacy pattern
             files = glob.glob(f"{MODELS_DIR}/{model_name.lower()}_*.pt")
             
         if not files: return None
@@ -529,14 +539,8 @@ def load_cf_model(model_name, n_users, n_items, graph_name=None):
                 checkpoint_n_items = state_dict[key].shape[0]
                 break
         
-        # Dimension checking removed to silence warnings as per request
-        pass
         
 
-        # Init model args
-        # Note: Different models have different __init__ args. 
-        # Most accept n_users, n_items, embed_dim/emb_dim
-        # We need to be careful.
         
         common_args = {
             'n_users': n_users,
@@ -657,11 +661,16 @@ def load_cb_model(model_type, articles_df, embedding_name=None):
                      # Handle different formats (Tensor vs Dict)
                      if isinstance(emb_dict, torch.Tensor):
                          embeddings = emb_dict
-                         # Assumption: align with articles_df order if it's a raw tensor
-                         # Ideally we need a mapping. But for now assume consistent order if generated from same csv.
-                         if len(embeddings) != len(articles_df):
-                             st.warning(f"Shape mismatch: Embeddings {len(embeddings)} vs Articles {len(articles_df)}")
-                             return None
+                         # Alignment logic: Pad or truncate to match articles_df
+                         n_emb = embeddings.shape[0]
+                         n_art = len(articles_df)
+                         if n_emb != n_art:
+                             embed_dim = embeddings.shape[1]
+                             new_embeddings = torch.zeros(n_art, embed_dim)
+                             # Copy what we have
+                             copy_size = min(n_emb, n_art)
+                             new_embeddings[:copy_size] = embeddings[:copy_size]
+                             embeddings = new_embeddings
                      elif isinstance(emb_dict, dict):
                          # Convert dict (URL -> embedding) to aligned matrix
                          urls = articles_df['url'].tolist()
@@ -780,38 +789,36 @@ def get_recs(model, model_type, user_idx, history_urls, article_map, articles_df
                     
                     if adj_norm is not None:
                          # Most champions (LightGCL, SimGCL, IGCL, BIGCF)
-                         try:
-                             result = model(adj_norm)
-                             # Handle models returning more than 2 values
-                             if isinstance(result, tuple) and len(result) >= 2:
-                                 user_all, item_all = result[0], result[1]
-                             else:
-                                 raise ValueError("Unexpected return type")
-                             scores = torch.mm(user_all[user_idx].unsqueeze(0), item_all.t()).squeeze()
-                         except Exception:
-                             # Fallback to raw embeddings
-                             if hasattr(model, 'user_embedding'):
-                                 u_emb = model.user_embedding.weight[user_idx]
-                                 i_embs = model.item_embedding.weight
-                             elif hasattr(model, 'E_u_0'):
-                                 u_emb = model.E_u_0[user_idx]
-                                 i_embs = model.E_i_0
-                             else:
-                                 return []
-                             scores = torch.matmul(u_emb, i_embs.t())
-                    else:
-                         # Fallback to embeddings if no graph
-                         # Support different naming: user_embedding, E_u_0, etc.
-                         if hasattr(model, 'user_embedding'):
-                             u_emb = model.user_embedding.weight[user_idx]
-                             i_embs = model.item_embedding.weight
-                         elif hasattr(model, 'E_u_0'):
-                             u_emb = model.E_u_0[user_idx]
-                             i_embs = model.E_i_0
-                         else:
-                             st.warning(f"Model {model_type} has no recognized embedding layer")
-                             return []
-                         scores = torch.matmul(u_emb, i_embs.t())
+                        try:
+                            result = model(adj_norm)
+                            # Handle models returning more than 2 values
+                            if isinstance(result, tuple) and len(result) >= 2:
+                                user_all, item_all = result[0], result[1]
+                            else:
+                                raise ValueError("Unexpected return type")
+                            scores = torch.mm(user_all[user_idx].unsqueeze(0), item_all.t()).squeeze()
+                        except Exception:
+                            # Fallback to raw embeddings if model(adj_norm) fails
+                            if hasattr(model, 'user_embedding'):
+                                u_emb = model.user_embedding.weight[user_idx]
+                                i_embs = model.item_embedding.weight
+                            elif hasattr(model, 'E_u_0'):
+                                u_emb = model.E_u_0[user_idx]
+                                i_embs = model.E_i_0
+                            else:
+                                return []
+                            scores = torch.matmul(u_emb, i_embs.t())
+                    else: # adj_norm is None, use raw embeddings directly
+                        if hasattr(model, 'user_embedding'):
+                            u_emb = model.user_embedding.weight[user_idx]
+                            i_embs = model.item_embedding.weight
+                        elif hasattr(model, 'E_u_0'):
+                            u_emb = model.E_u_0[user_idx]
+                            i_embs = model.E_i_0
+                        else:
+                            st.warning(f"Model {model_type} has no recognized embedding layer")
+                            return []
+                        scores = torch.matmul(u_emb, i_embs.t())
 
 
                 
@@ -839,7 +846,6 @@ def get_recs(model, model_type, user_idx, history_urls, article_map, articles_df
             return recs
             
         elif model_type == 'TF-IDF':
-            # CB Logic
             url_to_idx = {url: i for i, url in enumerate(articles_df['url'])}
             hist_indices = [url_to_idx[u] for u in history_urls if u in url_to_idx]
             if not hist_indices: return []
@@ -864,7 +870,6 @@ def get_recs(model, model_type, user_idx, history_urls, article_map, articles_df
             return recs
         
         elif model_type in ['PhoBERT', 'SimCSE']:
-            # CB using PhoBERTWrapper
             url_to_idx = {url: i for i, url in enumerate(articles_df['url'])}
             hist_indices = [url_to_idx[u] for u in history_urls if u in url_to_idx]
             if not hist_indices: 
@@ -897,7 +902,6 @@ def get_recs(model, model_type, user_idx, history_urls, article_map, articles_df
         return []
 
 
-# --- GLOBAL CONFIG ---
 CF_GRAPHS = {
     "🚀 Deep Social (Strict G2)": "data/processed/strict_g2/full_hetero_graph.pt",
     "🔥 Large Scale (Regular G2)": "data/processed/regular_g2/full_hetero_graph.pt",
@@ -913,70 +917,44 @@ def main():
     if 'data_dir' not in st.session_state: st.session_state['data_dir'] = DATA_DIR
     if 'raw_dir' not in st.session_state: st.session_state['raw_dir'] = RAW_DIR
     
-    # Dataset context removed to streamline UI
-    # Standard defaults for best-performing graph architecture
-    active_graph_type = "🚀 Deep Social (Strict G2)"
-    active_graph_path = CF_GRAPHS[active_graph_type]
+    # --- SIDEBAR: GLOBAL CONFIG ---
+    st.sidebar.title("📊 Experiment Dashboard")
     
-    # For checkpoint matching, use the variant name (e.g., 'strict_g2') if applicable
-    p = Path(active_graph_path)
-    active_graph_name = p.parent.name if p.parent.name in ["strict_g2", "regular_g2", "enhanced_v1", "strict_g1", "strict_g3"] else p.stem
+    # 1. Graph Topology Selector
+    topology_options = {
+        "strict_g2": "🔥 Deep Social (Strict G2)",
+        "strict_g3": "📂 Category Hubs (Strict G3)",
+        "strict_g1": "🔗 Bipartite (Strict G1)",
+        "g2": "🌊 Dense Social (Regular G2)"
+    }
+    available_variants = [v for v in topology_options.keys() if os.path.exists(os.path.join(DATA_DIR, v)) or v in MODEL_OPTIONS["graph_variants"]]
+    if not available_variants: available_variants = ["strict_g2"]
     
-    # Auto-adjust data_dir if in subfolder
-    graph_parent = str(Path(active_graph_path).parent)
-    effective_data_dir = graph_parent if "subsets" in graph_parent or "processed/" in graph_parent else st.session_state['data_dir']
+    selected_variant = st.sidebar.selectbox("Graph Topology", available_variants, 
+                                            format_func=lambda x: topology_options.get(x, x),
+                                            index=0, help="Select the graph variant for and models.")
+    
+    # 2. CF Model Selection (Global)
+    cf_model_choice = st.sidebar.selectbox("Recommendation Model", MODEL_OPTIONS["CF"], 
+                                          help="Choose the GNN architecture to test")
 
-    with st.sidebar.expander("🛠️ Advanced Settings", expanded=False):
-        st.caption("Deep Configuration")
-        active_graph_type = st.selectbox("Graph Architecture", list(CF_GRAPHS.keys()), 
-                                        index=0, help="Change the underlying graph for CF")
-        active_graph_path = CF_GRAPHS[active_graph_type]
-        
-        # Re-derive name for loader
-        p = Path(active_graph_path)
-        active_graph_name = p.parent.name if p.parent.name in ["strict_g2", "regular_g2", "enhanced_v1", "strict_g1", "strict_g3"] else p.stem
-        effective_data_dir = str(p.parent)
-
-    # Load Data (Using Session Ptrs and Active Graph)
+    # Auto-align DATA_DIR based on variant
+    active_data_dir = os.path.join(DATA_DIR, selected_variant) if os.path.exists(os.path.join(DATA_DIR, selected_variant)) else DATA_DIR
+    
     res = load_resources(
-        effective_data_dir, 
-        st.session_state['raw_dir'],
-        specific_graph_path=active_graph_path
+        data_dir=active_data_dir,
+        raw_dir=RAW_DIR,
+        specific_graph_path=os.path.join(active_data_dir, "cf_cache.pt")
     )
-    if res[0] is None:
-        if res[-1]["errors"]:
-            st.sidebar.error(res[-1]["errors"][0])
-        else:
-            st.sidebar.error("Data Load Failed. Check paths.")
-        return
-        
     articles_df, user_map_cf, article_map_cf, user_history, adj_norm, user_priors, data_status = res
     
-    # Handle Warnings from load_resources
-    if "user_map_missing" in data_status["warnings"]:
-        st.warning("⚠️ User mappings missing. Built temporary map from raw interactions. Indices might not match trained models!")
-        if st.button("🔧 Re-sync User Mappings", key="sync_u"):
-            with st.spinner("Syncing..."):
-                cmd = [sys.executable, "scripts/train_cf_models.py", "--epochs", "0", "--data-path", st.session_state['data_dir']]
-                subprocess.run(cmd)
-                st.rerun()
-    if "article_map_missing" in data_status["warnings"]:
-        st.warning("⚠️ Article mappings missing. Built temporary map from articles.csv.")
-        if st.button("🔧 Re-sync Article Mappings", key="sync_a"):
-             with st.spinner("Syncing..."):
-                cmd = [sys.executable, "src/data/convert_to_gnn.py", "--graph-type", "user-article", "--output", st.session_state['data_dir']]
-                subprocess.run(cmd)
-                st.rerun()
+    # --- GLOBAL MODEL LOADING ---
+    # Load model once for use in all tabs
+    cf_model = load_cf_model(cf_model_choice, len(user_map_cf), len(article_map_cf), graph_name=selected_variant)
     
-    # Optional: Generate Semantic IDs (Pillar 1)
-    # For demo, we use a fixed bits/stages if not cached
     semantic_ids = None
     if 'xsimgcl' in [m.lower() for m in MODEL_OPTIONS["CF"]]:
-        # Try to load pretrained embeddings for Semantic ID generation
-
-        # (This might be slow if not cached, but small articles.csv makes it ok)
         try:
-             # Look for article_embeddings.pt
              emb_path = Path(st.session_state['data_dir']) / "article_embeddings.pt"
              if emb_path.exists():
                  pretrained = torch.load(emb_path, map_location='cpu', weights_only=False)
@@ -985,34 +963,28 @@ def main():
     
     # Sidebar Controls
     st.sidebar.divider()
-    # Removed "Controls" header for compactness
     
-    with st.sidebar.expander("⚙️ Advanced Filters", expanded=False):
-        # Min interactions filter
-        min_interactions = st.slider("Min Interactions", 1, 50, 3, help="Filter users by minimum reading history")
+    with st.sidebar.expander("🔍 User Search & Filtering", expanded=True):
+        min_interactions = st.slider("Min Interactions", 1, 20, 2, help="Filter users by reading history length")
+        user_type_filter = st.selectbox("Market Segment", ["All Users", "Warm Start (Trained)", "Cold Start (New)"],
+                                       help="Warm: In training set, Cold: New users")
         
-        user_type_filter = st.radio("User Type", ["All", "Warm Start (Trained)", "Cold Start (New)"], 
-                                   help="Warm: In CF training set, Cold: CB-only recommendations")
+        # user_ids MUST be defined here
+        user_ids = sorted([uid for uid, hist in user_history.items() if len(hist) >= min_interactions])
         
-        if st.button("Reset Filters"):
-            st.rerun()
-    
-    # User Search & Filtering
-    user_ids = sorted([uid for uid, hist in user_history.items() if len(hist) >= min_interactions])
-    
-    # Apply Cold/Warm filter
-    if user_type_filter == "Warm Start (Trained)":
-        user_ids = [uid for uid in user_ids if uid in user_map_cf]
-    elif user_type_filter == "Cold Start (New)":
-        user_ids = [uid for uid in user_ids if uid not in user_map_cf]
-        
-    search_query = st.sidebar.text_input("🔍 Search User ID", placeholder="Search Content...", label_visibility="collapsed")
-    if search_query:
-        user_ids = [uid for uid in user_ids if search_query.lower() in str(uid).lower()]
-    
+        # Apply Market Segment filter
+        if user_type_filter == "Warm Start (Trained)":
+            user_ids = [uid for uid in user_ids if uid in user_map_cf]
+        elif user_type_filter == "Cold Start (New)":
+            user_ids = [uid for uid in user_ids if uid not in user_map_cf]
+            
+        search_query = st.text_input("🔍 Search ID", placeholder="User ID...", label_visibility="collapsed")
+        if search_query:
+            user_ids = [uid for uid in user_ids if search_query.lower() in str(uid).lower()]
+
     col_s1, col_s2 = st.sidebar.columns([3, 1])
     with col_s1:
-        st.markdown(f"**Found:** {len(user_ids)} users") # Simplified metric
+        st.markdown(f"**Found:** {len(user_ids)} users")
     with col_s2:
         if st.button("🎲", help="Randomize from filtered list"):
             import random
@@ -1090,12 +1062,10 @@ def main():
             alpha = st.slider("Social vs Content Weight (α)", 0.0, 1.0, alpha_default, 0.1, 
                              help="1.0 = Social only, 0.0 = Content only")
             
-            with st.expander("⚙️ Advanced Model Selection", expanded=False):
-                cf_model_choice = st.selectbox("CF Engine", MODEL_OPTIONS["CF"], key="rec_cf")
-                
+            with st.expander("⚙️ Content & Display Settings", expanded=False):
                 st.markdown("**📝 Content Models**")
                 selected_cb = st.multiselect("Active Embedders", MODEL_OPTIONS["CB"], 
-                                             default=[m for m in ["tf-idf", "phobert", "vn-sbert"] if m in MODEL_OPTIONS["CB"]],
+                                             default=[m for m in ["tf-idf", "vn-sbert", "bge-m3"] if m in MODEL_OPTIONS["CB"]],
                                              key="rec_cb_multi")
                 
                 k_rec = st.slider("Top K", 5, 20, 10, key="k_rec")
@@ -1108,8 +1078,6 @@ def main():
             use_freshness = st.checkbox("🕐 Boost Recent News", value=True)
             freshness_weight = st.slider("Freshness Intensity", 0.0, 0.5, 0.2, 0.05) if use_freshness else 0.0
             
-            # User Context
-            st.divider()
             if selected_user:
                 history = list(dict.fromkeys(user_history.get(selected_user, [])))
                 is_cold = selected_user not in user_map_cf
@@ -1126,13 +1094,9 @@ def main():
                             title = str(meta.get('title', 'Unknown'))
                             st.markdown(f"<small>**#{i}** {title[:50]}...</small>", unsafe_allow_html=True)
                         if len(history) > 5: st.caption(f"... +{len(history)-5} more")
-                    else:
-                        st.info("No reading history.")
 
         with col_R:
             st.subheader("📊 Recommended for You")
-            
-            # Inference execution
             if selected_user:
                 with st.spinner("Analyzing patterns..."):
                     # 1. CF Scores
@@ -1140,9 +1104,8 @@ def main():
                     actual_alpha = 0.0 if is_cold else alpha
                     
                     if actual_alpha > 0:
-                        model = load_cf_model(cf_model_choice, len(user_map_cf), len(article_map_cf), graph_name=active_graph_name)
-                        if model:
-                            recs = get_recs(model, cf_model_choice, user_map_cf[selected_user], [], article_map_cf, articles_df, 100,
+                        if cf_model:
+                            recs = get_recs(cf_model, cf_model_choice, user_map_cf[selected_user], [], article_map_cf, articles_df, 100,
                                          adj_norm=adj_norm, user_priors=user_priors, semantic_ids=semantic_ids, score_type=score_type)
                             cf_scores = {u: s for u, s in recs}
 
@@ -1242,7 +1205,7 @@ def main():
             # Model A
             with col_a:
                 st.subheader(f"🅰️ {model_a}")
-                model_obj_a = load_cf_model(model_a, len(user_map_cf), len(article_map_cf), graph_name=active_graph_name)
+                model_obj_a = load_cf_model(model_a, len(user_map_cf), len(article_map_cf), graph_name=selected_variant)
                 if model_obj_a:
                     recs_a = get_recs(model_obj_a, model_a, user_idx, [], article_map_cf, articles_df, k_compare,
                                      adj_norm=adj_norm, user_priors=user_priors, semantic_ids=semantic_ids)
@@ -1257,7 +1220,7 @@ def main():
             # Model B
             with col_b:
                 st.subheader(f"🅱️ {model_b}")
-                model_obj_b = load_cf_model(model_b, len(user_map_cf), len(article_map_cf), graph_name=active_graph_name)
+                model_obj_b = load_cf_model(model_b, len(user_map_cf), len(article_map_cf), graph_name=selected_variant)
                 if model_obj_b:
                     recs_b = get_recs(model_obj_b, model_b, user_idx, [], article_map_cf, articles_df, k_compare,
                                      adj_norm=adj_norm, user_priors=user_priors, semantic_ids=semantic_ids)
