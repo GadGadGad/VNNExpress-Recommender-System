@@ -142,10 +142,15 @@ class MAHCL(nn.Module):
         # Combined embedding for bipartite propagation
         x = torch.cat([user_emb, item_emb], dim=0)
         
-        # Build graphs
+        # Build graphs and ensure correct device
+        device = user_emb.device
         if edge_index_dict is not None:
             bipartite_edge = self._build_bipartite_graph(edge_index_dict)
             social_edge = self._build_social_graph(edge_index_dict)
+            if bipartite_edge is not None:
+                bipartite_edge = bipartite_edge.to(device)
+            if social_edge is not None:
+                social_edge = social_edge.to(device)
         else:
             bipartite_edge = None
             social_edge = None

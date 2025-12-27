@@ -76,8 +76,14 @@ class MAHGN(nn.Module):
         all_item_embs = [h_dict['article']]
         
         for conv in self.convs:
+            # Ensure edge_index_dict is on the same device as embeddings
+            device = h_dict['user'].device
+            edge_index_dict_gpu = {
+                key: ei.to(device) if hasattr(ei, 'to') else ei 
+                for key, ei in edge_index_dict.items()
+            }
             # Message Passing
-            h_dict = conv(h_dict, edge_index_dict)
+            h_dict = conv(h_dict, edge_index_dict_gpu)
             
             # Activation & Dropout
             h_dict = {k: F.leaky_relu(v) for k, v in h_dict.items()}
