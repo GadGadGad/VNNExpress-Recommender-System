@@ -18,6 +18,7 @@ from typing import Optional, Dict, Any, Set
 from playwright.sync_api import sync_playwright, Browser
 from bs4 import BeautifulSoup
 from contextlib import nullcontext
+from tqdm import tqdm
 
 try:
     from playwright_stealth import stealth_sync
@@ -244,8 +245,9 @@ class UserProfileCrawler:
                 self.console.log(f"[red]Failed to write profile for {uid}: {e}[/red]")
                 return 0
 
-    def crawl_profiles(self, workers: int = MAX_WORKERS, no_progress: bool = False):
+    def crawl_profiles(self, workers: int = MAX_WORKERS, no_progress: bool = False, use_tqdm: bool = False):
         """Main crawl loop."""
+        self.silent = use_tqdm
         unique_users = self._load_users_from_replies()
         if not unique_users:
             self.console.log("[yellow]No users found to process. Exiting.[/yellow]")
@@ -283,15 +285,20 @@ class UserProfileCrawler:
                 console=self.console,
                 transient=True,
             )
-            if not no_progress
+            if (not no_progress and not use_tqdm)
             else nullcontext()
         )
 
         if no_progress:
             self.console.log("Crawling user metadata (progress bar disabled)...")
 
+        if use_tqdm and not no_progress:
+            pbar = tqdm(total=total_to_crawl, desc="Enriching User Nodes", file=sys.stdout, position=0, leave=True, dynamic_ncols=True, ascii=True, mininterval=0.5)
+
         with progress_manager as progress:
-            task = progress.add_task("Enriching User Nodes", total=total_to_crawl) if not no_progress else None
+            task = None
+            if not no_progress and not use_tqdm:
+                task = progress.add_task("Enriching User Nodes", total=total_to_crawl)
 
             with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
                 results = executor.map(self._fetch_and_save_profile, users_to_crawl)
@@ -299,14 +306,20 @@ class UserProfileCrawler:
                 if no_progress:
                     for i, status in enumerate(results):
                         processed += status
-                        if (i + 1) % 50 == 0:
+                        if (i + 1) % 50 == 0 and not self.silent:
                             self.console.log(f"Processed {i+1}/{total_to_crawl} users...")
                 else:
                     for status in results:
                         processed += status
-                        progress.update(task, advance=1)
+                        if use_tqdm:
+                            pbar.update(1)
+                        else:
+                            progress.update(task, advance=1)
                         # Slightly faster sleep since we do less work per page
                         time.sleep(random.uniform(MIN_SLEEP, MAX_SLEEP))
+        
+        if use_tqdm and not no_progress:
+            pbar.close()
 
         table = Table(title="VNExpress User Enrichment Summary")
         table.add_column("Metric", style="cyan")
@@ -318,13 +331,13 @@ class UserProfileCrawler:
         return str(self.user_profile_csv)
 
 
-def run_as_import(input_dir_str: str, use_cache: bool, workers: int, console: Console, no_progress: bool = True):
+def run_as_import(input_dir_str: str, use_cache: bool, workers: int, console: Console, no_progress: bool = True, use_tqdm: bool = False):
     """
     Called by pipeline script.
     """
     crawler = UserProfileCrawler(Path(input_dir_str), console, use_cache=use_cache)
     try:
-        profiles_csv = crawler.crawl_profiles(workers=workers, no_progress=no_progress)
+        profiles_csv = crawler.crawl_profiles(workers=workers, no_progress=no_progress, use_tqdm=use_tqdm)
         if profiles_csv:
             crawler.console.log(f"[green]Wrote User Metadata to[/]: {profiles_csv}")
     finally:
@@ -337,6 +350,7 @@ if __name__ == "__main__":
     parser.add_argument("--input", "-i", default="data", help="Directory containing replies.csv")
     parser.add_argument("--no-cache", action="store_true", help="Disable caching")
     parser.add_argument("--workers", "-w", type=int, default=MAX_WORKERS, help=f"Workers (default: {MAX_WORKERS})")
+    parser.add_argument("--use-tqdm", action="store_true", help="Use tqdm progress bars instead of rich")
     args = parser.parse_args()
 
     console = Console()
@@ -355,7 +369,7 @@ if __name__ == "__main__":
     crawler = UserProfileCrawler(Path(args.input), console, use_cache=(not args.no_cache))
 
     try:
-        crawler.crawl_profiles(workers=args.workers)
+        crawler.crawl_profiles(workers=args.workers, use_tqdm=args.use_tqdm)
     except Exception as e:
         console.print_exception()
     finally:

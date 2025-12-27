@@ -26,18 +26,33 @@ try:
     from main_crawler import run_as_import as run_step_1
     from deep_crawler import run_as_import as run_step_2
     from user_profile_crawler import run_as_import as run_step_3
+    from metadata_crawler import run_as_import as run_step_4
 except ImportError as e:
     print(f"Lỗi Import: {e}")
-    print("Vui lòng đảm bảo các file 'main_crawler.py', 'deep_crawler.py', và 'user_profile_crawler.py' nằm cùng thư mục.")
+    print("Vui lòng đảm bảo các file crawler nằm cùng thư mục.")
     sys.exit(1)
 
 
 console = Console()
+
+# Check for use_tqdm early to setup logging
+use_tqdm_flag = "--use-tqdm" in sys.argv
+
+if use_tqdm_flag:
+    # Use standard StreamHandler instead of RichHandler to avoid TTY/escape code conflicts with tqdm
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(logging.Formatter("%(message)s"))
+    # Silence secondary libraries aggressively
+    logging.getLogger("requests").setLevel(logging.WARNING)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+else:
+    handler = rich.logging.RichHandler(console=console, rich_tracebacks=True, show_path=False, markup=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(message)s",
     datefmt="[%X]",
-    handlers=[rich.logging.RichHandler(console=console, rich_tracebacks=True, show_path=False, markup=True)]
+    handlers=[handler]
 )
 log = logging.getLogger(__name__)
 
@@ -71,8 +86,8 @@ def main(args):
             log.error("Date format is invalid. Please use D/M/Y (e.g., 01/01/2024).")
             sys.exit(1)
 
-    no_progress_value = not args.show_progress
-    if args.show_progress:
+    no_progress_value = not (args.show_progress or args.use_tqdm)
+    if args.show_progress and not args.use_tqdm:
         log.warning("[bold yellow]--show-progress is active. Console output for Step 1 & 3 may be messy.[/bold yellow]")
 
 
@@ -90,7 +105,9 @@ def main(args):
                     workers=args.workers,
                     from_date=from_date_arg,
                     to_date=to_date_arg,
-                    no_progress=no_progress_value
+                    no_progress=no_progress_value,
+                    use_tqdm=args.use_tqdm,
+                    console=console
                 )
                 console.log(f"[bold green]✅ Step '1. Discover Articles' completed successfully.[/bold green]\n")
             except Exception as e:
@@ -143,7 +160,8 @@ def main(args):
                     use_cache=(not args.no_cache),
                     workers=args.workers,
                     console=console,
-                    no_progress=no_progress_value
+                    no_progress=no_progress_value,
+                    use_tqdm=args.use_tqdm
                 )
                 console.log(f"[bold green]✅ Step '3. Enrich Users' completed successfully.[/bold green]\n")
             except Exception as e:
@@ -152,6 +170,30 @@ def main(args):
                 sys.exit(1)
         else:
             log.info("Skipping Step 3 (Enrich Users) as requested.")
+
+
+        if 4 in args.steps:
+            if not articles_csv.exists():
+                log.error(f"[bold red]Cannot run Step 4: Input file '{articles_csv.name}' not found.[/bold red]")
+                log.error("Please run Step 1 first to generate it.")
+                sys.exit(1)
+
+            console.rule("[bold cyan]Starting Step: 4. Extract Metadata Only (category, tags)[/bold cyan]")
+            try:
+                run_step_4(
+                    input_file_str=str(articles_csv),
+                    output_dir_str=str(output_dir),
+                    browser=args.browser,
+                    is_headless=args.headless,
+                    use_cache=(not args.no_cache)
+                )
+                console.log(f"[bold green]✅ Step '4. Extract Metadata Only' completed successfully.[/bold green]\n")
+            except Exception as e:
+                console.log(f"[bold red]❌ ERROR IN STEP: '4. Extract Metadata Only'[/bold red]")
+                log.error(f"Pipeline HALTED due to an error in Step 4: {e}", exc_info=True)
+                sys.exit(1)
+        else:
+            log.info("Skipping Step 4 (Extract Metadata Only) as requested.")
 
 
         console.rule(f"[bold green]🎉 Pipeline Finished Successfully! 🎉[/bold green]")
@@ -202,10 +244,9 @@ if __name__ == "__main__":
         "-s", "--steps",
         type=int,
         nargs="+",
-        choices=[1, 2, 3],
+        choices=[1, 2, 3, 4],
         default=[1, 2, 3],
-        help="Which step(s) to run, in order. (default: 1 2 3)"
-    )
+        help="Which step(s) to run:\n  1: Discover Articles\n  2: Process Comments (Deep Crawl)\n  3: Enrich Users\n  4: Extract Metadata Only (category, tags) - for existing data\n(default: 1 2 3)")
 
     parser.add_argument(
         "--from-date",
@@ -242,6 +283,12 @@ if __name__ == "__main__":
         "--show-progress",
         action="store_true",
         help="Show individual progress bars for Step 1 and 3 (can be messy)"
+    )
+
+    parser.add_argument(
+        "--use-tqdm",
+        action="store_true",
+        help="Use tqdm progress bars instead of rich (better for Kaggle)"
     )
 
     parsed_args = parser.parse_args()

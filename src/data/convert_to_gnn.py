@@ -5,7 +5,7 @@ This script provides comprehensive graph construction options for GNN training:
 
 1. User-Article Bipartite Graph (for recommendations)
 2. User-User Graph (based on shared article interactions)
-3. Article-Article Graph (based on shared commenters / same category)
+3. Article-Article Graph (based on shared commenters)
 4. Full Heterogeneous Graph (all node types and relations)
 
 Supports:
@@ -21,6 +21,8 @@ Usage:
 import argparse
 import json
 import os
+import re
+import datetime
 from pathlib import Path
 from collections import defaultdict
 from typing import Dict, Tuple, Optional, List
@@ -46,8 +48,10 @@ class GNNDataConverter:
         users_path: str = 'data/raw/user_profiles.csv',
         output_dir: str = 'data/processed',
         hidden_dim: int = 64,
-        add_text_features: bool = False,
-        text_max_features: int = 1000
+        add_text_features: bool = False, use_phobert: bool = False,
+        text_max_features: int = 1000,
+        min_user_interactions: int = 0,
+        min_article_interactions: int = 0
     ):
         self.articles_path = articles_path
         self.replies_path = replies_path
@@ -57,119 +61,148 @@ class GNNDataConverter:
         
         self.hidden_dim = hidden_dim
         self.add_text_features = add_text_features
+        self.use_phobert = use_phobert
         self.text_max_features = text_max_features
+        self.min_user_interactions = min_user_interactions
+        self.min_article_interactions = min_article_interactions
         
-        # Data containers
         self.articles = None
         self.replies = None
         self.users = None
         
-        # Mappings
         self.user_map = {}
         self.article_map = {}
-        self.category_encoder = None
+
         
-        # Load data
         self._load_data()
         
+    def _parse_vn_date(self, date_str):
+        """Parse VnExpress date strings to datetime objects."""
+        if not isinstance(date_str, str) or not date_str or date_str.lower() == 'nan':
+            return None
+        
+        now = datetime.datetime.now()
+        
+        # Relative: "Xh trước"
+        match_h = re.search(r'(\d+)h trước', date_str)
+        if match_h:
+            return now - datetime.timedelta(hours=int(match_h.group(1)))
+            
+        # Relative: "Xp trước"
+        match_p = re.search(r'(\d+)p trước', date_str)
+        if match_p:
+            return now - datetime.timedelta(minutes=int(match_p.group(1)))
+            
+        # Absolute: "HH:MM DD/MM"
+        match_dt = re.search(r'(\d{1,2}):(\d{1,2})\s+(\d{1,2})/(\d{1,2})', date_str)
+        if match_dt:
+            h, m, d, mon = map(int, match_dt.groups())
+            year = now.year
+            try:
+                dt = datetime.datetime(year, mon, d, h, m)
+                if dt > now: dt = dt.replace(year=year-1)
+                return dt
+            except: return None
+        return None
+
     def _load_data(self):
-        """Load and preprocess all data sources."""
+        """Load and preprocess all data sources with Temporal & Social support."""
         print("=" * 60)
-        print("GNN Data Converter - Loading Data")
+        print("GNN Data Converter - Loading Data (Temporal + Social)")
         print("=" * 60)
         
-        # Load articles
         print(f"\nLoading articles from {self.articles_path}...")
         self.articles = pd.read_csv(self.articles_path)
         print(f"   → {len(self.articles):,} articles loaded")
         
-        # Load replies
         print(f"Loading replies from {self.replies_path}...")
-        self.replies = pd.read_csv(self.replies_path)
+        raw_replies = pd.read_csv(self.replies_path)
         
-        # Clean replies - remove NO_COMMENT markers
-        self.replies = self.replies[self.replies['parent_user_id'] != 'NO_COMMENT'].copy()
-        
-        # Clean user IDs
         def clean_id(val):
             try:
+                if pd.isna(val) or val == '' or str(val).lower() == 'nan': return None
                 return str(int(float(val)))
-            except:
-                return str(val)
+            except: return str(val)
+
+        # Process ALL interactions (Parents and Replies)
+        interactions = []
+        social_edges = []
         
-        self.replies['user_id'] = self.replies['parent_user_id'].apply(clean_id)
+        for _, row in tqdm(raw_replies.iterrows(), total=len(raw_replies), desc="   Parsing Interactions"):
+            p_id = clean_id(row['parent_user_id'])
+            r_id = clean_id(row['reply_user_id'])
+            url = row['article_url']
+            
+            # 1. Parent Interaction
+            if p_id:
+                p_date = self._parse_vn_date(row['parent_date'])
+                interactions.append({
+                    'user_id': p_id, 'article_url': url, 
+                    'date': p_date, 'reactions': row.get('parent_reactions', 0)
+                })
+            
+            # 2. Reply Interaction
+            if r_id:
+                r_date = self._parse_vn_date(row['reply_date'])
+                interactions.append({
+                    'user_id': r_id, 'article_url': url, 
+                    'date': r_date, 'reactions': row.get('reply_reactions', 0)
+                })
+                
+                # 3. Social Signal (User-User Reply)
+                if p_id:
+                    social_edges.append({'from': r_id, 'to': p_id, 'type': 'reply'})
+
+        self.replies = pd.DataFrame(interactions).dropna(subset=['user_id', 'article_url'])
         
-        # Filter to valid articles only
-        valid_urls = set(self.articles['url'].unique())
-        self.replies = self.replies[self.replies['article_url'].isin(valid_urls)]
-        print(f"   → {len(self.replies):,} valid interactions")
+        # LEAKAGE FIX: Deduplicate interactions!
+        # A user might comment multiple times on the same article.
+        # We only want to model the EXISTENCE of interest, so we keep the first interaction.
+        # This prevents "Train on Comment 1, Test on Comment 2".
+        initial_len = len(self.replies)
+        self.replies['date'] = pd.to_datetime(self.replies['date'])
+        self.replies = self.replies.sort_values('date').drop_duplicates(
+            subset=['user_id', 'article_url'], keep='first'
+        )
+        print(f"   → Deduplicated interactions: {initial_len:,} -> {len(self.replies):,} (Removed {initial_len - len(self.replies):,})")
+
+        self.social_df = pd.DataFrame(social_edges)
         
-        # Load user profiles (optional)
-        if os.path.exists(self.users_path):
-            print(f"Loading users from {self.users_path}...")
-            self.users = pd.read_csv(self.users_path)
-            print(f"   → {len(self.users):,} users loaded")
+        print(f"   → {len(self.replies):,} initial interactions captured")
         
-        # Create ID mappings
-        self._create_mappings()
-    
-    def apply_kcore_filter(self, min_user_interactions: int = 5, min_article_interactions: int = 5):
-        """
-        Apply k-core filtering to keep only active users and popular articles.
-        
-        This iteratively removes:
-        - Users with fewer than min_user_interactions
-        - Articles with fewer than min_article_interactions
-        
-        Until convergence (no more removals).
-        
-        Args:
-            min_user_interactions: Minimum interactions for a user to be kept
-            min_article_interactions: Minimum interactions for an article to be kept
-        """
-        print(f"\nApplying k-core filtering (min_user={min_user_interactions}, min_article={min_article_interactions})...")
-        print(f"   Before: {len(self.replies):,} interactions")
-        
+        # Apply Time Decay (lambda=0.01 for daily decay)
+        if 'date' in self.replies.columns and self.replies['date'].notna().any():
+            max_date = self.replies['date'].max()
+            self.replies['days_ago'] = (max_date - self.replies['date']).dt.total_seconds() / (24 * 3600)
+            self.replies['time_decay'] = np.exp(-0.01 * self.replies['days_ago'].fillna(30))
+            print(f"   → Applied Time Decay (Avg weight: {self.replies['time_decay'].mean():.3f})")
+        else:
+            self.replies['time_decay'] = 1.0
+
+        # Iterative K-Core filtering
         prev_len = 0
         iteration = 0
-        
         while len(self.replies) != prev_len:
             prev_len = len(self.replies)
             iteration += 1
-            
-            # Count interactions per user
             user_counts = self.replies['user_id'].value_counts()
-            valid_users = user_counts[user_counts >= min_user_interactions].index
-            
-            # Count interactions per article
+            valid_users = user_counts[user_counts >= self.min_user_interactions].index
             article_counts = self.replies['article_url'].value_counts()
-            valid_articles = article_counts[article_counts >= min_article_interactions].index
+            valid_articles = article_counts[article_counts >= self.min_article_interactions].index
             
-            # Filter
             self.replies = self.replies[
                 (self.replies['user_id'].isin(valid_users)) &
                 (self.replies['article_url'].isin(valid_articles))
             ].copy()
             
-        print(f"   After {iteration} iterations: {len(self.replies):,} interactions")
+        print(f"   After {iteration} k-core iterations: {len(self.replies):,} interactions")
         
-        # Also filter articles dataframe
         valid_article_urls = self.replies['article_url'].unique()
-        original_articles = len(self.articles)
         self.articles = self.articles[self.articles['url'].isin(valid_article_urls)].copy()
         
-        # Print stats
-        unique_users = self.replies['user_id'].nunique()
-        unique_articles = self.replies['article_url'].nunique()
+        density = len(self.replies) / (self.replies['user_id'].nunique() * len(self.articles)) * 100
+        print(f"   Cleaned density: {density:.4f}%")
         
-        print(f"   Users: {unique_users:,}")
-        print(f"   Articles: {unique_articles:,} (removed {original_articles - len(self.articles):,})")
-        
-        # Calculate new density
-        density = len(self.replies) / (unique_users * unique_articles) * 100
-        print(f"   New density: {density:.4f}%")
-        
-        # Recreate mappings with filtered data
         self._create_mappings()
         
     def _create_mappings(self):
@@ -180,18 +213,13 @@ class GNNDataConverter:
         self.user_map = {u: i for i, u in enumerate(unique_users)}
         self.article_map = {a: i for i, a in enumerate(unique_articles)}
         
-        # Add index columns
         self.replies['user_idx'] = self.replies['user_id'].map(self.user_map)
         self.replies['article_idx'] = self.replies['article_url'].map(self.article_map)
         
-        # Encode categories
-        self.category_encoder = LabelEncoder()
-        self.articles['category_idx'] = self.category_encoder.fit_transform(self.articles['category'])
         
         print(f"\nGraph Statistics:")
         print(f"   Users: {len(self.user_map):,}")
         print(f"   Articles: {len(self.article_map):,}")
-        print(f"   Categories: {len(self.category_encoder.classes_)}")
         print(f"   Edges (interactions): {len(self.replies):,}")
         
     def _save_mappings(self):
@@ -200,50 +228,58 @@ class GNNDataConverter:
             json.dump(self.user_map, f)
         with open(self.output_dir / 'article_map.json', 'w') as f:
             json.dump(self.article_map, f)
-        with open(self.output_dir / 'category_classes.json', 'w') as f:
-            json.dump(list(self.category_encoder.classes_), f)
         print(f"   [OK] Saved mappings to {self.output_dir}")
             
     def _create_user_features(self) -> torch.Tensor:
         """Create user node features."""
         num_users = len(self.user_map)
         
-        # Option 1: Random learnable embeddings
         features = torch.randn(num_users, self.hidden_dim)
         
-        # Option 2: Activity-based features (if we want richer features)
-        # Could add: comment count, avg reactions, etc.
         
         return features
     
     def _create_article_features(self) -> torch.Tensor:
         """Create article node features."""
+        if self.use_phobert:
+            print("   -> Using PhoBERT embeddings (Projected to hidden_dim)...")
+            emb_path = self.output_dir / 'phobert_embeddings.pt'
+            if not emb_path.exists():
+                raise FileNotFoundError(f"Run generate_embeddings.py first!")
+            emb_dict = torch.load(emb_path)
+            
+            features = []
+            zeros = 0
+            for url in self.articles['url']:
+                if url in emb_dict:
+                    features.append(emb_dict[url])
+                else:
+                    features.append(torch.randn(768)*0.1)
+                    zeros += 1
+            if zeros > 0: print(f"      [WARN] {zeros} missing embeddings")
+            
+            full_emb = torch.stack(features)
+            torch.manual_seed(42)
+            proj = torch.nn.Linear(768, self.hidden_dim)
+            return proj(full_emb).detach()
+
         num_articles = len(self.article_map)
-        
-        # Category one-hot encoding
-        cat_tensor = torch.tensor(self.articles['category_idx'].values)
-        cat_one_hot = F.one_hot(cat_tensor, num_classes=len(self.category_encoder.classes_)).float()
         
         if self.add_text_features:
             print("   → Adding text features (TF-IDF)...")
-            # TF-IDF on titles
             titles = self.articles['title'].fillna('').tolist()
             tfidf = TfidfVectorizer(max_features=self.text_max_features)
             text_features = tfidf.fit_transform(titles).toarray()
             text_tensor = torch.tensor(text_features, dtype=torch.float32)
             
-            # Combine category + text features
-            combined = torch.cat([cat_one_hot, text_tensor], dim=1)
-            
-            # Project to hidden_dim
-            projector = torch.nn.Linear(combined.shape[1], self.hidden_dim)
-            features = projector(combined).detach()
+            projector = torch.nn.Linear(text_tensor.shape[1], self.hidden_dim)
+            features = projector(text_tensor).detach()
         else:
-            # Project category one-hot to hidden_dim
-            projector = torch.nn.Linear(cat_one_hot.shape[1], self.hidden_dim)
-            features = projector(cat_one_hot).detach()
+            # Use random initialization (no category available)
+            features = torch.randn(num_articles, self.hidden_dim)
         
         return features
+
     
     def build_user_article_graph(self) -> 'HeteroData':
         """
@@ -267,24 +303,22 @@ class GNNDataConverter:
         
         data = HeteroData()
         
-        # Node features
         data['user'].x = self._create_user_features()
         data['article'].x = self._create_article_features()
         
-        # Edge indices
         src = torch.tensor(self.replies['user_idx'].values, dtype=torch.long)
         dst = torch.tensor(self.replies['article_idx'].values, dtype=torch.long)
         data['user', 'comments', 'article'].edge_index = torch.stack([src, dst])
         
-        # Edge weights (based on reaction count)
-        reactions = pd.to_numeric(self.replies['parent_reactions'], errors='coerce').fillna(1).values
-        reactions = np.clip(reactions, 1, None)  # Min weight of 1
-        data['user', 'comments', 'article'].edge_weight = torch.tensor(reactions, dtype=torch.float32)
+        reactions = pd.to_numeric(self.replies['reactions'], errors='coerce').fillna(0).values
+        reactions = np.clip(reactions, 0, None)
         
-        # Make undirected for bidirectional message passing
+        # Combine reaction weight with time decay
+        edge_weights = (1.0 + np.log1p(reactions)) * self.replies['time_decay'].values
+        data['user', 'comments', 'article'].edge_weight = torch.tensor(edge_weights, dtype=torch.float32)
+        
         data = T.ToUndirected()(data)
         
-        # Save
         save_path = self.output_dir / 'user_article_graph.pt'
         torch.save(data, save_path)
         self._save_mappings()
@@ -325,7 +359,6 @@ class GNNDataConverter:
         num_positives = len(self.replies)
         num_neg_samples = num_positives * num_negatives
         
-        # Build positive set for fast lookup
         positive_set = set(
             zip(self.replies['user_idx'].values, self.replies['article_idx'].values)
         )
@@ -334,7 +367,6 @@ class GNNDataConverter:
         neg_articles = []
         
         if strategy == 'random':
-            # Uniform random sampling
             print("   -> Random negative sampling...")
             attempts = 0
             max_attempts = num_neg_samples * 10
@@ -354,7 +386,6 @@ class GNNDataConverter:
                 attempts += batch_size
             
         elif strategy == 'popular':
-            # Sample from popular articles (harder negatives)
             print("   -> Popularity-based negative sampling...")
             article_counts = self.replies['article_idx'].value_counts()
             article_probs = article_counts / article_counts.sum()
@@ -365,7 +396,6 @@ class GNNDataConverter:
             
             for _ in tqdm(range(num_negatives), desc="   Generating negatives"):
                 for user_idx in user_indices:
-                    # Sample from popular articles
                     for _ in range(10):  # Max attempts per user
                         article_idx = np.random.choice(popular_articles, p=probs)
                         if (user_idx, article_idx) not in positive_set:
@@ -377,40 +407,28 @@ class GNNDataConverter:
                         break
                         
         elif strategy == 'hard':
-            # Sample from same category (hardest negatives)
-            print("   -> Hard negative sampling (same category)...")
+            print("   -> Hard negative sampling (Popularity-based from other categories)...")
+            # Sample "popular" items that this user has NOT interacted with
+            # but which are globally popular, making them "tricky" negatives.
+            article_counts = self.replies['article_idx'].value_counts()
+            article_probs = article_counts / article_counts.sum()
+            popular_articles = article_probs.index.values
+            p_vals = article_probs.values
             
-            # Build article -> category mapping
-            article_to_cat = {}
-            cat_to_articles = defaultdict(list)
+            user_indices = self.replies['user_idx'].unique()
+            user_recs = self.replies.groupby('user_idx')['article_idx'].apply(set).to_dict()
             
-            for url, cat_idx in zip(self.articles['url'], self.articles['category_idx']):
-                if url in self.article_map:
-                    art_idx = self.article_map[url]
-                    article_to_cat[art_idx] = cat_idx
-                    cat_to_articles[cat_idx].append(art_idx)
-            
-            # For each positive, sample negative from same category
-            for _, row in tqdm(self.replies.iterrows(), total=len(self.replies), 
-                             desc="   Generating hard negatives"):
-                user_idx = int(row['user_idx'])
-                art_idx = int(row['article_idx'])
-                
-                if art_idx in article_to_cat:
-                    cat = article_to_cat[art_idx]
-                    same_cat_articles = cat_to_articles[cat]
-                    
-                    for _ in range(num_negatives):
-                        for _ in range(10):  # Max attempts
-                            neg_art = np.random.choice(same_cat_articles)
-                            if (user_idx, neg_art) not in positive_set:
-                                neg_users.append(user_idx)
-                                neg_articles.append(neg_art)
-                                break
-                        
-                        if len(neg_users) >= num_neg_samples:
+            for _ in range(num_negatives):
+                for user_idx in tqdm(user_indices, desc="   Sampling Hard Negatives"):
+                    pos_set = user_recs.get(user_idx, set())
+                    for _ in range(20): # Max attempts
+                        neg_idx = np.random.choice(popular_articles, p=p_vals)
+                        if neg_idx not in pos_set:
+                            neg_users.append(user_idx)
+                            neg_articles.append(neg_idx)
                             break
-                
+                    if len(neg_users) >= num_neg_samples:
+                        break
                 if len(neg_users) >= num_neg_samples:
                     break
         
@@ -453,13 +471,12 @@ class GNNDataConverter:
         
         np.random.seed(seed)
         
-        # Get positive edges
         pos_users = self.replies['user_idx'].values
         pos_articles = self.replies['article_idx'].values
         num_positives = len(pos_users)
         
-        # Shuffle and split positives
-        indices = np.random.permutation(num_positives)
+        # Use persistent indices for consistency
+        indices = self._get_split_indices(seed)
         train_end = int(num_positives * train_ratio)
         val_end = int(num_positives * (train_ratio + val_ratio))
         
@@ -469,14 +486,12 @@ class GNNDataConverter:
         
         print(f"   Positive splits: train={len(train_idx)}, val={len(val_idx)}, test={len(test_idx)}")
         
-        # Generate negative samples
         neg_users, neg_articles = self.generate_negative_samples(
             num_negatives=neg_ratio,
             strategy=neg_strategy,
             seed=seed
         )
         
-        # Split negatives proportionally
         neg_indices = np.random.permutation(len(neg_users))
         neg_train_end = int(len(neg_users) * train_ratio)
         neg_val_end = int(len(neg_users) * (train_ratio + val_ratio))
@@ -487,18 +502,15 @@ class GNNDataConverter:
         
         print(f"   Negative splits: train={len(neg_train_idx)}, val={len(neg_val_idx)}, test={len(neg_test_idx)}")
         
-        # Create base HeteroData with node features
         data = HeteroData()
         data['user'].x = self._create_user_features()
         data['article'].x = self._create_article_features()
         
-        # Store all edges for message passing (positive only)
         data['user', 'comments', 'article'].edge_index = torch.stack([
             torch.tensor(pos_users[train_idx], dtype=torch.long),
             torch.tensor(pos_articles[train_idx], dtype=torch.long)
         ])
         
-        # Create splits dictionary
         splits = {
             'train': {
                 'pos_users': torch.tensor(pos_users[train_idx], dtype=torch.long),
@@ -530,7 +542,6 @@ class GNNDataConverter:
             'neg_strategy': neg_strategy
         }
         
-        # Save
         save_path = self.output_dir / 'graph_with_negatives.pt'
         torch.save(result, save_path)
         self._save_mappings()
@@ -595,7 +606,6 @@ class GNNDataConverter:
             edge_weight=edge_weight
         )
         
-        # Save
         save_path = self.output_dir / 'user_user_graph.pt'
         torch.save(data, save_path)
         self._save_mappings()
@@ -606,13 +616,12 @@ class GNNDataConverter:
         
         return data
     
-    def build_article_article_graph(self, method: str = 'category') -> 'Data':
+    def build_article_article_graph(self, method: str = 'users') -> 'Data':
         """
         Build Article-Article graph.
         
         Methods:
-            - 'category': Connect articles in the same category
-            - 'users': Connect articles with shared commenters
+            - 'users': Connect articles with shared commenters (default)
         """
         print(f"\nBuilding Article-Article Graph (method={method})...")
         
@@ -624,40 +633,24 @@ class GNNDataConverter:
         edges = []
         weights = []
         
-        if method == 'category':
-            # Group articles by category
-            category_articles = self.articles.groupby('category_idx').apply(
-                lambda x: [self.article_map.get(url) for url in x['url'] if url in self.article_map]
-            ).to_dict()
+        # Find users who commented on each article
+        article_users = self.replies.groupby('article_idx')['user_idx'].apply(set).to_dict()
+        article_ids = list(article_users.keys())
+        
+        print("   → Connecting articles by shared users...")
+        for i in tqdm(range(len(article_ids)), desc="   Processing articles"):
+            a1 = article_ids[i]
+            users_a1 = article_users[a1]
             
-            print("   → Connecting articles by category...")
-            for cat, article_list in tqdm(category_articles.items(), desc="   Processing categories"):
-                article_list = [a for a in article_list if a is not None]
-                for i, a1 in enumerate(article_list):
-                    for a2 in article_list[i+1:]:
-                        edges.append([a1, a2])
-                        edges.append([a2, a1])
-                        weights.extend([1.0, 1.0])
-                        
-        elif method == 'users':
-            # Find users who commented on each article
-            article_users = self.replies.groupby('article_idx')['user_idx'].apply(set).to_dict()
-            article_ids = list(article_users.keys())
-            
-            print("   → Connecting articles by shared users...")
-            for i in tqdm(range(len(article_ids)), desc="   Processing articles"):
-                a1 = article_ids[i]
-                users_a1 = article_users[a1]
+            for j in range(i + 1, len(article_ids)):
+                a2 = article_ids[j]
+                users_a2 = article_users[a2]
                 
-                for j in range(i + 1, len(article_ids)):
-                    a2 = article_ids[j]
-                    users_a2 = article_users[a2]
-                    
-                    shared = len(users_a1 & users_a2)
-                    if shared >= 1:
-                        edges.append([a1, a2])
-                        edges.append([a2, a1])
-                        weights.extend([shared, shared])
+                shared = len(users_a1 & users_a2)
+                if shared >= 1:
+                    edges.append([a1, a2])
+                    edges.append([a2, a1])
+                    weights.extend([shared, shared])
         
         if not edges:
             print("   No edges found!")
@@ -672,7 +665,6 @@ class GNNDataConverter:
             edge_weight=edge_weight
         )
         
-        # Save
         save_path = self.output_dir / f'article_article_graph_{method}.pt'
         torch.save(data, save_path)
         self._save_mappings()
@@ -683,6 +675,45 @@ class GNNDataConverter:
         
         return data
     
+        return data
+    
+        return data
+    
+    def _get_split_indices(self, seed=42):
+        """Get or generate persistent random permutation indices."""
+        import numpy as np
+        import os
+        
+        split_file = self.output_dir / 'split_indices.pt'
+        num_positives = len(self.replies)
+        
+        if split_file.exists():
+            print(f"   [INFO] Loading existing split indices from {split_file}...")
+            indices = torch.load(split_file, weights_only=False)
+            if len(indices) != num_positives:
+                print(f"   [WARNING] Mismatch. Regenerating...")
+            else:
+                return indices.numpy() if torch.is_tensor(indices) else indices
+        
+        print(f"   [INFO] Generating and saving new split indices to {split_file}...")
+        np.random.seed(seed)
+        indices = np.random.permutation(num_positives)
+        torch.save(indices, split_file)
+        return indices
+
+    def _get_train_mask(self, seed=42, train_ratio=0.8):
+        """Get mask for training interactions."""
+        import numpy as np
+        indices = self._get_split_indices(seed)
+        num_positives = len(indices)
+        
+        train_end = int(num_positives * train_ratio)
+        train_idx = indices[:train_end]
+        
+        mask = np.zeros(num_positives, dtype=bool)
+        mask[train_idx] = True
+        return mask
+
     def build_full_hetero_graph(self) -> 'HeteroData':
         """
         Build full heterogeneous graph with all node types and relations.
@@ -690,11 +721,9 @@ class GNNDataConverter:
         Nodes:
             - user: Commenting users
             - article: News articles
-            - category: Article categories
         
         Edges:
             - (user, comments, article)
-            - (article, belongs_to, category)
             - (user, interacts_with, user) - shared article interactions
         """
         print("\nBuilding Full Heterogeneous Graph...")
@@ -714,58 +743,68 @@ class GNNDataConverter:
         # Articles  
         data['article'].x = self._create_article_features()
         
-        # Categories
-        num_cats = len(self.category_encoder.classes_)
-        data['category'].x = torch.eye(num_cats)  # One-hot identity
-        
         # ===== EDGES =====
         # User -> Article (comments)
-        src = torch.tensor(self.replies['user_idx'].values, dtype=torch.long)
-        dst = torch.tensor(self.replies['article_idx'].values, dtype=torch.long)
+        # CRITICAL FIX: Only use training interactions for the graph structure!
+        print("   → Filtering interactions for User-Article edges (removing potential leakage)...")
+        train_mask = self._get_train_mask()
+        train_replies = self.replies[train_mask]
+
+        src = torch.tensor(train_replies['user_idx'].values, dtype=torch.long)
+        dst = torch.tensor(train_replies['article_idx'].values, dtype=torch.long)
         data['user', 'comments', 'article'].edge_index = torch.stack([src, dst])
         
-        # Article -> Category (belongs_to)
-        article_indices = []
-        category_indices = []
-        for url, cat_idx in zip(self.articles['url'], self.articles['category_idx']):
-            if url in self.article_map:
-                article_indices.append(self.article_map[url])
-                category_indices.append(cat_idx)
+        # User -> User (Social Reply Network)
+        if hasattr(self, 'social_df') and not self.social_df.empty:
+            # Map IDs to indices
+            self.social_df['from_idx'] = self.social_df['from'].map(self.user_map)
+            self.social_df['to_idx'] = self.social_df['to'].map(self.user_map)
+            
+            valid_social = self.social_df.dropna(subset=['from_idx', 'to_idx'])
+            if not valid_social.empty:
+                print(f"   → Adding {len(valid_social):,} social reply edges...")
+                data['user', 'replied_to', 'user'].edge_index = torch.tensor(
+                    valid_social[['from_idx', 'to_idx']].values.T, dtype=torch.long
+                )
         
-        data['article', 'belongs_to', 'category'].edge_index = torch.tensor(
-            [article_indices, category_indices], dtype=torch.long
-        )
+        # User -> User (Shared Interest - Latent)
+        if not (hasattr(self, 'no_aux_edges') and self.no_aux_edges):
+            # CRITICAL CHECK FOR LEAKAGE:
+            # We must ONLY use training interactions to infer shared interests.
+            # Otherwise, if we use Test interactions to link users, we leak the Test set structure.
+            print("   → Filtering interactions for Shared Interest edges (removing potential leakage)...")
+            train_mask = self._get_train_mask()
+            train_replies = self.replies[train_mask]
+            
+            user_articles = train_replies.groupby('user_idx')['article_idx'].apply(set).to_dict()
+            shared_edges = []
+            user_ids = list(user_articles.keys())
+            
+            print(f"   → Computing latent user-user edges from {len(train_replies)} training interactions (shared >= 2)...")
+            for i in range(len(user_ids)):
+                u1 = user_ids[i]
+                for j in range(i + 1, min(i + 500, len(user_ids))): # Limit search for speed
+                    u2 = user_ids[j]
+                    if len(user_articles[u1] & user_articles[u2]) >= 2:
+                        shared_edges.append([u1, u2])
+                        shared_edges.append([u2, u1])
+            
+            if shared_edges:
+                data['user', 'interacts_with', 'user'].edge_index = torch.tensor(
+                    shared_edges, dtype=torch.long
+                ).T
         
-        # User -> User (shared articles, min 2)
-        user_articles = self.replies.groupby('user_idx')['article_idx'].apply(set).to_dict()
-        user_user_edges = []
-        user_ids = list(user_articles.keys())
-        
-        print("   → Computing user-user edges...")
-        for i in range(len(user_ids)):
-            u1 = user_ids[i]
-            for j in range(i + 1, len(user_ids)):
-                u2 = user_ids[j]
-                if len(user_articles[u1] & user_articles[u2]) >= 2:
-                    user_user_edges.append([u1, u2])
-                    user_user_edges.append([u2, u1])
-        
-        if user_user_edges:
-            data['user', 'interacts_with', 'user'].edge_index = torch.tensor(
-                user_user_edges, dtype=torch.long
-            ).T
-        
-        # Make undirected
         data = T.ToUndirected()(data)
         
-        # Save
-        save_path = self.output_dir / 'full_hetero_graph.pt'
+        data = T.ToUndirected()(data)
+        
+        filename = 'full_hetero_graph_no_aux.pt' if (hasattr(self, 'no_aux_edges') and self.no_aux_edges) else 'full_hetero_graph.pt'
+        save_path = self.output_dir / filename
         torch.save(data, save_path)
         self._save_mappings()
         
         print(f"   [OK] User nodes: {data['user'].x.shape}")
         print(f"   [OK] Article nodes: {data['article'].x.shape}")
-        print(f"   [OK] Category nodes: {data['category'].x.shape}")
         print(f"   [OK] Saved to: {save_path}")
         
         return data
@@ -787,9 +826,7 @@ class GNNDataConverter:
                 G.add_node(f"u_{idx}", node_type='user', original_id=user_id)
             
             for article_url, idx in self.article_map.items():
-                cat = self.articles[self.articles['url'] == article_url]['category'].values
-                cat = cat[0] if len(cat) > 0 else 'unknown'
-                G.add_node(f"a_{idx}", node_type='article', category=cat)
+                G.add_node(f"a_{idx}", node_type='article')
             
             # Add edges
             for _, row in self.replies.iterrows():
@@ -799,7 +836,6 @@ class GNNDataConverter:
                     weight=float(row.get('parent_reactions', 1) or 1)
                 )
         
-        # Save
         save_path = self.output_dir / f'{graph_type}_networkx.gpickle'
         nx.write_gpickle(G, save_path)
         
@@ -834,7 +870,6 @@ class GNNDataConverter:
             g.nodes['user'].data['x'] = self._create_user_features()
             g.nodes['article'].data['x'] = self._create_article_features()
             
-            # Save
             save_path = self.output_dir / 'user_article_dgl.bin'
             dgl.save_graphs(str(save_path), [g])
             self._save_mappings()
@@ -885,6 +920,11 @@ def main():
         help='Add TF-IDF text features to article nodes'
     )
     parser.add_argument(
+        '--use-phobert',
+        action='store_true',
+        help='Use pre-computed PhoBERT embeddings'
+    )
+    parser.add_argument(
         '--export-networkx',
         action='store_true',
         help='Also export to NetworkX format'
@@ -893,6 +933,11 @@ def main():
         '--export-dgl',
         action='store_true',
         help='Also export to DGL format'
+    )
+    parser.add_argument(
+        '--no-aux-edges',
+        action='store_true',
+        help='Skip generation of auxiliary edges (user-user, article-article) in hetero graph'
     )
     
     # Negative sampling options
@@ -949,15 +994,15 @@ def main():
         replies_path=args.replies,
         output_dir=args.output,
         hidden_dim=args.hidden_dim,
-        add_text_features=args.add_text_features
+        add_text_features=args.add_text_features,
+        use_phobert=args.use_phobert,
+        min_user_interactions=args.min_user_interactions,
+        min_article_interactions=args.min_article_interactions,
     )
+    # Pass ablation flag to converter instance
+    converter.no_aux_edges = args.no_aux_edges
     
-    # Apply k-core filtering if specified
-    if args.min_user_interactions > 0 or args.min_article_interactions > 0:
-        converter.apply_kcore_filter(
-            min_user_interactions=max(1, args.min_user_interactions),
-            min_article_interactions=max(1, args.min_article_interactions)
-        )
+    # Note: K-core filtering is now done automatically in _load_data() via iterative filtering
     
     # Build requested graph type(s)
     if args.graph_type in ['user-article', 'all']:

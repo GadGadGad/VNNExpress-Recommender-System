@@ -65,7 +65,7 @@ class Selectors:
     date: str = "span.time-com"
     reactions: str = "div.reactions-total a.number"
     filter_bar: str = "div.filter_coment.width_common"
-    view_more_comments: str = "a#show_more_coment"
+    view_more_comments: str = "a#show_more_comet"
 
 
 class VnExpressDeepCrawler:
@@ -248,6 +248,7 @@ class VnExpressDeepCrawler:
         """Scrapes all comments and replies from a single article URL."""
         cache_key = f"vnexpress_deep_scrape:{url}"
         cached_data = self.cache.get(cache_key)
+        
         if cached_data:
             log.info(f"[yellow]Cache HIT.[/yellow] Loading data from cache for: {url.split('/')[-1]}")
             self.total_cache_hits += 1
@@ -422,7 +423,6 @@ class VnExpressDeepCrawler:
             padding=(1, 2),
         )
         self.console.print(summary_panel)
-
 
 def run_as_import(input_file_str: str, output_file_str: str, browser: str, is_headless: bool, use_cache: bool, worker_id: str = "Step2", console: Console = None):
     """

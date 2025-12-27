@@ -1,0 +1,48 @@
+# GNN Recommendation System Configuration
+
+data:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  min_user_interactions: 2
+  min_article_interactions: 2
+  embedding: "random" # random | tfidf | bert
+  tfidf_max_features: 500
+
+  # BERT model for embeddings (used when embedding=bert)
+  bert_model: "vinai/phobert-base"
+  # Options: vinai/phobert-base, vinai/phobert-large, vinai/bartpho-syllable,
+  #          bert-base-multilingual-cased, sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+
+training:
+  epochs: 30
+  batch_size: 2048
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  hidden_dim: 64
+  n_layers: 3
+  patience: 10
+  device: "cpu"
+
+models:
+  gnn:
+    enabled: true
+    models: ["sage", "gcn", "gat", "lightgcn"]
+  cf:
+    enabled: true
+    models: ["ngcf", "simplex", "directau"]
+  cl:
+    enabled: true
+    models: ["sgl", "simgcl", "ncl", "lightgcl"]
+
+evaluation:
+  k_values: [1, 5, 10]
+  metrics: ["recall", "ndcg", "hitrate", "mrr"]
+  save_results: true
+  results_dir: "models"
+
+pipeline:
+  generate_embeddings: true
+  convert_data: true
+  clear_cache: true
+  train_models: true
+  generate_report: true

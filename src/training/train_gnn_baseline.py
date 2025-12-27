@@ -35,15 +35,14 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau, CosineAnnealingLR
 from sklearn.metrics import roc_auc_score
 from tqdm import tqdm
 
-# PyTorch Geometric
 from torch_geometric.data import HeteroData
+<<<<<<< HEAD
 from torch_geometric.nn import SAGEConv, GCNConv, GATConv, LGConv, to_hetero
+=======
+from torch_geometric.nn import SAGEConv, GraphConv, GATConv, to_hetero
+>>>>>>> main
 from torch_geometric.transforms import RandomLinkSplit
 
-
-# ============================================================================
-# MODEL DEFINITIONS
-# ============================================================================
 
 class GraphSAGEEncoder(nn.Module):
     """GraphSAGE-based encoder for heterogeneous graphs."""
@@ -54,16 +53,13 @@ class GraphSAGEEncoder(nn.Module):
         self.bns = nn.ModuleList()
         self.dropout = dropout
         
-        # First layer
         self.convs.append(SAGEConv((-1, -1), hidden_dim))
         self.bns.append(nn.BatchNorm1d(hidden_dim))
         
-        # Hidden layers
         for _ in range(num_layers - 2):
             self.convs.append(SAGEConv((-1, -1), hidden_dim))
             self.bns.append(nn.BatchNorm1d(hidden_dim))
         
-        # Output layer
         self.convs.append(SAGEConv((-1, -1), out_dim))
         
     def forward(self, x, edge_index):
@@ -78,7 +74,7 @@ class GraphSAGEEncoder(nn.Module):
 
 
 class GCNEncoder(nn.Module):
-    """GCN-based encoder."""
+    """GCN-based encoder using GraphConv (supports bipartite graphs)."""
     
     def __init__(self, hidden_dim: int, out_dim: int, num_layers: int = 2, dropout: float = 0.3):
         super().__init__()
@@ -86,14 +82,14 @@ class GCNEncoder(nn.Module):
         self.bns = nn.ModuleList()
         self.dropout = dropout
         
-        self.convs.append(GCNConv(-1, hidden_dim))
+        self.convs.append(GraphConv((-1, -1), hidden_dim))
         self.bns.append(nn.BatchNorm1d(hidden_dim))
         
         for _ in range(num_layers - 2):
-            self.convs.append(GCNConv(hidden_dim, hidden_dim))
+            self.convs.append(GraphConv((-1, -1), hidden_dim))
             self.bns.append(nn.BatchNorm1d(hidden_dim))
         
-        self.convs.append(GCNConv(hidden_dim, out_dim))
+        self.convs.append(GraphConv((-1, -1), out_dim))
         
     def forward(self, x, edge_index):
         for i, conv in enumerate(self.convs[:-1]):
@@ -110,20 +106,22 @@ class GATEncoder(nn.Module):
     """GAT-based encoder with multi-head attention."""
     
     def __init__(self, hidden_dim: int, out_dim: int, num_layers: int = 2, 
-                 heads: int = 4, dropout: float = 0.3):
+                 dropout: float = 0.3, heads: int = 4):
         super().__init__()
         self.convs = nn.ModuleList()
         self.bns = nn.ModuleList()
         self.dropout = dropout
+        heads = int(heads)
+        head_dim = hidden_dim // heads
         
-        self.convs.append(GATConv((-1, -1), hidden_dim // heads, heads=heads, concat=True))
+        self.convs.append(GATConv((-1, -1), head_dim, heads=heads, concat=True, add_self_loops=False))
         self.bns.append(nn.BatchNorm1d(hidden_dim))
         
         for _ in range(num_layers - 2):
-            self.convs.append(GATConv(hidden_dim, hidden_dim // heads, heads=heads, concat=True))
+            self.convs.append(GATConv(hidden_dim, head_dim, heads=heads, concat=True, add_self_loops=False))
             self.bns.append(nn.BatchNorm1d(hidden_dim))
         
-        self.convs.append(GATConv(hidden_dim, out_dim, heads=1, concat=False))
+        self.convs.append(GATConv(hidden_dim, out_dim, heads=1, concat=False, add_self_loops=False))
         
     def forward(self, x, edge_index):
         for i, conv in enumerate(self.convs[:-1]):
@@ -145,24 +143,43 @@ class LightGCNEncoder(nn.Module):
     def __init__(self, hidden_dim: int, out_dim: int, num_layers: int = 3, dropout: float = 0.0):
         super().__init__()
         self.num_layers = num_layers
+<<<<<<< HEAD
         # Use PyG's built-in LGConv which handles normalization and message passing correctly
         # and is compatible with to_hetero tracing
         self.conv = LGConv() 
+=======
+>>>>>>> main
         self.out_proj = nn.Linear(hidden_dim, out_dim) if hidden_dim != out_dim else nn.Identity()
         
     def forward(self, x, edge_index):
-        # Simple propagation without transformation
         all_embeddings = [x]
         
         for _ in range(self.num_layers):
+<<<<<<< HEAD
             # LGConv handles the normalized adjacency propagation
             x = self.conv(x, edge_index)
+=======
+            x = self._propagate(x, edge_index)
+>>>>>>> main
             all_embeddings.append(x)
         
-        # Mean pooling over all layers (key insight of LightGCN)
         x = torch.stack(all_embeddings, dim=0).mean(dim=0)
         x = self.out_proj(x)
         return x
+<<<<<<< HEAD
+=======
+    
+    def _propagate(self, x, edge_index):
+        """Simple message passing (normalized sum)."""
+        row, col = edge_index
+        deg = torch.bincount(row, minlength=x.size(0)).float().clamp(min=1)
+        deg_inv_sqrt = deg.pow(-0.5)
+        norm = deg_inv_sqrt[row] * deg_inv_sqrt[col]
+        
+        out = torch.zeros_like(x)
+        out.index_add_(0, row, x[col] * norm.unsqueeze(-1))
+        return out
+>>>>>>> main
 
 
 def get_model(model_name: str, hidden_dim: int, out_dim: int, 
@@ -180,10 +197,6 @@ def get_model(model_name: str, hidden_dim: int, out_dim: int,
     
     return models[model_name](hidden_dim, out_dim, num_layers, dropout)
 
-
-# ============================================================================
-# METRICS
-# ============================================================================
 
 class RecommenderMetrics:
     """Comprehensive evaluation metrics for recommender systems."""
@@ -219,32 +232,22 @@ class RecommenderMetrics:
                 if len(true_items) == 0:
                     continue
                 
-                # Compute scores
                 scores = (user_embeddings[user_idx].unsqueeze(0) @ item_embeddings.T).squeeze()
                 
-                # Exclude training items if provided
                 if exclude_train and user_idx in exclude_train:
                     for item in exclude_train[user_idx]:
                         scores[item] = float('-inf')
                 
-                # Get top-K recommendations
                 _, top_k_indices = torch.topk(scores, min(k, len(scores)))
                 recommendations = set(top_k_indices.cpu().numpy().tolist())
                 
-                # Calculate metrics
                 hits = recommendations & true_items
                 num_hits = len(hits)
                 
-                # Precision@K
                 precision_list.append(num_hits / k)
-                
-                # Recall@K
                 recall_list.append(num_hits / len(true_items))
-                
-                # Hit Rate@K
                 hit_list.append(1.0 if num_hits > 0 else 0.0)
                 
-                # NDCG@K
                 dcg = 0.0
                 for rank, item_idx in enumerate(top_k_indices.cpu().numpy()):
                     if item_idx in true_items:
@@ -253,7 +256,6 @@ class RecommenderMetrics:
                 idcg = sum(1.0 / np.log2(i + 2) for i in range(min(len(true_items), k)))
                 ndcg_list.append(dcg / idcg if idcg > 0 else 0.0)
                 
-                # MRR (Mean Reciprocal Rank)
                 mrr = 0.0
                 for rank, item_idx in enumerate(top_k_indices.cpu().numpy()):
                     if item_idx in true_items:
@@ -281,9 +283,6 @@ class RecommenderMetrics:
         return roc_auc_score(labels, scores)
 
 
-# ============================================================================
-# TRAINER
-# ============================================================================
 
 class GNNTrainer:
     """Comprehensive trainer for GNN recommendation models."""
@@ -304,8 +303,15 @@ class GNNTrainer:
         self.edge_type = edge_type
         self.neg_ratio = neg_sampling_ratio
         
+        self.neg_ratio = neg_sampling_ratio
+        
+        params = list(model.parameters())
+        for node_type in data.node_types:
+            if isinstance(data[node_type].x, nn.Parameter):
+                params.append(data[node_type].x)
+            
         self.optimizer = torch.optim.Adam(
-            model.parameters(), lr=lr, weight_decay=weight_decay
+            params, lr=lr, weight_decay=weight_decay
         )
         
         if scheduler_type == 'plateau':
@@ -315,15 +321,10 @@ class GNNTrainer:
         else:
             self.scheduler = CosineAnnealingLR(self.optimizer, T_max=100)
         
-        # Split data
         self.train_data, self.val_data, self.test_data = self._split_data(data)
-        
-        # Move to device
         self.train_data = self.train_data.to(device)
         self.val_data = self.val_data.to(device)
         self.test_data = self.test_data.to(device)
-        
-        # History
         self.history = {
             'train_loss': [],
             'val_loss': [],
@@ -345,16 +346,13 @@ class GNNTrainer:
     
     def _compute_loss(self, data: HeteroData) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Compute BPR loss with negative sampling."""
-        # Forward pass
         z_dict = self.model(data.x_dict, data.edge_index_dict)
         
-        # Positive edges
         pos_edge_index = data[self.edge_type].edge_label_index
         user_emb = z_dict['user'][pos_edge_index[0]]
         item_emb = z_dict['article'][pos_edge_index[1]]
         pos_scores = (user_emb * item_emb).sum(dim=-1)
         
-        # Negative sampling
         num_neg = int(pos_edge_index.size(1) * self.neg_ratio)
         neg_users = torch.randint(0, data['user'].num_nodes, (num_neg,), device=self.device)
         neg_items = torch.randint(0, data['article'].num_nodes, (num_neg,), device=self.device)
@@ -363,8 +361,6 @@ class GNNTrainer:
         neg_item_emb = z_dict['article'][neg_items]
         neg_scores = (neg_user_emb * neg_item_emb).sum(dim=-1)
         
-        # BPR Loss: -log(sigmoid(pos - neg))
-        # BCE Loss variant for simplicity
         all_scores = torch.cat([pos_scores, neg_scores])
         all_labels = torch.cat([
             torch.ones_like(pos_scores),
@@ -407,24 +403,18 @@ class GNNTrainer:
         pbar = tqdm(range(epochs), desc="Training") if verbose else range(epochs)
         
         for epoch in pbar:
-            # Train
             train_loss = self.train_epoch()
-            
-            # Validate
             val_loss, val_auc = self.validate()
             
-            # Update history
             self.history['train_loss'].append(train_loss)
             self.history['val_loss'].append(val_loss)
             self.history['val_auc'].append(val_auc)
             
-            # Scheduler step
             if isinstance(self.scheduler, ReduceLROnPlateau):
                 self.scheduler.step(val_loss)
             else:
                 self.scheduler.step()
             
-            # Early stopping check
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
                 best_model_state = {k: v.cpu().clone() for k, v in self.model.state_dict().items()}
@@ -455,24 +445,20 @@ class GNNTrainer:
         """Full evaluation on test set."""
         self.model.eval()
         
-        # Get embeddings
         z_dict = self.model(self.test_data.x_dict, self.test_data.edge_index_dict)
         user_emb = z_dict['user']
         item_emb = z_dict['article']
         
-        # Build ground truth from test set
         edge_index = self.test_data[self.edge_type].edge_label_index
         edge_label = self.test_data[self.edge_type].edge_label
         
         pos_edges = edge_index[:, edge_label == 1]
         ground_truth = {}
-        
         for u, i in zip(pos_edges[0].cpu().numpy(), pos_edges[1].cpu().numpy()):
             if u not in ground_truth:
                 ground_truth[u] = set()
             ground_truth[u].add(i)
         
-        # Build training exclusion set
         train_edges = self.train_data[self.edge_type].edge_index
         exclude_train = {}
         for u, i in zip(train_edges[0].cpu().numpy(), train_edges[1].cpu().numpy()):
@@ -480,21 +466,15 @@ class GNNTrainer:
                 exclude_train[u] = set()
             exclude_train[u].add(i)
         
-        # Compute metrics
         metrics = RecommenderMetrics.compute_all(
             user_emb, item_emb, ground_truth, k_values, exclude_train
         )
         
-        # Add AUC
         _, pos_scores, neg_scores = self._compute_loss(self.test_data)
         metrics['AUC'] = RecommenderMetrics.compute_auc(pos_scores, neg_scores)
         
         return metrics
 
-
-# ============================================================================
-# EXPERIMENT RUNNER
-# ============================================================================
 
 def run_experiment(args):
     """Run a complete training experiment."""
@@ -502,11 +482,9 @@ def run_experiment(args):
     print(f"GNN Baseline Training - {args.model.upper()}")
     print("=" * 70)
     
-    # Device
     device = torch.device('cuda' if torch.cuda.is_available() and not args.cpu else 'cpu')
     print(f"Device: {device}")
     
-    # Load data
     print(f"\nLoading data from {args.data_path}...")
     if not os.path.exists(args.data_path):
         raise FileNotFoundError(f"Data not found: {args.data_path}. Run convert_to_gnn.py first!")
@@ -515,7 +493,6 @@ def run_experiment(args):
     print(f"   Users: {data['user'].x.shape[0]}")
     print(f"   Articles: {data['article'].x.shape[0]}")
     
-    # Create model
     print(f"\nCreating {args.model.upper()} model...")
     base_model = get_model(
         args.model,
@@ -525,10 +502,20 @@ def run_experiment(args):
         dropout=args.dropout
     )
     
-    # Convert to heterogeneous
+    print("   -> Initializing node features...")
+    for node_type in data.node_types:
+        x = data[node_type].x
+        num_nodes, feat_dim = x.shape
+        
+        if node_type == 'user' or feat_dim != args.hidden_dim:
+            print(f"      [{node_type}] Replacing features ({feat_dim}) with learnable embeddings ({args.hidden_dim})")
+            data[node_type].x = nn.Parameter(torch.randn(num_nodes, args.hidden_dim) * 0.1)
+        else:
+            print(f"      [{node_type}] Converting features ({feat_dim}) to learnable parameters")
+            data[node_type].x = nn.Parameter(x.clone())
+
     model = to_hetero(base_model, data.metadata(), aggr='sum')
     
-    # Create trainer
     edge_type = ('user', 'comments', 'article')
     trainer = GNNTrainer(
         model=model,
@@ -541,19 +528,16 @@ def run_experiment(args):
         scheduler_type='plateau'
     )
     
-    # Train
     print(f"\nTraining for {args.epochs} epochs...")
     start_time = time.time()
     history = trainer.train(epochs=args.epochs, patience=args.patience)
     train_time = time.time() - start_time
     print(f"   Training time: {train_time:.1f}s")
     
-    # Evaluate
     print("\nEvaluating on test set...")
     k_values = [int(k) for k in args.k_values.split(',')]
     metrics = trainer.evaluate(k_values=k_values)
     
-    # Print results
     print("\n" + "=" * 70)
     print("EVALUATION RESULTS")
     print("=" * 70)
@@ -564,16 +548,15 @@ def run_experiment(args):
     for metric, value in sorted(metrics.items()):
         print(f"{metric:<20} {value:.4f}")
     
-    # Save results
     if args.save_dir:
         save_dir = Path(args.save_dir)
         save_dir.mkdir(parents=True, exist_ok=True)
         
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         
-        # Save model
         model_path = save_dir / f"{args.model}_{timestamp}.pt"
         torch.save({
+            'node_embeddings': {nt: data[nt].x for nt in data.node_types},
             'model_state_dict': model.state_dict(),
             'model_config': {
                 'model': args.model,
@@ -587,7 +570,6 @@ def run_experiment(args):
         }, model_path)
         print(f"\nModel saved: {model_path}")
         
-        # Save metrics
         results = {
             'model': args.model,
             'config': vars(args),
@@ -600,6 +582,18 @@ def run_experiment(args):
         with open(results_path, 'w') as f:
             json.dump(results, f, indent=2)
         print(f"Results saved: {results_path}")
+
+    # Explicit save-results path for external tools
+    if args.save_results:
+        # Convert numpy types to native python types for JSON serialization
+        def convert(o):
+            if isinstance(o, (np.int64, np.int32)): return int(o)
+            if isinstance(o, (np.float64, np.float32)): return float(o)
+            return o
+            
+        with open(args.save_results, 'w') as f:
+            json.dump(metrics, f, default=convert)
+        print(f"Metrics saved to explicit path: {args.save_results}")
     
     return metrics
 
@@ -607,46 +601,23 @@ def run_experiment(args):
 def main():
     parser = argparse.ArgumentParser(description='Train GNN baseline models')
     
-    # Data
-    parser.add_argument('--data-path', '-d', 
-                        default='data/processed/user_article_graph.pt',
+    parser.add_argument('--data-path', '-d', default='data/processed/user_article_graph.pt',
                         help='Path to processed graph data')
-    
-    # Model
-    parser.add_argument('--model', '-m', 
-                        choices=['sage', 'gcn', 'gat', 'lightgcn'],
-                        default='sage',
-                        help='Model architecture')
-    parser.add_argument('--hidden-dim', type=int, default=64,
-                        help='Hidden dimension')
-    parser.add_argument('--out-dim', type=int, default=32,
-                        help='Output embedding dimension')
-    parser.add_argument('--num-layers', type=int, default=2,
-                        help='Number of GNN layers')
-    parser.add_argument('--dropout', type=float, default=0.3,
-                        help='Dropout rate')
-    
-    # Training
-    parser.add_argument('--epochs', '-e', type=int, default=100,
-                        help='Number of training epochs')
-    parser.add_argument('--lr', type=float, default=0.01,
-                        help='Learning rate')
-    parser.add_argument('--weight-decay', type=float, default=1e-5,
-                        help='Weight decay (L2 regularization)')
-    parser.add_argument('--neg-ratio', type=float, default=1.0,
-                        help='Negative sampling ratio')
-    parser.add_argument('--patience', type=int, default=20,
-                        help='Early stopping patience')
-    
-    # Evaluation
-    parser.add_argument('--k-values', type=str, default='5,10,20',
-                        help='Comma-separated K values for top-K metrics')
-    
-    # Output
-    parser.add_argument('--save-dir', '-o', default='models',
-                        help='Directory to save model and results')
-    parser.add_argument('--cpu', action='store_true',
-                        help='Force CPU training')
+    parser.add_argument('--model', '-m', choices=['sage', 'gcn', 'gat', 'lightgcn'],
+                        default='sage', help='Model architecture')
+    parser.add_argument('--hidden-dim', type=int, default=64, help='Hidden dimension')
+    parser.add_argument('--out-dim', type=int, default=32, help='Output embedding dimension')
+    parser.add_argument('--num-layers', type=int, default=2, help='Number of GNN layers')
+    parser.add_argument('--dropout', type=float, default=0.3, help='Dropout rate')
+    parser.add_argument('--epochs', '-e', type=int, default=100, help='Number of training epochs')
+    parser.add_argument('--lr', type=float, default=0.01, help='Learning rate')
+    parser.add_argument('--weight-decay', type=float, default=1e-5, help='Weight decay')
+    parser.add_argument('--neg-ratio', type=float, default=1.0, help='Negative sampling ratio')
+    parser.add_argument('--patience', type=int, default=20, help='Early stopping patience')
+    parser.add_argument('--k-values', type=str, default='5,10,20', help='K values for top-K metrics')
+    parser.add_argument('--save-dir', '-o', default='models', help='Directory to save model')
+    parser.add_argument('--save-results', type=str, default=None, help='Path to save metrics in JSON format')
+    parser.add_argument('--cpu', action='store_true', help='Force CPU training')
     
     args = parser.parse_args()
     

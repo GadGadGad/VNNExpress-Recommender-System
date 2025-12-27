@@ -1,0 +1,14 @@
+flowchart LR
+    subgraph Stage1["1. Freshness Boost"]
+        F1["score = (1-w)·relevance + w·e^(-λ·days)"]
+    end
+
+    subgraph Stage2["2. Calibration"]
+        C1["Minimize KL(p_rec || p_history)"]
+    end
+
+    subgraph Stage3["3. MMR Diversity"]
+        D1["MMR = λ·rel - (1-λ)·max_sim"]
+    end
+
+    Stage1 --> Stage2 --> Stage3

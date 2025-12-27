@@ -56,6 +56,17 @@ class Cache:
         except Exception as e:
             self.log.warning(f"Cache write failed: {e}")
 
+    def delete(self, key: str):
+        """Deletes data from the cache."""
+        if not self.enabled:
+            return
+        p = self._path(key)
+        if p.exists():
+            try:
+                p.unlink()
+            except Exception as e:
+                self.log.warning(f"Cache delete failed: {e}")
+
 # 🔽 --- THÊM MỚI: BẢN ĐỒ CATEGORY --- 🔽
 VNEXPRESS_CATEGORIES = {
     "thoi-su": "1001005",

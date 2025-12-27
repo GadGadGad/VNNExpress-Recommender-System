@@ -22,6 +22,7 @@ from bs4 import BeautifulSoup
 import concurrent.futures
 from typing import List, Optional, Tuple
 from contextlib import nullcontext
+from tqdm.auto import tqdm
 
 from datetime import datetime
 try:
@@ -72,6 +73,7 @@ class VnExpressCrawler:
         self.output_dir = output_dir
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.session = requests.Session()
+        self.silent = False
 
         # Use imported Cache
         self.cache = Cache(output_dir / ".cache", enabled=use_cache)
@@ -86,6 +88,13 @@ class VnExpressCrawler:
 
         self._load_seen()
         self._init_csvs()
+
+    def _log(self, message, level="info"):
+        """Helper to suppress logs if self.silent is True."""
+        if not self.silent:
+            if level == "info": log.info(message)
+            elif level == "warning": log.warning(message)
+            elif level == "error": log.error(message)
 
     def _load_seen(self):
         """Loads previously scraped URLs to enable resuming."""
@@ -102,7 +111,7 @@ class VnExpressCrawler:
                 csv.writer(open(path, "w", newline="", encoding="utf-8")).writerow(header)
                 log.info(f"Created new file: [bold]{path.name}[/bold]")
 
-        init(self.article_csv, ["article_id", "url", "title", "short_description", "author", "category", "tags", "published_at", "content"])
+        init(self.article_csv, ["article_id", "url", "title", "short_description", "author", "published_at", "content"])
 
     def safe_get(self, url: str) -> Optional[str]:
         """Cached and retrying HTTP GET request."""
@@ -212,7 +221,7 @@ class VnExpressCrawler:
     def fetch_article(self, url: str, short_description: str, category_source: str) -> Optional[dict]:
         """Fetches a single article's HTML metadata."""
         if url in self.seen_articles:
-            log.warning(f"Skipping already seen URL: {url}")
+            self._log(f"Skipping already seen URL: {url}", "warning")
             return None
 
         html = self.safe_get(url)
@@ -223,14 +232,6 @@ class VnExpressCrawler:
         title = soup.select_one("h1.title_news_detail, h1.title-detail")
         published = soup.select_one(".date, span.date")
         content_el = soup.select_one(".fck_detail, .sidebar_1 .Normal")
-        tags_el = soup.select(".item-tag, .tags a")
-
-        category_text = ""
-        category_el_list = soup.select("ul.breadcrumb a")
-        if category_el_list:
-            category_text = category_el_list[-1].text.strip()
-        else:
-            category_text = category_source # Fallback to the category we found it in
 
         author_text = ""
         end_span = soup.select_one("span#article-end")
@@ -253,8 +254,6 @@ class VnExpressCrawler:
             "title": title.text.strip() if title else "",
             "short_description": short_description,
             "author": author_text,
-            "category": category_text,
-            "tags": [t.text.strip() for t in tags_el],
             "published_at": published.text.strip() if published else "",
             "content": content_el.get_text("\n", strip=True) if content_el else "",
         }
@@ -267,7 +266,6 @@ class VnExpressCrawler:
             writer.writerow([
                 article["article_id"], article["url"], article["title"],
                 article["short_description"], article["author"],
-                article["category"], json.dumps(article["tags"], ensure_ascii=False),
                 article["published_at"], article["content"]
             ])
 
@@ -292,8 +290,9 @@ class VnExpressCrawler:
         )
         console.print(Panel(summary, title="Discovery Summary", border_style="bold magenta", padding=(1, 2)))
 
-    def crawl(self, categories: list[str], pages: int = 2, workers: int = MAX_WORKERS, no_progress: bool = False, from_date: Optional[str] = None, to_date: Optional[str] = None):
+    def crawl(self, categories: list[str], pages: int = 2, workers: int = MAX_WORKERS, no_progress: bool = False, from_date: Optional[str] = None, to_date: Optional[str] = None, use_tqdm: bool = False):
         """Main crawl orchestration function."""
+        self.silent = use_tqdm
 
         def fetch_and_save_article(article_info):
             try:
@@ -321,7 +320,7 @@ class VnExpressCrawler:
                 console=console,
                 transient=False,
             )
-            if not no_progress
+            if (not no_progress and not use_tqdm)
             else nullcontext()
         )
         if no_progress:
@@ -332,7 +331,7 @@ class VnExpressCrawler:
 
             all_articles_data = []
             date_range_mode = from_date and to_date
-
+            
             categories_to_process = []
             if date_range_mode:
                 log.info("Date range mode active. Resolving category names to IDs...")
@@ -347,19 +346,31 @@ class VnExpressCrawler:
                     log.error("[bold red]LỖI: Không có category ID hợp lệ nào để xử lý. Dừng lại.[/bold red]")
                     return
             else:
-                # Ở chế độ standard, chúng ta dùng thẳng tên
                 categories_to_process = categories
 
+            # define total_tasks for tqdm
+            total_tasks = 0
+            if date_range_mode:
+                date_ranges = self._split_date_ranges(from_date, to_date)
+                if date_ranges:
+                    total_tasks = len(categories_to_process) * len(date_ranges) * pages
+            else:
+                total_tasks = len(categories_to_process) * pages
 
+            if use_tqdm and not no_progress:
+                print() # Ensure a fresh line for tqdm
+                pbar1 = tqdm(total=total_tasks, desc="Discovering", position=0, leave=True, dynamic_ncols=True, ascii=True)
+            
             if date_range_mode:
                 log.info(f"Running in Date Range mode from [yellow]{from_date}[/yellow] to [yellow]{to_date}[/yellow]")
-                date_ranges = self._split_date_ranges(from_date, to_date)
                 if not date_ranges:
                     log.error("No valid date ranges to process. Stopping.")
                     return
 
                 total_tasks = len(categories_to_process) * len(date_ranges) * pages
-                discover_task_id = progress.add_task(f"[cyan]Discovering (by date)...", total=total_tasks) if not no_progress else None
+                discover_task_id = None
+                if not no_progress and not use_tqdm:
+                    discover_task_id = progress.add_task(f"[cyan]Discovering (by date)...", total=total_tasks)
 
                 for category_id in categories_to_process:
                     log.info(f"Processing [cyan]Cate_ID {category_id}[/cyan]...")
@@ -371,29 +382,41 @@ class VnExpressCrawler:
                         articles_data = self.discover_articles(
                             category_id,
                             pages,
-                            progress_context=progress,
+                            progress_context=None if use_tqdm else progress,
                             task_id=discover_task_id,
                             from_ts=from_ts,
                             to_ts=to_ts
                         )
+                        if use_tqdm and not no_progress:
+                            pbar1.update(pages)
+                            
                         all_articles_data.extend(articles_data)
-                        log.info(f" > Found {len(articles_data)} articles in this range.")
+                        if not use_tqdm:
+                            self._log(f" > Found {len(articles_data)} articles in this range.")
 
             else:
                 log.info("Running in Standard mode (latest articles).")
-                discover_task_id = progress.add_task(f"[cyan]Discovering articles...", total=len(categories_to_process) * pages) if not no_progress else None
+                discover_task_id = None
+                if not no_progress and not use_tqdm:
+                    discover_task_id = progress.add_task(f"[cyan]Discovering articles...", total=len(categories_to_process) * pages)
 
                 for category in categories_to_process:
-                    log.info(f"Discovering articles in [cyan]{category}[/cyan]...")
+                    self._log(f"Discovering articles in [cyan]{category}[/cyan]...")
                     articles_data = self.discover_articles(
                         category,
                         pages,
-                        progress_context=progress,
+                        progress_context=None if use_tqdm else progress,
                         task_id=discover_task_id
                     )
+                    if use_tqdm and not no_progress:
+                        pbar1.update(pages)
+                        
                     all_articles_data.extend(articles_data)
-                    log.info(f" > Found {len(articles_data)} new articles in [cyan]{category}[/cyan].")
+                    if not use_tqdm:
+                        log.info(f" > Found {len(articles_data)} new articles in [cyan]{category}[/cyan].")
 
+            if use_tqdm and not no_progress:
+                pbar1.close()
 
             if not all_articles_data:
                 log.warning("No new articles found to crawl.")
@@ -415,10 +438,17 @@ class VnExpressCrawler:
                 self.print_summary()
                 return
 
-            crawl_task_id = progress.add_task(f"[green]Saving {len(unique_new_articles)} articles", total=len(unique_new_articles)) if not no_progress else None
+            crawl_task_id = None
+            if not no_progress and not use_tqdm:
+                crawl_task_id = progress.add_task(f"[green]Saving {len(unique_new_articles)} articles", total=len(unique_new_articles))
+            
+            pbar2 = None
+            if use_tqdm and not no_progress:
+                print() # Ensure a fresh line for tqdm
+                pbar2 = tqdm(total=len(unique_new_articles), desc="Saving Articles", position=0, leave=True, dynamic_ncols=True, ascii=True)
+
             if no_progress:
                 log.info(f"Saving {len(unique_new_articles)} articles (progress bar disabled)...")
-
 
             with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
                 results = executor.map(fetch_and_save_article, unique_new_articles)
@@ -428,13 +458,19 @@ class VnExpressCrawler:
                         pass
                 else:
                     for result in results:
-                        progress.update(crawl_task_id, advance=1)
+                        if use_tqdm:
+                            pbar2.update(1)
+                        else:
+                            progress.update(crawl_task_id, advance=1)
+            
+            if use_tqdm and not no_progress:
+                pbar2.close()
 
         log.info("Crawl complete.")
         self.print_summary()
 
 
-def run_as_import(categories: list[str], pages: int, output_dir_str: str, use_cache: bool, workers: int, from_date: Optional[str] = None, to_date: Optional[str] = None, no_progress: bool = True):
+def run_as_import(categories: list[str], pages: int, output_dir_str: str, use_cache: bool, workers: int, from_date: Optional[str] = None, to_date: Optional[str] = None, no_progress: bool = True, use_tqdm: bool = False, console: Console = None):
     """
     Hàm này được gọi bởi script bên ngoài (pipeline)
     để chạy crawler trong cùng một tiến trình.
@@ -452,7 +488,8 @@ def run_as_import(categories: list[str], pages: int, output_dir_str: str, use_ca
         workers=workers,
         no_progress=no_progress,
         from_date=from_date,
-        to_date=to_date
+        to_date=to_date,
+        use_tqdm=use_tqdm
     )
 
 
@@ -489,6 +526,11 @@ if __name__ == "__main__":
         default=MAX_WORKERS,
         help=f"Number of parallel workers (default: {MAX_WORKERS})"
     )
+    parser.add_argument(
+        "--use-tqdm",
+        action="store_true",
+        help="Use tqdm progress bars instead of rich"
+    )
     args = parser.parse_args()
 
     if (args.from_date and not args.to_date) or (not args.from_date and args.to_date):
@@ -519,5 +561,7 @@ if __name__ == "__main__":
         args.pages,
         workers=args.workers,
         from_date=args.from_date,
-        to_date=args.to_date
+        to_date=args.to_date,
+        no_progress=False,
+        use_tqdm=args.use_tqdm
     )

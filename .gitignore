@@ -9,6 +9,7 @@ venv/
 .env
 
 # --- Data ---
+data/
 data/raw/*
 data/processed/*
 crawlers/data/
@@ -36,12 +37,20 @@ logs/
 # --- Jupyter Notebooks ---
 .ipynb_checkpoints/
 *.ipynb
+!notebooks/kaggle_train.ipynb
 
 # --- Crawler Cache & Temp Files ---
 crawlers/.cache/
+crawlers/data*
 crawlers/*.log
 .seen_urls*.txt
 *.cache
+results/
+
+# --- Exception ---
+!src/models/
+!src/models/.gitkeep
+!src/data/
 
 # --- System Files ---
 Thumbs.db
@@ -57,3 +66,11 @@ Thumbs.db
 *.fdb_latexmk
 *.bbl
 *.blg
+*.snm
+*.run.xml
+*.bcf
+*.nav
+*.pdf
+
+# --- Temp Files ---
+*.temp_ipynb
