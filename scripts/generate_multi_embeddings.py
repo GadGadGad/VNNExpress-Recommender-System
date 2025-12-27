@@ -133,7 +133,7 @@ def generate_tfidf_embeddings(data_path='data/processed/strict_g2', output_dir='
 def generate_embeddings(model_key, data_path='data/processed/strict_g2', output_dir='checkpoints'):
     from sentence_transformers import SentenceTransformer
     
-    model_config = MODELS[model_key]
+    model_config = NEURAL_MODELS[model_key]
     print(f"\n{'='*60}")
     print(f"Loading {model_config['name']}...")
     print(f"{'='*60}")
