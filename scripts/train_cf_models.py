@@ -621,7 +621,7 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
     return None
 
 
-def evaluate(model, test_dict, train_dict, n_items, edge_index, k_list=[1, 5, 10], device='cpu', adj_norm=None, 
+def evaluate(model, test_dict, train_dict, n_items, edge_index, k_list=[1, 5, 10, 50], device='cpu', adj_norm=None, 
              re_ranker=None, rerank_strategy='none', eval_protocol='full', cold_users=None, edge_index_dict=None):
     """
     Evaluate model with multiple protocols.
@@ -657,7 +657,7 @@ def evaluate(model, test_dict, train_dict, n_items, edge_index, k_list=[1, 5, 10
             item_emb = model.item_embedding.weight
     
     max_k = max(k_list)
-    results = {f'{metric}@{k}': [] for metric in ['recall', 'ndcg', 'hitrate'] for k in k_list}
+    results = {f'{metric}@{k}': [] for metric in ['recall', 'ndcg', 'hitrate', 'precision', 'map'] for k in k_list}
     results['mrr'] = []
     
     # Choose which users to evaluate based on protocol
@@ -728,9 +728,23 @@ def evaluate(model, test_dict, train_dict, n_items, edge_index, k_list=[1, 5, 10
             results[f'recall@{k}'].append(hits / min(k, len(test_items)))
             results[f'hitrate@{k}'].append(1.0 if hits > 0 else 0.0)
             
+            # Precision@k: hits / k
+            results[f'precision@{k}'].append(hits / k)
+            
+            # NDCG@k
             dcg = sum(1.0 / np.log2(i + 2) for i, item in enumerate(topk_list[:k]) if item in test_items)
             idcg = sum(1.0 / np.log2(i + 2) for i in range(min(k, len(test_items))))
             results[f'ndcg@{k}'].append(dcg / idcg if idcg > 0 else 0)
+            
+            # mAP@k (Average Precision): sum of precision at each hit / min(k, num_positives)
+            ap = 0.0
+            n_hits = 0
+            for i, item in enumerate(topk_list[:k]):
+                if item in test_items:
+                    n_hits += 1
+                    ap += n_hits / (i + 1)
+            ap = ap / min(k, len(test_items)) if len(test_items) > 0 else 0
+            results[f'map@{k}'].append(ap)
         
         if re_ranker is not None:
              ent = compute_entropy(topk_list, re_ranker.item_categories, re_ranker.n_categories)

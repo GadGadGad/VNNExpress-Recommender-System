@@ -12,28 +12,39 @@ sys.path.insert(0, project_root)
 
 from src.models.content_based import ContentBasedRecommender
 
-def get_metrics(topk_items, ground_truth):
+def get_metrics(topk_items, ground_truth, k_list=[1, 5, 10, 50]):
     """
-    Calculate Recall@K and NDCG@K
-    topk_items: List of item IDs derived from TopK
+    Calculate Recall@K, NDCG@K, Precision@K, mAP@K for multiple k values.
+    topk_items: List of item IDs derived from TopK (should be at least max(k_list))
     ground_truth: Set of relevant item IDs
     """
-    hits = 0
-    dcg = 0
-    idcg = 0
+    results = {}
     
-    # Calculate IDCG
-    for i in range(len(ground_truth)):
-        idcg += 1.0 / np.log2(i + 2)
+    for k in k_list:
+        topk_k = topk_items[:k]
+        hits = sum(1 for item in topk_k if item in ground_truth)
         
-    for i, item in enumerate(topk_items):
-        if item in ground_truth:
-            hits += 1
-            dcg += 1.0 / np.log2(i + 2)
-            
-    recall = hits / len(ground_truth) if len(ground_truth) > 0 else 0
-    ndcg = dcg / idcg if idcg > 0 else 0
-    return recall, ndcg
+        # Recall@k
+        results[f'recall@{k}'] = hits / len(ground_truth) if len(ground_truth) > 0 else 0
+        
+        # Precision@k
+        results[f'precision@{k}'] = hits / k
+        
+        # NDCG@k
+        dcg = sum(1.0 / np.log2(i + 2) for i, item in enumerate(topk_k) if item in ground_truth)
+        idcg = sum(1.0 / np.log2(i + 2) for i in range(min(k, len(ground_truth))))
+        results[f'ndcg@{k}'] = dcg / idcg if idcg > 0 else 0
+        
+        # mAP@k (Average Precision)
+        ap = 0.0
+        n_hits = 0
+        for i, item in enumerate(topk_k):
+            if item in ground_truth:
+                n_hits += 1
+                ap += n_hits / (i + 1)
+        results[f'map@{k}'] = ap / min(k, len(ground_truth)) if len(ground_truth) > 0 else 0
+    
+    return results
 
 def load_pretrained_embeddings(embedding_type, device='cpu'):
     """Load embeddings from checkpoints"""
@@ -218,8 +229,10 @@ def benchmark(embedding_type, data_path, eval_protocol='full', cold_users=None, 
         user_profiles[u] = torch.mean(embs, dim=0)
 
     # 4. Evaluate
-    k = 10
-    recalls, ndcgs, aucs = [], [], []
+    k_list = [1, 5, 10, 50]
+    max_k = max(k_list)
+    all_results = {f'{m}@{k}': [] for m in ['recall', 'ndcg', 'precision', 'map'] for k in k_list}
+    aucs = []
     
     # Choose which users to evaluate based on protocol
     if eval_protocol == 'cold' and cold_users is not None:
@@ -249,9 +262,9 @@ def benchmark(embedding_type, data_path, eval_protocol='full', cold_users=None, 
             candidate_emb = item_emb[candidate_items]
             scores = torch.mm(u_prof, candidate_emb.t()).squeeze()
             
-            _, topk_local = torch.topk(scores, min(k, len(candidate_items)))
+            _, topk_local = torch.topk(scores, min(max_k, len(candidate_items)))
             topk_list = [candidate_items[i] for i in topk_local.cpu().numpy()]
-            r, n = get_metrics(topk_list, {target_item})
+            metrics = get_metrics(topk_list, {target_item}, k_list)
         else:
             # Full Ranking Protocol
             scores = torch.mm(u_prof, item_emb.t()).squeeze()
@@ -259,9 +272,9 @@ def benchmark(embedding_type, data_path, eval_protocol='full', cold_users=None, 
                 if item < scores.shape[0]: scores[item] = -float('inf')
             
             if len(test_items) == 0: continue
-            _, topk = torch.topk(scores, min(k, scores.shape[0]))
+            _, topk = torch.topk(scores, min(max_k, scores.shape[0]))
             topk_list = topk.cpu().tolist()
-            r, n = get_metrics(topk_list, test_items)
+            metrics = get_metrics(topk_list, test_items, k_list)
             
             # AUC (Only for full ranking)
             valid_indices = scores > -float('inf')
@@ -277,19 +290,21 @@ def benchmark(embedding_type, data_path, eval_protocol='full', cold_users=None, 
                 if np.sum(y_true_np) > 0:
                     aucs.append(roc_auc_score(y_true_np, y_score_np))
             except: pass
-            
-        recalls.append(r)
-        ndcgs.append(n)
         
-    avg_recall = np.mean(recalls)
-    avg_ndcg = np.mean(ndcgs)
-    avg_auc = np.mean(aucs) if aucs else 0.0
+        # Accumulate metrics
+        for key, val in metrics.items():
+            all_results[key].append(val)
+        
+    # Compute averages
+    avg_results = {k: np.mean(v) if v else 0.0 for k, v in all_results.items()}
+    avg_results['auc'] = np.mean(aucs) if aucs else 0.0
     
     print(f"  Result for {embedding_type}:")
-    print(f"  Recall@10: {avg_recall:.4f}")
-    print(f"  NDCG@10:   {avg_ndcg:.4f}")
-    print(f"  AUC:       {avg_auc:.4f}")
-    return avg_recall, avg_ndcg, avg_auc
+    for k in k_list:
+        print(f"  @{k}: R={avg_results[f'recall@{k}']:.4f} N={avg_results[f'ndcg@{k}']:.4f} P={avg_results[f'precision@{k}']:.4f} mAP={avg_results[f'map@{k}']:.4f}")
+    print(f"  AUC: {avg_results['auc']:.4f}")
+    
+    return avg_results
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -316,8 +331,9 @@ if __name__ == "__main__":
     
     all_results = {}
     for emb in embeddings_to_test:
-        recall, ndcg, auc = benchmark(emb, args.data_path, args.eval_protocol, cold_users, device)
-        all_results[emb] = {'recall@10': recall, 'ndcg@10': ndcg, 'auc': auc, 'protocol': args.eval_protocol}
+        metrics = benchmark(emb, args.data_path, args.eval_protocol, cold_users, device)
+        metrics['protocol'] = args.eval_protocol
+        all_results[emb] = metrics
     
     if args.output:
         import json
@@ -332,3 +348,4 @@ if __name__ == "__main__":
         with open(output_path, 'w') as f:
             json.dump(save_data, f, indent=4)
         print(f"Saved results to {output_path}")
+
