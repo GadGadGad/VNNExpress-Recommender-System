@@ -158,11 +158,20 @@ class GNNDataConverter:
         self.replies = pd.DataFrame(interactions).dropna(subset=['user_id', 'article_url'])
         
         # LEAKAGE FIX: Deduplicate interactions!
-        # A user might comment multiple times on the same article.
-        # We only want to model the EXISTENCE of interest, so we keep the first interaction.
-        # This prevents "Train on Comment 1, Test on Comment 2".
         initial_len = len(self.replies)
-        self.replies['date'] = pd.to_datetime(self.replies['date'])
+        
+        # --- BỔ SUNG FIX LỖI DATE (QUAN TRỌNG) ---
+        # 1. Ép kiểu sang datetime, lỗi sẽ thành NaT
+        self.replies['date'] = pd.to_datetime(self.replies['date'], errors='coerce')
+        
+        # 2. Xóa các dòng không có ngày giờ (bao gồm cả NO_COMMENT)
+        # Nếu không xóa, NaT sẽ bị đẩy xuống cuối khi sort -> chui vào tập Test!
+        missing_count = self.replies['date'].isna().sum()
+        if missing_count > 0:
+            print(f"   [CLEANUP] Dropping {missing_count} rows with missing/invalid dates (including NO_COMMENT)...")
+            self.replies = self.replies.dropna(subset=['date'])
+        # ----------------------------------------
+
         self.replies = self.replies.sort_values('date').drop_duplicates(
             subset=['user_id', 'article_url'], keep='first'
         )

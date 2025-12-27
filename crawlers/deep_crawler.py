@@ -231,10 +231,27 @@ class VnExpressDeepCrawler:
             pass
 
         date = "N/A"
-        try:
-            date = element.find_element(By.CSS_SELECTOR, sel.date).text
-        except NoSuchElementException:
-            pass
+        
+        # Danh sách các thẻ HTML chứa ngày giờ thường gặp trên VnExpress
+        date_selectors = [
+            sel.date,              # span.time-com (Mặc định - Bài viết thường)
+            ".time-count",         # Giao diện Video / E-magazine
+            "span.time",           # Giao diện cũ
+            "a.time-com",          # Khi ngày giờ là một đường link
+            ".txt-time",           # Giao diện mobile hoặc rút gọn
+            ".time-public"         # Một số chuyên mục đặc biệt
+        ]
+        
+        # Thử lần lượt từng thẻ, thẻ nào có chữ thì lấy luôn
+        for selector in date_selectors:
+            try:
+                el = element.find_element(By.CSS_SELECTOR, selector)
+                val = el.text.strip()
+                if val: # Nếu lấy được text (không rỗng)
+                    date = val
+                    break # Tìm thấy rồi thì dừng, không tìm tiếp nữa
+            except (NoSuchElementException, Exception):
+                continue # Lỗi thì thử thẻ tiếp theo trong danh sách
 
         reactions = "0"
         try:

@@ -476,7 +476,7 @@ class GNNTrainer:
             user_emb, item_emb, ground_truth, k_values, exclude_train
         )
         
-        _, pos_scores, neg_scores = self._compute_loss(self.test_data)
+        _, pos_scores, neg_scores = self._compute_loss(self.test_data, 'test')
         metrics['AUC'] = RecommenderMetrics.compute_auc(pos_scores, neg_scores)
         
         return metrics
