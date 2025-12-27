@@ -286,6 +286,7 @@ def benchmark(embedding_type, data_path, eval_protocol='full', cold_users=None, 
     print(f"  Recall@10: {avg_recall:.4f}")
     print(f"  NDCG@10:   {avg_ndcg:.4f}")
     print(f"  AUC:       {avg_auc:.4f}")
+    return avg_recall, avg_ndcg, avg_auc
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
