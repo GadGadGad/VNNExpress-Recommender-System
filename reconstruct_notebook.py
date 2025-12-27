@@ -73,21 +73,37 @@ def create_notebook():
     cells.append({
         "cell_type": "markdown",
         "metadata": {},
-        "source": ["## 🔧 Step 2: Graph Generation\n", "Build heterogeneous graph with train/test splits."]
+        "source": [
+            "## 🔧 Step 2: Graph Generation\\n",
+            "Build three graph variants for ablation study:\\n",
+            "- **G1 (Bipartite)**: User-Article edges only\\n",
+            "- **G2 (Heterogeneous)**: + Social edges (reply/interaction)\\n",
+            "- **G3 (Category)**: + Category hub nodes\\n"
+        ]
     })
     
     cells.append({
         "cell_type": "code",
         "metadata": {},
         "source": [
-            "# Build Strict G2 (Heterogeneous with Social Edges)\n",
-            "!python src/data/convert_to_gnn.py --graph-type hetero --output data/processed/strict_g2 --min-user-interactions 2 --min-article-interactions 2\n",
-            "\n",
-            "# Generate train/test splits\n",
-            "!python src/data/convert_to_gnn.py --graph-type with-negatives --output data/processed/strict_g2 --min-user-interactions 2 --min-article-interactions 2\n",
-            "\n",
-            "print('✅ Graph generation complete!')\n",
-            "!ls data/processed/strict_g2/"
+            "# ===== G1: Strict Bipartite =====\\n",
+            "!python src/data/convert_to_gnn.py --graph-type bipartite --output data/processed/strict_g1 --min-user-interactions 2 --min-article-interactions 2\\n",
+            "!python src/data/convert_to_gnn.py --graph-type with-negatives --output data/processed/strict_g1 --min-user-interactions 2 --min-article-interactions 2\\n",
+            "print('✅ G1 (Bipartite) complete!')\\n",
+            "\\n",
+            "# ===== G2: Strict Heterogeneous =====\\n",
+            "!python src/data/convert_to_gnn.py --graph-type hetero --output data/processed/strict_g2 --min-user-interactions 2 --min-article-interactions 2\\n",
+            "!python src/data/convert_to_gnn.py --graph-type with-negatives --output data/processed/strict_g2 --min-user-interactions 2 --min-article-interactions 2\\n",
+            "print('✅ G2 (Heterogeneous) complete!')\\n",
+            "\\n",
+            "# ===== G3: Strict Category-Augmented =====\\n",
+            "!python src/data/convert_to_gnn.py --graph-type hetero --output data/processed/strict_g3 --min-user-interactions 2 --min-article-interactions 2\\n",
+            "!python src/data/augment_graph_with_categories.py --input data/processed/strict_g3 --output data/processed/strict_g3\\n",
+            "!python src/data/convert_to_gnn.py --graph-type with-negatives --output data/processed/strict_g3 --min-user-interactions 2 --min-article-interactions 2\\n",
+            "print('✅ G3 (Category) complete!')\\n",
+            "\\n",
+            "# List all graphs\\n",
+            "!ls data/processed/"
         ],
         "execution_count": None,
         "outputs": []
@@ -140,20 +156,27 @@ def create_notebook():
         "cell_type": "code",
         "metadata": {},
         "source": [
-            "# Standard Hyperparameters (Fair Comparison)\n",
-            "EPOCHS = 100\n",
-            "LR = 0.001\n",
-            "HIDDEN_DIM = 64\n",
-            "N_LAYERS = 3\n",
-            "BATCH_SIZE = 1024\n",
-            "DATA_PATH = 'data/processed/strict_g2'\n",
-            "\n",
-            "# Models and Protocols\n",
-            f"CB_MODELS = {CB_MODELS}\n",
-            f"CF_MODELS = {CF_MODELS}\n",
-            f"PROTOCOLS = {PROTOCOLS}\n",
-            "\n",
-            "print('✅ Hyperparameters set!')"
+            "# Standard Hyperparameters (Fair Comparison)\\n",
+            "EPOCHS = 100\\n",
+            "LR = 0.001\\n",
+            "HIDDEN_DIM = 64\\n",
+            "N_LAYERS = 3\\n",
+            "BATCH_SIZE = 1024\\n",
+            "\\n",
+            "# Graph variants for ablation study\\n",
+            "GRAPH_PATHS = {\\n",
+            "    'G1': 'data/processed/strict_g1',  # Bipartite only\\n",
+            "    'G2': 'data/processed/strict_g2',  # + Social edges\\n",
+            "    'G3': 'data/processed/strict_g3',  # + Category hubs\\n",
+            "}\\n",
+            "\\n",
+            "# Models and Protocols\\n",
+            f"CB_MODELS = {CB_MODELS}\\n",
+            f"CF_MODELS = {CF_MODELS}\\n",
+            f"PROTOCOLS = {PROTOCOLS}\\n",
+            "\\n",
+            "print('✅ Hyperparameters set!')\\n",
+            "print(f'Graph variants: {{list(GRAPH_PATHS.keys())}}')"
         ],
         "execution_count": None,
         "outputs": []
@@ -173,19 +196,20 @@ def create_notebook():
         "cell_type": "code",
         "metadata": {},
         "source": [
-            "# Run CB experiments\n",
-            "for model in CB_MODELS:\n",
-            "    for protocol in PROTOCOLS:\n",
-            "        print(f'\\n{\"=\"*50}')\n",
-            "        print(f'Evaluating CB: {model} | Protocol: {protocol}')\n",
-            "        print(f'{\"=\"*50}')\n",
-            "        !python scripts/benchmark_cbf.py \\\n",
-            "            --model {model} \\\n",
-            "            --data-path {DATA_PATH} \\\n",
-            "            --eval-protocol {protocol} \\\n",
-            "            --output results/cb_{model}_{protocol}.json\n",
-            "\n",
-            "print('\\n✅ CB experiments complete!')"
+            "# Run CB experiments on G2 (main graph with embeddings)\\n",
+            "DATA_PATH = GRAPH_PATHS['G2']  # CB uses G2 for embeddings\\n",
+            "for model in CB_MODELS:\\n",
+            "    for protocol in PROTOCOLS:\\n",
+            "        print(f'\\\\n{\\\"=\\\"*50}')\\n",
+            "        print(f'Evaluating CB: {model} | Protocol: {protocol}')\\n",
+            "        print(f'{\\\"=\\\"*50}')\\n",
+            "        !python scripts/benchmark_cbf.py \\\\\\n",
+            "            --model {model} \\\\\\n",
+            "            --data-path {DATA_PATH} \\\\\\n",
+            "            --eval-protocol {protocol} \\\\\\n",
+            "            --output results/cb_{model}_{protocol}.json\\n",
+            "\\n",
+            "print('\\\\n✅ CB experiments complete!')"
         ],
         "execution_count": None,
         "outputs": []
@@ -196,8 +220,8 @@ def create_notebook():
         "cell_type": "markdown",
         "metadata": {},
         "source": [
-            "## 🔗 Step 6: Collaborative Filtering (CF) Experiments\n",
-            "Train and evaluate GNN-based CF models."
+            "## 🔗 Step 6: Collaborative Filtering (CF) Experiments\\n",
+            "Train and evaluate GNN-based CF models on all graph variants (G1, G2, G3)."
         ]
     })
     
@@ -205,24 +229,25 @@ def create_notebook():
         "cell_type": "code",
         "metadata": {},
         "source": [
-            "# Run CF experiments\n",
-            "for model in CF_MODELS:\n",
-            "    for protocol in PROTOCOLS:\n",
-            "        print(f'\\n{\"=\"*50}')\n",
-            "        print(f'Training CF: {model} | Protocol: {protocol}')\n",
-            "        print(f'{\"=\"*50}')\n",
-            "        !python scripts/train_cf_models.py \\\n",
-            "            --model {model} \\\n",
-            "            --data-path {DATA_PATH} \\\n",
-            "            --epochs {EPOCHS} \\\n",
-            "            --lr {LR} \\\n",
-            "            --hidden-dim {HIDDEN_DIM} \\\n",
-            "            --n-layers {N_LAYERS} \\\n",
-            "            --batch-size {BATCH_SIZE} \\\n",
-            "            --eval-protocol {protocol} \\\n",
-            "            --save-results results/cf_{model}_{protocol}.json\n",
-            "\n",
-            "print('\\n✅ CF experiments complete!')"
+            "# Run CF experiments on ALL graph variants\\n",
+            "for graph_name, data_path in GRAPH_PATHS.items():\\n",
+            "    for model in CF_MODELS:\\n",
+            "        for protocol in PROTOCOLS:\\n",
+            "            print(f'\\\\n{\\\"=\\\"*60}')\\n",
+            "            print(f'Training CF: {model} | Graph: {graph_name} | Protocol: {protocol}')\\n",
+            "            print(f'{\\\"=\\\"*60}')\\n",
+            "            !python scripts/train_cf_models.py \\\\\\n",
+            "                --model {model} \\\\\\n",
+            "                --data-path {data_path} \\\\\\n",
+            "                --epochs {EPOCHS} \\\\\\n",
+            "                --lr {LR} \\\\\\n",
+            "                --hidden-dim {HIDDEN_DIM} \\\\\\n",
+            "                --n-layers {N_LAYERS} \\\\\\n",
+            "                --batch-size {BATCH_SIZE} \\\\\\n",
+            "                --eval-protocol {protocol} \\\\\\n",
+            "                --save-results results/cf_{model}_{graph_name}_{protocol}.json\\n",
+            "\\n",
+            "print('\\\\n✅ CF experiments complete!')"
         ],
         "execution_count": None,
         "outputs": []
