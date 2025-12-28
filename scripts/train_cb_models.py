@@ -49,11 +49,23 @@ def load_data(data_path: str, articles_path: str = None):
     data_path = Path(data_path)
     
     # Try loading from processed graph file (has train/test splits)
-    graph_file = data_path / "user_article_graph.pt"
-    if not graph_file.exists():
-        # Fallback: try any .pt file
+    # Priority: user_article_graph (bipartite) > hetero_graph > category_graph > any .pt
+    priority_files = ["user_article_graph.pt", "hetero_graph.pt", "category_graph.pt"]
+    graph_file = None
+    
+    for fname in priority_files:
+        if (data_path / fname).exists():
+            graph_file = data_path / fname
+            break
+            
+    if not graph_file:
+        # Fallback: try any .pt file that is NOT split_indices_random.pt (auxiliary file)
         graph_files = list(data_path.glob("*.pt"))
-        graph_file = graph_files[0] if graph_files else None
+        valid_files = [f for f in graph_files if "split_indices" not in f.name]
+        graph_file = valid_files[0] if valid_files else (graph_files[0] if graph_files else None)
+    
+    if graph_file:
+        print(f"Loading data from: {graph_file.name}")
     
     train_dict, test_dict = defaultdict(list), defaultdict(list)
     n_users, n_items = 0, 0
@@ -140,6 +152,8 @@ def evaluate(model, test_dict, train_dict, k_list=[1, 5, 10, 50]):
         try:
             recs, scores = model.recommend(history, k=max_k, exclude_read=True)
         except Exception as e:
+            if skipped_users < 5: # Print first 5 errors to avoid spam
+                print(f"Error recommending for user {user}: {e}")
             skipped_users += 1
             continue
         
@@ -281,6 +295,11 @@ def main():
                 print("Error: article_texts required. Provide --articles-path")
                 return
             model.encode_articles(article_texts, batch_size=args.batch_size)
+
+        # For Zero-shot evaluation (no training), replace the initialized MLP with Identity
+        # This ensures we evaluate the raw quality of the embeddings
+        print("[Info] Replacing user_preference_encoder with Identity for Zero-shot evaluation")
+        model.user_preference_encoder = torch.nn.Identity()
     
     # Evaluate
     print("\nEvaluating...")
