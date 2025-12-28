@@ -1030,8 +1030,7 @@ def main():
 
 
     # Persistent Tabs (Radio styled as tabs)
-    # Inference Selection
-    tabs = ["🚀 Recommendations", "⚔️ Comparison"]
+    tabs = ["🚀 Recommendations", "⚔️ Comparison", "🆕 Cold Start"]
     nav = st.radio("Navigation", tabs, key="main_nav", horizontal=True, label_visibility="collapsed")
     
     # Internal flag for advanced features (hidden but can be toggled by query param if needed)
@@ -1242,9 +1241,106 @@ def main():
         elif st.session_state.get('ab_compare_run'):
             st.warning("User not found in CF data. Please select a valid user.")
 
+    # --- PAGE 3: COLD START (NEW USER) ---
+    if nav == "🆕 Cold Start":
+        st.header("❄️ Cold Start Simulation")
+        st.caption("Giả lập người dùng mới chưa có lịch sử (Cold Start) bằng cách chọn sở thích.")
+        
+        col_input, col_result = st.columns([1, 2])
+        
+        with col_input:
+            st.subheader("1. Tạo hồ sơ sở thích")
+            
+            # Lấy danh sách chuyên mục
+            all_cats = sorted(articles_df['source_category'].dropna().unique().tolist())
+            cat_options = [c for c in all_cats if c in CATEGORY_MAP] # Chỉ lấy các mục có trong map
+            
+            # Form nhập liệu
+            selected_cats = st.multiselect("Chủ đề quan tâm:", cat_options, 
+                                          format_func=lambda x: CATEGORY_MAP.get(x, x))
+            
+            keywords = st.text_input("Từ khóa cụ thể (tùy chọn):", 
+                                    placeholder="Ví dụ: AI, bóng đá, đầu tư...")
+            
+            st.info("Hệ thống sẽ tổng hợp 'User Vector' từ các bài viết khớp với sở thích của bạn để tìm gợi ý tương đồng.")
+            
+            run_cold_start = st.button("🚀 Tạo hồ sơ & Gợi ý", type="primary")
 
-
-
+        with col_result:
+            if run_cold_start:
+                if not selected_cats and not keywords:
+                    st.warning("⚠️ Vui lòng chọn ít nhất một chủ đề hoặc nhập từ khóa!")
+                else:
+                    with st.spinner("Đang khởi tạo User Vector và tìm kiếm..."):
+                        # 1. Lọc các bài viết
+                        mask = pd.Series([True] * len(articles_df))
+                        
+                        if selected_cats:
+                            mask &= articles_df['source_category'].isin(selected_cats)
+                        
+                        if keywords:
+                            kw_mask = (articles_df['title'].str.contains(keywords, case=False, na=False)) | \
+                                      (articles_df['short_description'].str.contains(keywords, case=False, na=False))
+                            mask &= kw_mask
+                        
+                        matched_indices = np.flatnonzero(mask)
+                        
+                        if len(matched_indices) == 0:
+                            st.error("Không tìm thấy bài viết nào khớp với tiêu chí. Hãy thử từ khóa khác.")
+                        else:
+                            # Random lấy mẫu nếu quá nhiều
+                            if len(matched_indices) > 20:
+                                matched_indices = np.random.choice(matched_indices, 20, replace=False)
+                            
+                            st.success(f"✅ Đã tìm thấy {len(matched_indices)} bài viết mẫu để định hình sở thích.")
+                            
+                            # 2. Load Model
+                            preferred_models = ["vn-sbert", "bge-m3", "tf-idf"]
+                            best_model_name = next((m for m in preferred_models if m in MODEL_OPTIONS["CB"]), "tf-idf")
+                            
+                            model = load_cb_model(best_model_name, articles_df)
+                            
+                            if model:
+                                try:
+                                    # --- SỬA Ở ĐÂY: Thêm .tolist() để chuyển numpy array thành list ---
+                                    rec_indices, rec_scores = model.recommend(matched_indices.tolist(), k=15)
+                                    
+                                    st.subheader(f"🎯 Gợi ý cho bạn (theo {best_model_name})")
+                                    
+                                    for i, (idx, score) in enumerate(zip(rec_indices, rec_scores)):
+                                        if idx in matched_indices: continue
+                                        
+                                        row = articles_df.iloc[idx]
+                                        title = row.get('title', 'No Title')
+                                        desc = row.get('short_description', '')
+                                        cat = CATEGORY_MAP.get(row.get('source_category', ''), 'Khác')
+                                        url = row.get('url', '#')
+                                        
+                                        st.markdown(f"""
+                                        <div style="background: white; padding: 10px; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid #ff4b4b; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                            <div style="font-weight: bold; font-size: 1.05em;">
+                                                <a href="{url}" target="_blank" style="text-decoration: none; color: #31333F;">{title}</a>
+                                            </div>
+                                            <div style="font-size: 0.85em; color: #666; margin: 4px 0;">{desc[:100]}...</div>
+                                            <div style="font-size: 0.8em; color: #888;">
+                                                <span style="background: #f0f2f6; padding: 2px 6px; border-radius: 4px;">{cat}</span> 
+                                                • Độ phù hợp: {score:.2f}
+                                            </div>
+                                        </div>
+                                        """, unsafe_allow_html=True)
+                                        
+                                except Exception as e:
+                                    st.error(f"Lỗi khi gợi ý: {e}")
+                            else:
+                                st.error(f"Không thể tải model {best_model_name}.")
+            else:
+                # Màn hình chờ
+                st.markdown("""
+                <div style="text-align: center; color: #888; padding: 50px;">
+                    <h3>👈 Hãy nhập sở thích bên trái để bắt đầu</h3>
+                    <p>Hệ thống sẽ phân tích ngữ nghĩa để tìm nội dung phù hợp nhất cho bạn.</p>
+                </div>
+                """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
