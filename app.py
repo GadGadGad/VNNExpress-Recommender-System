@@ -345,6 +345,82 @@ def plot_embedding_space(model, user_idx, history_urls, recommended_urls, articl
         st.error(f"Lỗi vẽ biểu đồ: {str(e)}")
         return None
 
+# --- ADD THIS FUNCTION ---
+def generate_user_wordcloud(history_urls, articles_df):
+    """Tạo WordCloud từ tiêu đề lịch sử đọc"""
+    if not history_urls: return None
+    try:
+        # Lấy text từ tiêu đề các bài đã đọc
+        hist_df = articles_df[articles_df['url'].isin(history_urls)]
+        text = " ".join(hist_df['title'].astype(str).tolist())
+        
+        # Config WordCloud
+        wc = WordCloud(
+            width=400, height=200, 
+            background_color='white',
+            colormap='viridis',
+            max_words=50,
+            font_path=None # Có thể thêm font tiếng Việt nếu cần
+        ).generate(text)
+        
+        fig, ax = plt.subplots(figsize=(5, 2.5))
+        ax.imshow(wc, interpolation='bilinear')
+        ax.axis('off')
+        plt.tight_layout(pad=0)
+        return fig
+    except Exception as e:
+        return None
+
+# --- ADD THIS FUNCTION ---
+def explain_recommendation(rec_url, history_urls, articles_df, source_type):
+    """
+    Tạo câu giải thích lý do gợi ý dựa trên Content hoặc Social.
+    Sử dụng so sánh chuỗi đơn giản (Jaccard) để tìm bài tương đồng trong lịch sử.
+    """
+    try:
+        # 1. Nếu là nguồn Social (CF), giải thích theo đám đông
+        if source_type == "Social":
+            return "👥 <b>Cộng đồng:</b> Phổ biến với những người dùng có gu giống bạn."
+
+        # 2. Nếu là Content/Hybrid, tìm bài tương tự nhất trong lịch sử
+        rec_row = articles_df[articles_df['url'] == rec_url]
+        if rec_row.empty: return ""
+        rec_row = rec_row.iloc[0]
+        rec_tokens = set(str(rec_row['title']).lower().split())
+        rec_cat = rec_row.get('source_category', '')
+
+        best_match_title = None
+        max_score = 0
+        
+        # Chỉ so sánh với 20 bài gần nhất để nhanh
+        recent_history = history_urls[-20:]
+        hist_rows = articles_df[articles_df['url'].isin(recent_history)]
+        
+        for _, h_row in hist_rows.iterrows():
+            if h_row['url'] == rec_url: continue
+            
+            # Tính độ trùng lặp từ khóa (Jaccard Similarity đơn giản)
+            h_tokens = set(str(h_row['title']).lower().split())
+            intersection = len(rec_tokens & h_tokens)
+            union = len(rec_tokens | h_tokens)
+            score = intersection / union if union > 0 else 0
+            
+            if score > max_score:
+                max_score = score
+                best_match_title = h_row['title']
+        
+        # Ngưỡng chọn giải thích
+        if max_score > 0.1: # Nếu trùng lặp từ khóa kha khá
+            return f"💡 <b>Nội dung:</b> Tương tự bài <i>'{str(best_match_title)[:30]}...'</i> bạn đã đọc."
+        elif rec_cat: # Nếu không trùng từ khóa, giải thích theo Category
+            cat_name = CATEGORY_MAP.get(rec_cat, rec_cat)
+            return f"📂 <b>Chủ đề:</b> Thuộc danh mục <i>{cat_name}</i> mà bạn quan tâm."
+        else:
+            return "✨ <b>Gợi ý:</b> Có thể bạn sẽ thích bài này."
+            
+    except Exception:
+        return ""
+
 class PhoBERTWrapper:
     """Wrapper for pre-computed PhoBERT/SimCSE embeddings for recommendation."""
     
@@ -1083,10 +1159,15 @@ CF_GRAPHS = {
 def main():
 
     st.title("📰 Comprehensive RecSys Dashboard")
-    
     # Session State for Paths
     if 'data_dir' not in st.session_state: st.session_state['data_dir'] = DATA_DIR
     if 'raw_dir' not in st.session_state: st.session_state['raw_dir'] = RAW_DIR
+    
+    # --- 1. CHỈ KHỞI TẠO STATE Ở ĐÂY (KHÔNG KIỂM TRA selected_user) ---
+    if 'session_likes' not in st.session_state:
+        st.session_state['session_likes'] = []
+    if 'last_selected_user' not in st.session_state:
+        st.session_state['last_selected_user'] = None
     
     # --- SIDEBAR: GLOBAL CONFIG ---
     st.sidebar.title("📊 Experiment Dashboard")
@@ -1198,7 +1279,9 @@ def main():
     else:
         selected_user = user_ids[int(selected_idx) - 1]
     
-
+    if selected_user != st.session_state['last_selected_user']:
+        st.session_state['session_likes'] = []
+        st.session_state['last_selected_user'] = selected_user
 
     # Persistent Tabs (Radio styled as tabs)
     tabs = ["🚀 Recommendations", "⚔️ Comparison", "🆕 Cold Start"]
@@ -1249,7 +1332,15 @@ def main():
             freshness_weight = st.slider("Freshness Intensity", 0.0, 0.5, 0.2, 0.05) if use_freshness else 0.0
             
             if selected_user:
-                history = list(dict.fromkeys(user_history.get(selected_user, [])))
+                real_history = list(dict.fromkeys(user_history.get(selected_user, [])))
+                
+                # Gộp với các bài vừa bấm Like trong phiên này
+                session_likes = st.session_state['session_likes']
+                
+                # Tạo lịch sử tổng hợp (Dùng set để loại bỏ trùng lặp nếu có)
+                history = list(dict.fromkeys(real_history + session_likes))
+                # --------------------
+                
                 is_cold = selected_user not in user_map_cf
                 
                 status_color = "blue" if not is_cold else "cyan"
@@ -1264,6 +1355,12 @@ def main():
                             title = str(meta.get('title', 'Unknown'))
                             st.markdown(f"<small>**#{i}** {title[:50]}...</small>", unsafe_allow_html=True)
                         if len(history) > 5: st.caption(f"... +{len(history)-5} more")
+                        st.markdown("---")
+                        st.markdown("**☁️ Gu đọc của bạn**")
+                        wc_fig = generate_user_wordcloud(history, articles_df)
+                        if wc_fig:
+                            st.pyplot(wc_fig, use_container_width=True)
+                            st.caption("Các từ khóa xuất hiện nhiều trong lịch sử đọc.")
 
         with col_R:
             st.subheader("📊 Recommended for You")
@@ -1324,7 +1421,13 @@ def main():
                         st.warning("No recommendations found. Try a different strategy.")
                     else:
                         url_to_meta = articles_df.set_index('url')[['title', 'short_description', 'source_category']].to_dict('index')
+                        # ... (Code cũ phần tiêu đề bảng kết quả) ...
+                        
+                        # --- VÒNG LẶP HIỂN THỊ ĐÃ FIX LỖI INDENTATION ---
                         for i, (url, score, cf_s, cb_s, source) in enumerate(top_recs):
+                            # Bỏ qua bài đã nằm trong lịch sử
+                            if url in history: continue
+                            
                             meta = url_to_meta.get(url, {})
                             title = str(meta.get('title', 'Unknown'))[:80]
                             desc = str(meta.get('short_description', ''))[:120]
@@ -1333,22 +1436,40 @@ def main():
                             source_colors = {"Hybrid": "#9c27b0", "Social": "#2196f3", "Content": "#4caf50"}
                             s_color = source_colors.get(source, "#888")
                             
-                            st.markdown(f"""
-                            <div style="padding:15px; margin:10px 0; border-radius:12px; background:#fff; border-left:5px solid {s_color}; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
-                                <div style="display:flex; justify-content:space-between; align-items:center;">
-                                    <span style="color:#888; font-weight:bold;">#{i+1}</span>
-                                    <span style="background:{s_color}; color:white; padding:2px 8px; border-radius:10px; font-size:0.75em;">{source} • {score:.3f}</span>
-                                </div>
-                                <div style="font-weight:bold; margin:6px 0; font-size:1.1em; color:#2c3e50;">
-                                    <a href="{url}" target="_blank" style="text-decoration:none; color:inherit;">{title}</a>
-                                </div>
-                                <div style="font-size:0.9em; color:#666; margin-bottom:10px;">{desc}...</div>
-                                <div style="display:flex; justify-content:space-between; align-items:center;">
-                                    <span style="background:#f0f2f6; padding:2px 8px; border-radius:5px; font-size:0.8em; color:#555;">{cat}</span>
-                                    <a href="{url}" target="_blank" style="font-size:0.85em; color:{s_color}; text-decoration:none; font-weight:bold;">Đọc ngay →</a>
-                                </div>
-                            </div>
-                            """, unsafe_allow_html=True)
+                            explanation_text = explain_recommendation(url, history, articles_df, source)
+                            
+                            col_btn, col_content = st.columns([0.1, 0.9])
+                            
+                            with col_btn:
+                                st.write("") 
+                                st.write("")
+                                if st.button("💬", key=f"like_{i}_{url}", help="Thích & Xem thêm bài tương tự"):
+                                    st.session_state['session_likes'].append(url)
+                                    st.toast(f"Đã thêm bài viết vào sở thích!", icon="✅")
+                                    st.rerun()
+                            
+                            with col_content:
+                                # LƯU Ý: Chuỗi HTML bên dưới phải nằm sát lề trái (không thụt vào)
+                                html_content = f"""
+<div style="padding:15px; margin:5px 0; border-radius:12px; background:#fff; border-left:5px solid {s_color}; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="color:#888; font-weight:bold;">#{i+1}</span>
+        <span style="background:{s_color}; color:white; padding:2px 8px; border-radius:10px; font-size:0.75em;">{source} • {score:.3f}</span>
+    </div>
+    <div style="font-weight:bold; margin:6px 0; font-size:1.1em; color:#2c3e50;">
+        <a href="{url}" target="_blank" style="text-decoration:none; color:inherit;">{title}</a>
+    </div>
+    <div style="margin-bottom:8px; font-size:0.9em; color:#57606f; background:#f1f2f6; padding:5px 10px; border-radius:6px;">
+        {explanation_text}
+    </div>
+    <div style="font-size:0.9em; color:#666; margin-bottom:10px;">{desc}...</div>
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="background:#f0f2f6; padding:2px 8px; border-radius:5px; font-size:0.8em; color:#555;">{cat}</span>
+        <a href="{url}" target="_blank" style="font-size:0.85em; color:{s_color}; text-decoration:none; font-weight:bold;">Đọc ngay →</a>
+    </div>
+</div>
+"""
+                                st.markdown(html_content, unsafe_allow_html=True)
                         
                         # Trực quan hóa nếu đang dùng mô hình CF (Social) hoặc Hybrid
                         if cf_model and selected_user in user_map_cf and actual_alpha > 0:
