@@ -38,6 +38,7 @@ logs/
 .ipynb_checkpoints/
 *.ipynb
 !notebooks/kaggle_train.ipynb
+!notebooks/ds300-benchmark.ipynb
 
 # --- Crawler Cache & Temp Files ---
 crawlers/.cache/

@@ -121,21 +121,23 @@
 \headcommand {\beamer@framepages {50}{50}}
 \headcommand {\slideentry {7}{0}{17}{51/51}{}{0}}
 \headcommand {\beamer@framepages {51}{51}}
-\headcommand {\beamer@sectionpages {35}{51}}
-\headcommand {\beamer@subsectionpages {35}{51}}
-\headcommand {\sectionentry {8}{Live Demo \& Conclusion}{52}{Live Demo \& Conclusion}{0}}
-\headcommand {\slideentry {8}{0}{1}{52/52}{}{0}}
+\headcommand {\slideentry {7}{0}{18}{52/52}{}{0}}
 \headcommand {\beamer@framepages {52}{52}}
-\headcommand {\slideentry {8}{0}{2}{53/53}{}{0}}
+\headcommand {\beamer@sectionpages {35}{52}}
+\headcommand {\beamer@subsectionpages {35}{52}}
+\headcommand {\sectionentry {8}{Live Demo \& Conclusion}{53}{Live Demo \& Conclusion}{0}}
+\headcommand {\slideentry {8}{0}{1}{53/53}{}{0}}
 \headcommand {\beamer@framepages {53}{53}}
-\headcommand {\slideentry {8}{0}{3}{54/54}{}{0}}
+\headcommand {\slideentry {8}{0}{2}{54/54}{}{0}}
 \headcommand {\beamer@framepages {54}{54}}
-\headcommand {\slideentry {8}{0}{4}{55/55}{}{0}}
+\headcommand {\slideentry {8}{0}{3}{55/55}{}{0}}
 \headcommand {\beamer@framepages {55}{55}}
-\headcommand {\slideentry {8}{0}{5}{56/56}{}{0}}
+\headcommand {\slideentry {8}{0}{4}{56/56}{}{0}}
 \headcommand {\beamer@framepages {56}{56}}
-\headcommand {\beamer@partpages {1}{56}}
-\headcommand {\beamer@subsectionpages {52}{56}}
-\headcommand {\beamer@sectionpages {52}{56}}
-\headcommand {\beamer@documentpages {56}}
-\headcommand {\gdef \inserttotalframenumber {56}}
+\headcommand {\slideentry {8}{0}{5}{57/57}{}{0}}
+\headcommand {\beamer@framepages {57}{57}}
+\headcommand {\beamer@partpages {1}{57}}
+\headcommand {\beamer@subsectionpages {53}{57}}
+\headcommand {\beamer@sectionpages {53}{57}}
+\headcommand {\beamer@documentpages {57}}
+\headcommand {\gdef \inserttotalframenumber {57}}

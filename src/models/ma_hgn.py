@@ -6,7 +6,7 @@ using a Heterogeneous Attention mechanism.
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch_geometric.nn import HeteroConv, GATConv, SAGEConv
+from torch_geometric.nn import HeteroConv, GATConv, SAGEConv, GCNConv, TransformerConv
 from .base_gcl import BaseGCL
 
 class MAHGN(nn.Module):
@@ -15,13 +15,14 @@ class MAHGN(nn.Module):
     Models 'Social' (user-user) and 'Behavioral' (user-article) signals 
     with different semantic weights.
     """
-    def __init__(self, n_users, n_items, embedding_dim=64, n_layers=2, dropout=0.2, n_categories=0):
+    def __init__(self, n_users, n_items, embedding_dim=64, n_layers=2, dropout=0.2, n_categories=0, gnn_type='gat'):
         super().__init__()
         self.n_users = n_users
         self.n_items = n_items
         self.n_categories = n_categories
         self.embedding_dim = embedding_dim
         self.n_layers = n_layers
+        self.gnn_type = gnn_type.lower()
         
         # Learnable embeddings
         self.user_emb = nn.Embedding(n_users, embedding_dim)
@@ -32,16 +33,29 @@ class MAHGN(nn.Module):
         # Heterogeneous Convolution layers
         self.convs = nn.ModuleList()
         for i in range(n_layers):
+            # Dynamic GNN selection
+            def get_gnn_layer(in_channels, out_channels):
+                if self.gnn_type == 'gat':
+                    return GATConv((in_channels, in_channels), out_channels // 4, heads=4, add_self_loops=False)
+                elif self.gnn_type == 'transformer':
+                    return TransformerConv((in_channels, in_channels), out_channels // 4, heads=4)
+                elif self.gnn_type == 'gcn':
+                    return GCNConv(in_channels, out_channels, add_self_loops=False)
+                elif self.gnn_type == 'sage':
+                    return SAGEConv(in_channels, out_channels)
+                else:
+                    return GATConv((in_channels, in_channels), out_channels // 4, heads=4, add_self_loops=False)
+
             # We explicitly define convs for each relationship aspect
             conv_dict = {
-                ('user', 'comments', 'article'): GATConv((embedding_dim, embedding_dim), embedding_dim // 4, heads=4, add_self_loops=False),
-                ('article', 'rev_comments', 'user'): GATConv((embedding_dim, embedding_dim), embedding_dim // 4, heads=4, add_self_loops=False),
-                ('user', 'replied_to', 'user'): SAGEConv(embedding_dim, embedding_dim),
-                ('user', 'interacts_with', 'user'): SAGEConv(embedding_dim, embedding_dim),
-                ('article', 'belongs_to', 'category'): SAGEConv(embedding_dim, embedding_dim),
-                ('category', 'has_article', 'article'): SAGEConv(embedding_dim, embedding_dim),
-                ('user', 'interested_in', 'category'): SAGEConv(embedding_dim, embedding_dim),
-                ('category', 'attracts', 'user'): SAGEConv(embedding_dim, embedding_dim)
+                ('user', 'comments', 'article'): get_gnn_layer(embedding_dim, embedding_dim),
+                ('article', 'rev_comments', 'user'): get_gnn_layer(embedding_dim, embedding_dim),
+                ('user', 'replied_to', 'user'): get_gnn_layer(embedding_dim, embedding_dim),
+                ('user', 'interacts_with', 'user'): get_gnn_layer(embedding_dim, embedding_dim),
+                ('article', 'belongs_to', 'category'): get_gnn_layer(embedding_dim, embedding_dim),
+                ('category', 'has_article', 'article'): get_gnn_layer(embedding_dim, embedding_dim),
+                ('user', 'interested_in', 'category'): get_gnn_layer(embedding_dim, embedding_dim),
+                ('category', 'attracts', 'user'): get_gnn_layer(embedding_dim, embedding_dim)
             }
             self.convs.append(HeteroConv(conv_dict, aggr='sum'))
             

@@ -1196,8 +1196,9 @@ def main():
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--weight-decay', type=float, default=1e-4)
     parser.add_argument('--hidden-dim', type=int, default=64)
-    parser.add_argument('--n-layers', type=int, default=3)
-    parser.add_argument('--dropout', type=float, default=0.2, help='Dropout rate (default: 0.2)')
+    parser.add_argument('--re-rank', action='store_true', help='Use Semantic Re-ranking')
+    parser.add_argument('--gnn-type', choices=['gat', 'sage', 'gcn', 'transformer'], default='gat', help='GNN type for MA-HGN (gat, sage, gcn, transformer)')
+    parser.add_argument('--cold-p', type=float, default=0.2, help='Percentage of cold users for evaluation')
     parser.add_argument('--patience', type=int, default=10)
     parser.add_argument('--device', default='cuda' if torch.cuda.is_available() else 'cpu')
     # LightGCL-specific parameters
@@ -1465,7 +1466,7 @@ def main():
              print("  Transferred embeddings to MA-HCL")
              
     elif args.model == 'ma_hgn':
-        model = MAHGN(n_users, n_items, args.hidden_dim, args.n_layers, args.dropout).to(device)
+        model = MAHGN(n_users, n_items, args.hidden_dim, n_layers=args.n_layers, n_categories=data.get('n_categories', 0), gnn_type=args.gnn_type).to(device)
 
     elif args.model == 'xsimgcl':
         model = XSimGCL(n_users, n_items, embedding_dim=args.hidden_dim, n_layers=args.n_layers,

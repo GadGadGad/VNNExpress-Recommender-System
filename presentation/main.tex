@@ -540,6 +540,64 @@
 %------------------------------------------------------------
 
 \begin{frame}
+    \frametitle{Inspiration & Theoretical Foundation}
+    \textbf{Where did this idea come from?}
+    Our architecture is an adaptation of the \textbf{HGNR} framework, optimized with LightGCN mechanics.
+
+    \vspace{0.3cm}
+    \begin{columns}[T]
+        \begin{column}{0.48\textwidth}
+            \begin{block}{1. HGNR (arXiv:2009.00799)}
+                \textbf{Heterogeneous GNN for Recommendation}
+                \begin{itemize}
+                    \item \textbf{Key Idea:} Users and items have multiple types of relationships (e.g., Click vs Reply).
+                    \item \textbf{Mechanism:} Use relation-specific aggregation steps.
+                \end{itemize}
+            \end{block}
+        \end{column}
+
+        \begin{column}{0.48\textwidth}
+            \begin{block}{2. LightGCN (He et al., SIGIR'20)}
+                \textbf{Simplified GCN for Recommendation}
+                \begin{itemize}
+                    \item \textbf{Key Idea:} Non-linearities (ReLU) are effectively redundant for collaborative filtering.
+                    \item \textbf{Mechanism:} Linear propagation + Layer averaging.
+                \end{itemize}
+            \end{block}
+        \end{column}
+    \end{columns}
+
+    \vspace{0.2cm}
+    \centering
+    $\Rightarrow$ \textbf{MA-HGN = HGNR's Multi-Relation logic + LightGCN's Efficiency}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Motivation: Why a Heterogeneous GNN?}
+    \textbf{The Problem with Standard GNNs (LightGCN, NGCF):}
+    \begin{itemize}
+        \item They treat the graph as \textbf{Homogeneous}: All nodes are just "IDs", all edges are just "links".
+        \item \color{red} \textbf{Failure Case:} \color{black} A "Reply" (social trust) is treated identically to a "Click" (casual interest).
+    \end{itemize}
+
+    \vspace{0.3cm}
+    \textbf{The VnExpress Reality:}
+    \begin{itemize}
+        \item \textbf{Multiple Node Types:} Users $\ne$ Items.
+        \item \textbf{Multiple Edge Types:}
+              \begin{itemize}
+                  \item \texttt{User-Click-Item}: Explicit Interest.
+                  \item \texttt{User-Reply-User}: Social Influence / Trust.
+              \end{itemize}
+    \end{itemize}
+
+    \vspace{0.2cm}
+    \begin{block}{The MA-HGN Solution}
+        We need an architecture that aggregates \textbf{Social Signals} separately from \textbf{Content Signals} before fusing them.
+    \end{block}
+\end{frame}
+
+\begin{frame}
     \frametitle{MA-HGN: Multi-Aspect Heterogeneous GNN}
     \begin{columns}
         \begin{column}{0.55\textwidth}
@@ -678,103 +736,130 @@
 %------------------------------------------------------------
 
 \begin{frame}
-    \frametitle{Final Benchmark Results (Fixed Data Leakage)}
-    \footnotesize
+    \frametitle{Benchmark 1: Mainstream Recommendation (LOO)}
+    \textbf{Protocol:} Leave-One-Out (Test on latest interaction). \\
+    \textbf{Focus:} Accuracy on warm-start users.
+
     \begin{table}
         \centering
-        \footnotesize
+        \scriptsize
         \begin{tabular}{l|c|cc|c}
             \toprule
-            \textbf{Model}                           & \textbf{Type} & \textbf{R@10}   & \textbf{N@10}   & \textbf{Protocol} \\
+            \textbf{Model}                           & \textbf{Type}   & \textbf{R@10}   & \textbf{N@10}   & \textbf{Gain}   \\
             \midrule
-            \rowcolor{green!15} \textbf{SimGCL (G2)} & \textbf{CF}   & \textbf{0.2988} & \textbf{0.2177} & \textbf{Cold}     \\
-            \rowcolor{green!15} \textbf{SimGCL (G3)} & \textbf{CF}   & \textbf{0.2932} & \textbf{0.2076} & \textbf{Cold}     \\
-            \rowcolor{green!15} \textbf{SimGCL (G3)} & \textbf{CF}   & \textbf{0.2127} & \textbf{0.1391} & \textbf{Full}     \\
-            \midrule
-            \rowcolor{yellow!20} \textbf{bge-m3}     & \textbf{CB}   & \textbf{0.0412} & \textbf{0.0182} & \textbf{Cold}     \\
-            vn-sbert                                 & CB            & 0.0406          & 0.0215          & Cold              \\
-            tfidf                                    & CB            & 0.0286          & 0.0147          & Cold              \\
-            \midrule
-            \textbf{xsimgcl (G2)}                    & CF            & 0.2504          & 0.1620          & LOO               \\
-            \rowcolor{blue!10} \textbf{xsimgcl (G3)} & \textbf{CF}   & \textbf{0.2617} & \textbf{0.1649} & \textbf{LOO}      \\
-
-            \midrule
-            HetGNN (G1)                              & Hetero        & 0.0518          & 0.0278          & Cold              \\
-            MA-HCL (G2)                              & Hetero        & 0.0469          & 0.0264          & Cold              \\
-            MA-HGN (G3)                              & Hetero        & 0.0209          & 0.0090          & Cold              \\
+            \rowcolor{green!15} \textbf{MA-HGN (G2)} & \textbf{Hetero} & \textbf{0.4364} & \textbf{0.2636} & \textbf{Best}   \\
+            \rowcolor{green!15} \textbf{BIGCF (G1)}  & \textbf{CF}     & \textbf{0.4015} & \textbf{0.2488} & \textbf{-8.0\%} \\
+            NGCF (G2)                                & CF              & 0.3389          & 0.2180          & -22.3\%         \\
+            LightGCL (G1)                            & Graph CL        & 0.3081          & 0.2021          & -29.4\%         \\
+            XSimGCL (G2)                             & Graph CL        & 0.3036          & 0.2002          & -30.4\%         \\
+            IGCL (G3)                                & Graph CL        & 0.2845          & 0.1832          & -34.8\%         \\
+            MA-HCL (G3)                              & Hetero CL       & 0.2260          & 0.1491          & -48.2\%         \\
+            SimGCL (G3)                              & Graph CL        & 0.2181          & 0.1333          & -50.0\%         \\
             \bottomrule
         \end{tabular}
     \end{table}
     \vspace{0.1cm}
-    \textbf{Observation:} After fixing data leakage, CF models still outperform CB models, but with realistic margins. \textbf{SimGCL} remains robust for cold-start users.
+    \textbf{Result:} \textbf{MA-HGN} outperforms standard GNNs by leveraging heterogeneous graph signals (User-User + User-Article), proving the value of social fusion.
 \end{frame}
-
-
 
 \begin{frame}
-    \frametitle{Edge Weighting Strategy}
-    \textbf{Problem:} Not all interactions are equal. How do we model engagement quality?
+    \frametitle{Benchmark 2: Cold-Start / Zero-Shot (Full)}
+    \textbf{Protocol:} 80/20 Split (Random). \\
+    \textbf{Focus:} Retrieving relevant content based strictly on content similarity (Handling new users/items).
 
-    \vspace{0.3cm}
-    \begin{block}{Edge Weight Formula}
+    \begin{table}
         \centering
-        \Large
-        $w_{ui} = \underbrace{(1 + \log(1 + r))}_{\text{Engagement Boost}} \times \underbrace{e^{-\lambda \Delta t}}_{\text{Time Decay}}$
-    \end{block}
-
-    \vspace{0.3cm}
-    \begin{columns}[T]
-        \begin{column}{0.48\textwidth}
-            \textbf{Engagement Boost:}
-            \begin{itemize}
-                \item $r$ = reaction count on comment
-                \item $\log(1+r)$: dampens viral outliers
-                \item Base weight = 1 (every interaction counts)
-            \end{itemize}
-
-            \vspace{0.2cm}
-            \footnotesize
-            \begin{tabular}{c|c}
-                Reactions & Weight \\
-                \hline
-                0         & 1.00   \\
-                10        & 3.40   \\
-                100       & 5.62   \\
-            \end{tabular}
-        \end{column}
-        \begin{column}{0.48\textwidth}
-            \textbf{Time Decay:}
-            \begin{itemize}
-                \item $\lambda = 0.01$ (daily decay rate)
-                \item $\Delta t$ = days since interaction
-                \item Recent interactions are more relevant
-            \end{itemize}
-
-            \vspace{0.2cm}
-            \footnotesize
-            \begin{tabular}{c|c}
-                Days Ago  & Decay \\
-                \hline
-                0 (today) & 100\% \\
-                30        & 74\%  \\
-                90        & 41\%  \\
-            \end{tabular}
-        \end{column}
-    \end{columns}
-
-    \vspace{0.2cm}
-    \begin{block}{Ablation: Do Weights Matter?}
-        \centering
-        \footnotesize
-        \begin{tabular}{l|c|cc}
-            \textbf{Graph} & \textbf{Weight Type} & \textbf{R@10} & \textbf{NDCG@10} \\
-            \hline
-            G2' (Simple)   & Binary ($w=1$)       & 0.0523        & 0.0397           \\
-            G2 (Complex)   & Dynamic ($w=f$)      & 0.0471        & 0.0362           \\
+        \scriptsize
+        \begin{tabular}{l|c|cc|l}
+            \toprule
+            \textbf{Model}                       & \textbf{Type} & \textbf{R@10}   & \textbf{N@10}   & \textbf{Note}       \\
+            \midrule
+            \rowcolor{yellow!20} \textbf{BGE-M3} & \textbf{CB}   & \textbf{0.0535} & \textbf{0.0315} & \textbf{Best Dense} \\
+            TF-IDF                               & CB            & 0.0508          & 0.0301          & Best Sparse         \\
+            VnDoc                                & CB            & 0.0485          & 0.0287          & Document-level      \\
+            PhoBERT                              & CB            & 0.0452          & 0.0253          & Contextual          \\
+            \midrule
+            LightGCL                             & Graph CL      & 0.0436          & 0.0261          & Best Graph CL       \\
+            XSimGCL                              & Graph CL      & 0.0432          & 0.0248          & Cross-layer         \\
+            BIGCF                                & CF (GNN)      & 0.0413          & 0.0219          & Generative          \\
+            IGCL                                 & Graph CL      & 0.0404          & 0.0235          & Imbalanced          \\
+            NGCF                                 & CF (GNN)      & 0.0387          & 0.0223          & Baseline GNN        \\
+            MA-HGN                               & Hetero        & 0.0369          & 0.0201          & Relation-focused    \\
+            MA-HCL                               & Hetero CL     & 0.0320          & 0.0192          & Hetero CL           \\
+            SimGCL                               & Graph CL      & 0.0228          & 0.0122          & Baseline CL         \\
+            \bottomrule
         \end{tabular}
-        \quad \small{(random init)}
-    \end{block}
+    \end{table}
+    \vspace{0.1cm}
+    \textbf{Result:} In "Full" evaluation (Cold-Start proxy), \textbf{Semantic Models (CB)} consistently outperform Graph models. However, advanced CL methods (LightGCL, XSimGCL) are closing the gap, while traditional GNNs (NGCF, MA-HGN) struggle without interaction history.
 \end{frame}
+
+
+
+% \begin{frame}
+%     \frametitle{Edge Weighting Strategy}
+%     \textbf{Problem:} Not all interactions are equal. How do we model engagement quality?
+
+%     \vspace{0.3cm}
+%     \begin{block}{Edge Weight Formula}
+%         \centering
+%         \Large
+%         $w_{ui} = \underbrace{(1 + \log(1 + r))}_{\text{Engagement Boost}} \times \underbrace{e^{-\lambda \Delta t}}_{\text{Time Decay}}$
+%     \end{block}
+
+%     \vspace{0.3cm}
+%     \begin{columns}[T]
+%         \begin{column}{0.48\textwidth}
+%             \textbf{Engagement Boost:}
+%             \begin{itemize}
+%                 \item $r$ = reaction count on comment
+%                 \item $\log(1+r)$: dampens viral outliers
+%                 \item Base weight = 1 (every interaction counts)
+%             \end{itemize}
+
+%             \vspace{0.2cm}
+%             \footnotesize
+%             \begin{tabular}{c|c}
+%                 Reactions & Weight \\
+%                 \hline
+%                 0         & 1.00   \\
+%                 10        & 3.40   \\
+%                 100       & 5.62   \\
+%             \end{tabular}
+%         \end{column}
+%         \begin{column}{0.48\textwidth}
+%             \textbf{Time Decay:}
+%             \begin{itemize}
+%                 \item $\lambda = 0.01$ (daily decay rate)
+%                 \item $\Delta t$ = days since interaction
+%                 \item Recent interactions are more relevant
+%             \end{itemize}
+
+%             \vspace{0.2cm}
+%             \footnotesize
+%             \begin{tabular}{c|c}
+%                 Days Ago  & Decay \\
+%                 \hline
+%                 0 (today) & 100\% \\
+%                 30        & 74\%  \\
+%                 90        & 41\%  \\
+%             \end{tabular}
+%         \end{column}
+%     \end{columns}
+
+%     \vspace{0.2cm}
+%     \begin{block}{Ablation: Do Weights Matter?}
+%         \centering
+%         \footnotesize
+%         \begin{tabular}{l|c|cc}
+%             \textbf{Graph} & \textbf{Weight Type} & \textbf{R@10} & \textbf{NDCG@10} \\
+%             \hline
+%             G2' (Simple)   & Binary ($w=1$)       & 0.0523        & 0.0397           \\
+%             G2 (Complex)   & Dynamic ($w=f$)      & 0.0471        & 0.0362           \\
+%         \end{tabular}
+%         \quad \small{(random init)}
+%     \end{block}
+% \end{frame}
 
 \begin{frame}
     \frametitle{Impact of Graph Structure (Ablation Study)}
@@ -784,21 +869,55 @@
     \vspace{0.3cm}
     \begin{table}
         \centering
-        \begin{tabular}{l|c|cc|c}
+        \small
+        \begin{tabular}{l|l|p{5cm}}
             \toprule
-            \textbf{Graph Type} & \textbf{Edges} & \textbf{Nodes} & \textbf{Type} \\
+            \textbf{Graph} & \textbf{Stats}                                      & \textbf{Description} \\
             \midrule
-            G1: Bipartite       & 30.8k          & 16.7k          & UI Baseline    \\
-            G2: Heterogeneous   & 92.6k          & 16.7k          & UI + Social    \\
-            G3: Category Hubs   & 47.4k          & 16.7k+         & UI + Semantic  \\
+            \textbf{G1}    & \parbox{4.5cm}{\textbf{Nodes:} 13k Users, 3.6k Arts                        \\ \textbf{Edges:} 30k (0.06\%) \\ \textbf{Deg:} 2.35} & \textbf{Base Bipartite}: Classic User-Item graph. Very sparse interactions.                        \\
+            \midrule
+            \textbf{G2}    & \parbox{4.5cm}{\textbf{+Social Edges:} 61k                                 \\ \textbf{Edges:} \textbf{92k} (0.064\%)}     & \textbf{Heterogeneous}: Adds 51k Reply + 10k Interact edges. \textbf{3x denser} than G1.           \\
+            \midrule
+            \textbf{G3}    & \parbox{4.5cm}{\textbf{Nodes:} +6 Categories                               \\ \textbf{Edges:} 16k (User-Cat)}           & \textbf{Abstracted}: Projects users to abstract categories. High density but low specificity. \\
             \bottomrule
         \end{tabular}
     \end{table}
+
+    \textbf{Insight:} Although G1 suffers from cold-start sparsity (~2 interactions/user), \textbf{G2} triples the signal volume by leveraging social wisdom (homophily), explaining its superior performance.
 
 
     \vspace{0.2cm}
 
 
+\end{frame}
+
+\begin{frame}
+    \frametitle{Ablation Study: GNN Depth ($n$-layers)}
+    \textbf{Question:} Does going deeper help capture long-range dependencies?
+
+    \vspace{0.2cm}
+    \begin{table}
+        \centering
+        \small
+        \begin{tabular}{c|cc|c}
+            \toprule
+            \textbf{Layers}                & \textbf{R@10 (LOO)} & \textbf{NDCG@10} & \textbf{Trend}           \\
+            \midrule
+            \rowcolor{green!15} \textbf{1} & \textbf{0.4376}     & \textbf{0.2611}  & \textbf{Optimal}         \\
+            2                              & 0.4244              & 0.2578           & Slight drop (-3\%)       \\
+            3                              & 0.3423              & 0.1999           & Significant drop (-21\%) \\
+            4                              & 0.3852              & 0.2207           & Unstable                 \\
+            \bottomrule
+        \end{tabular}
+    \end{table}
+
+    \vspace{0.2cm}
+    \textbf{Analysis:}
+    \begin{itemize}
+        \item \textbf{Shallow is Better:} Performance peaks at \textbf{1 layer}. Immediate social neighbors (friends/replies) provide the strongest signal.
+        \item \textbf{Over-smoothing:} Deeper GNNs (3-4 layers) likely cause user representations to become indistinguishable (Laplacian smoothing), hurting ranking.
+        \item \textbf{Noise Propagation:} In social graphs, distant connections ($>$2 hops) are often irrelevant, adding noise rather than signal.
+    \end{itemize}
 \end{frame}
 
 \begin{frame}
@@ -851,17 +970,17 @@
         \footnotesize
         \begin{tabular}{l|c|c|c|c|c}
             \toprule
-            \textbf{Model} & \textbf{Graph} & \textbf{R@10} & \textbf{NDCG@10} & \textbf{Recall Gain} & \textbf{Protocol} \\
+            \textbf{Model}                      & \textbf{Graph} & \textbf{R@10}   & \textbf{NDCG@10} & \textbf{Recall Gain} & \textbf{Protocol} \\
             \midrule
-            \rowcolor{green!15} \textbf{MA-HCL} & \textbf{G2} & \textbf{0.0453} & \textbf{0.0245} & Best CF & Full \\
-            SimGCL                              & G3          & 0.2127          & 0.1391          & Standard & Full \\
-            XSimGCL                             & G3          & 0.2068          & 0.1371          & -3\%     & Full \\
+            \rowcolor{green!15} \textbf{MA-HCL} & \textbf{G2}    & \textbf{0.0453} & \textbf{0.0245}  & Best CF              & Full              \\
+            SimGCL                              & G3             & 0.2127          & 0.1391           & Standard             & Full              \\
+            XSimGCL                             & G3             & 0.2068          & 0.1371           & -3\%                 & Full              \\
             \midrule
-            BGE-M3                              & G2          & 0.0524          & 0.0281          & Baseline (CB) & Full \\
-            TF-IDF                              & G2          & 0.0524          & 0.0287          & Baseline (CB) & Full \\
+            BGE-M3                              & G2             & 0.0524          & 0.0281           & Baseline (CB)        & Full              \\
+            TF-IDF                              & G2             & 0.0524          & 0.0287           & Baseline (CB)        & Full              \\
             \midrule
-            \rowcolor{blue!10} \textbf{MA-HCL}  & \textbf{G1} & \textbf{0.2485} & \textbf{0.1598} & SOTA & LOO100 \\
-            XSimGCL                             & G2          & 0.5792          & 0.4368          & -22\% & LOO100 \\
+            \rowcolor{blue!10} \textbf{MA-HCL}  & \textbf{G1}    & \textbf{0.2485} & \textbf{0.1598}  & SOTA                 & LOO100            \\
+            XSimGCL                             & G2             & 0.5792          & 0.4368           & -22\%                & LOO100            \\
             \bottomrule
         \end{tabular}
     \end{table}
