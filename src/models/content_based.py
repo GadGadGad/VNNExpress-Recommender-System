@@ -634,7 +634,7 @@ def prepare_article_texts(articles_df, text_columns=['title', 'short_description
 
 
 def compute_article_similarity(
-    encoder: PhoBERTEncoder,
+    encoder: UniversalEncoder,
     article_texts: List[str],
     query_text: str,
     top_k: int = 10
@@ -643,14 +643,14 @@ def compute_article_similarity(
     Find most similar articles to a query
     """
     # Encode all articles
-    article_embeds = encoder.encode_batch(article_texts, batch_size=32)
+    article_embeds = encoder.encode(article_texts, batch_size=32)
     article_embeds = torch.tensor(article_embeds)
     article_embeds = F.normalize(article_embeds, dim=-1)
     
     # Encode query
-    with torch.no_grad():
-        query_embed = encoder([query_text])
-        query_embed = F.normalize(query_embed, dim=-1).cpu()
+    query_embed = encoder.encode([query_text])
+    query_embed = torch.tensor(query_embed)
+    query_embed = F.normalize(query_embed, dim=-1)
     
     # Compute similarity
     similarities = torch.mm(query_embed, article_embeds.T).squeeze(0)
