@@ -230,16 +230,24 @@ def load_data(data_path, min_interactions=2):
         if isinstance(data, (Data, HeteroData)) or any(k not in data for k in required_keys):
             print("  Ensuring interaction data and splits...")
             
-            # ATTEMPT TO FIND MASTER SPLITS in the same directory to ensure consistency
-            master_split_path = cache_path.parent / 'graph_with_negatives.pt'
+            # ATTEMPT TO FIND MASTER SPLITS
             master_splits = None
-            if master_split_path.exists() and master_split_path != cache_path:
-                print(f"  Synchronizing splits with master: {master_split_path}")
-                master_data = torch.load(master_split_path, weights_only=False)
-                if isinstance(master_data, dict) and 'splits' in master_data:
-                    master_splits = master_data['splits']
+            if isinstance(data, dict) and 'splits' in data:
+                # The file we just loaded IS the master split file
+                master_splits = data['splits']
+            else:
+                # Look for it in the directory
+                master_split_path = cache_path.parent / 'graph_with_negatives.pt'
+                if master_split_path.exists():
+                    print(f"  Synchronizing splits with master: {master_split_path}")
+                    master_data = torch.load(master_split_path, weights_only=False)
+                    if isinstance(master_data, dict) and 'splits' in master_data:
+                        master_splits = master_data['splits']
             
             edge_index = None
+            n_users = 0
+            n_items = 0
+            n_categories = 0 # Initialize n_categories
             if isinstance(data, HeteroData):
                 if ('user', 'comments', 'article') in data.edge_types:
                     edge_index = data['user', 'comments', 'article'].edge_index
@@ -252,34 +260,34 @@ def load_data(data_path, min_interactions=2):
                     n_categories = data['category'].num_nodes
             elif isinstance(data, Data):
                 edge_index = data.edge_index
-                n_users = data.num_nodes # Approximate if not specified
-                n_items = data.num_nodes
+                # Search for n_users if encoded in edge_index or specified in data
+                n_users = data.get('n_users') or data.get('num_users') or 0
+                n_items = data.get('n_items') or data.get('num_articles') or data.get('num_items') or 0
             elif isinstance(data, dict):
                 # Try to get interactions from either edge_index or existing train_pairs
                 if 'edge_index' in data:
                     edge_index = data['edge_index']
                 elif 'graph' in data and hasattr(data['graph'], 'edge_index_dict'):
                     # HeteroGraph in dict
-                    edge_index = data['graph']['user', 'comments', 'article'].edge_index
-                elif 'train_pairs' in data:
-                    interactions = list(set(data['train_pairs']))
+                    if ('user', 'comments', 'article') in data['graph'].edge_types:
+                        edge_index = data['graph']['user', 'comments', 'article'].edge_index
+                    else:
+                        edge_index = next(iter(data['graph'].edge_index_dict.values()))
                 elif 'splits' in data:
-                    # Will be handled below in pre-defined splits block
                     pass
                 else:
                     return data
             
-            if edge_index is not None:
-                interactions = list(set(zip(edge_index[0].tolist(), edge_index[1].tolist())))
-            
             # Get n_users/n_items from dictionary if not set by graph extraction
-            if 'n_users' not in locals(): 
+            if n_users == 0: 
                 n_users = data.get('n_users') or data.get('num_users') or 0
-            if 'n_items' not in locals(): 
+                if isinstance(data, dict) and 'num_users' in data: n_users = data['num_users']
+            if n_items == 0: 
                 n_items = data.get('n_items') or data.get('num_articles') or data.get('num_items') or 0
+                if isinstance(data, dict) and 'num_articles' in data: n_items = data['num_articles']
 
             if master_splits is not None:
-                print("  Using pre-defined splits from master (graph_with_negatives.pt)...")
+                print("  Using pre-defined splits from format (splits dictionary)...")
                 splits = master_splits
                 train_pairs = list(zip(splits['train']['pos_users'].tolist(), splits['train']['pos_articles'].tolist()))
                 test_dict = {}
@@ -291,17 +299,44 @@ def load_data(data_path, min_interactions=2):
                     if u not in train_dict: train_dict[u] = set()
                     train_dict[u].add(i)
                 
+                # IMPORTANT: Synchronize edge_index with train_pairs to prevent leakage
+                # Message passing should ONLY use training edges.
+                new_edge_index = torch.stack([
+                    torch.tensor([u for u, i in train_pairs], dtype=torch.long),
+                    torch.tensor([i for u, i in train_pairs], dtype=torch.long)
+                ], dim=0)
+
                 data_dict = {
                     'n_users': n_users,
                     'n_items': n_items,
-                    'n_categories': n_categories if 'n_categories' in locals() else 0,
+                    'n_categories': n_categories if 'n_categories' in locals() else (data.get('n_categories') or 0),
                     'train_pairs': train_pairs,
                     'test_dict': test_dict,
                     'train_dict': train_dict,
-                    'edge_index': torch.tensor(train_pairs, dtype=torch.long).t(),
-                    'graph': data # Store PyG object if available
+                    'edge_index': new_edge_index,
+                    'graph': data # Store original object
                 }
+                
+                # If it's a hetero graph, we should also prune its internal edge_index_dict
+                if isinstance(data, HeteroData) or (isinstance(data, dict) and 'graph' in data and isinstance(data['graph'], HeteroData)):
+                    target_graph = data if isinstance(data, HeteroData) else data['graph']
+                    # We only update user-article interaction edges, keeping social edges as is 
+                    # (they should already be filtered by convert_to_gnn.py)
+                    if ('user', 'comments', 'article') in target_graph.edge_types:
+                         target_graph['user', 'comments', 'article'].edge_index = new_edge_index
+                    
+                    data_dict['edge_index_dict'] = target_graph.edge_index_dict
+
                 return data_dict
+
+            if edge_index is not None:
+                interactions = list(set(zip(edge_index[0].tolist(), edge_index[1].tolist())))
+            
+            # Get n_users/n_items from dictionary if not set by graph extraction
+            if n_users == 0: 
+                n_users = data.get('n_users') or data.get('num_users') or 0
+            if n_items == 0: 
+                n_items = data.get('n_items') or data.get('num_articles') or data.get('num_items') or 0
 
             if edge_index is not None:
                 np.random.seed(42)
