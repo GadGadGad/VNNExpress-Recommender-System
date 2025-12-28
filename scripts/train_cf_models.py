@@ -923,11 +923,7 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
     # --- STRUCTURAL LEAKAGE CHECK ---
     # Check if the graph used for message passing contains more interactions than the training set.
     # This happens if test edges were not removed from the graph index during data conversion.
-    # NOTE: For bipartite models, we check edge_index (already filtered in load_data).
-    #       For hetero models (ma_hgn, hetgnn), we check edge_index_dict.
-    is_hetero_model = args.model in ['ma_hgn', 'hetgnn', 'sim-mahgn']
-    graph_to_check = edge_index_dict if (is_hetero_model and edge_index_dict is not None) else edge_index
-    
+    graph_to_check = edge_index_dict if edge_index_dict is not None else edge_index
     if graph_to_check is not None:
         if isinstance(graph_to_check, dict):
             # Hetero graph: Look for user->article or user->item edges
@@ -966,7 +962,6 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
                 print(f"   REASON: Graph was likely built with '--min-user-interactions' on ALL data.")
                 print(f"   FIX: Regenerate graph using leakage-fixed converter.")
                 print("!"*60 + "\n")
-
     
     best_recall = 0
     best_metrics = {}
