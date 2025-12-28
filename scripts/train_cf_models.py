@@ -793,6 +793,49 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
     test_dict = data['test_dict']
     n_items = data['n_items']
     
+    # --- STRUCTURAL LEAKAGE CHECK ---
+    # Check if the graph used for message passing contains more interactions than the training set.
+    # This happens if test edges were not removed from the graph index during data conversion.
+    graph_to_check = edge_index_dict if edge_index_dict is not None else edge_index
+    if graph_to_check is not None:
+        if isinstance(graph_to_check, dict):
+            # Hetero graph: Look for user->article or user->item edges
+            ua_edges = None
+            for key, val in graph_to_check.items():
+                if isinstance(key, tuple) and len(key) == 3:
+                    if 'user' in str(key[0]).lower() and ('article' in str(key[2]).lower() or 'item' in str(key[2]).lower()):
+                        ua_edges = val
+                        break
+        else:
+            # Bipartite graph: It's usually symmetric [2, 2*E] or directed [2, E]
+            # Since we offset items, we check src < n_users and dst >= n_users
+            ua_edges = graph_to_check
+            
+        if ua_edges is not None and hasattr(ua_edges, 'size'):
+            # For symmetric bipartite graphs in MA-HCL etc, edge_index has 2*E edges.
+            # We only care about unique interactions.
+            n_graph_edges = ua_edges.size(1)
+            # If symmetric [2, 2*E], we divide by 2
+            if not isinstance(graph_to_check, dict):
+                src, dst = ua_edges[0], ua_edges[1]
+                # Filter to only directed user->item edges if it's symmetric
+                is_user_item = (src < data['n_users']) & (dst >= data['n_users'])
+                n_graph_interactions = is_user_item.sum().item()
+            else:
+                n_graph_interactions = n_graph_edges
+                
+            n_train_interactions = len(train_pairs)
+            
+            if n_graph_interactions > n_train_interactions:
+                print(f"\n" + "!"*60)
+                print(f"⚠️  CRITICAL LEAKAGE DETECTED!")
+                print(f"   Message Passing Graph has {n_graph_interactions:,} user-item interactions.")
+                print(f"   Training Set has only {n_train_interactions:,} interactions.")
+                print(f"   Leakage: {n_graph_interactions - n_train_interactions:,} test edges are visible to the model!")
+                print(f"   REASON: Graph was likely built with '--min-user-interactions' on ALL data.")
+                print(f"   FIX: Regenerate graph using leakage-fixed converter.")
+                print("!"*60 + "\n")
+    
     best_recall = 0
     best_metrics = {}
     best_state = None

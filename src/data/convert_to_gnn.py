@@ -153,7 +153,7 @@ class GNNDataConverter:
                 
                 # 3. Social Signal (User-User Reply)
                 if p_id:
-                    social_edges.append({'from': r_id, 'to': p_id, 'type': 'reply'})
+                    social_edges.append({'from': r_id, 'to': p_id, 'type': 'reply', 'article_url': url})
 
         self.replies = pd.DataFrame(interactions).dropna(subset=['user_id', 'article_url'])
         
@@ -812,8 +812,14 @@ class GNNDataConverter:
             self.social_df['to_idx'] = self.social_df['to'].map(self.user_map)
             
             valid_social = self.social_df.dropna(subset=['from_idx', 'to_idx'])
+            
+            # --- LEAKAGE FIX: Only use replies that happened on training articles ---
+            print("   → Filtering social reply edges (removing potential leakage)...")
+            train_articles = set(train_replies['article_url'].unique())
+            valid_social = valid_social[valid_social['article_url'].isin(train_articles)]
+            
             if not valid_social.empty:
-                print(f"   → Adding {len(valid_social):,} social reply edges...")
+                print(f"   → Adding {len(valid_social):,} social reply edges (filtered from {len(self.social_df):,})...")
                 data['user', 'replied_to', 'user'].edge_index = torch.tensor(
                     valid_social[['from_idx', 'to_idx']].values.T, dtype=torch.long
                 )
