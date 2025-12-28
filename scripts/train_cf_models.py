@@ -690,7 +690,8 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
                  # Load Articles
                  # Priority: Explicit Path > Resolved Path > Default Fallback
                  if articles_path and Path(articles_path).exists():
-                     pass # articles_path is already set and valid
+                     articles_path = Path(articles_path)
+                     print(f"  ✅ Using explicit articles file: {articles_path}")
                  else:
                      articles_path = resolve_path('articles.csv', search_dirs)
                      if (not articles_path) and data_path: articles_path = Path(data_path).parent / 'articles.csv'
