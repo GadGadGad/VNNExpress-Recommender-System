@@ -3,84 +3,120 @@ import pandas as pd
 import io
 
 data = """Type        Model Protocol  Recall@10  NDCG@10      AUC
-  CB     vn-sbert     cold   0.178419 0.095190 0.656474
-  CB        tfidf     cold   0.159188 0.082045 0.624098
-  CB       bge-m3     cold   0.158120 0.083515 0.697097
-  CB     vn-sbert     full   0.195023 0.101132 0.692853
-  CB       bge-m3     full   0.183333 0.101652 0.727015
-  CB        tfidf     full   0.168100 0.089590 0.655712
-  CB        tfidf   loo100   0.425339 0.210580 0.000000
-  CB       bge-m3   loo100   0.352941 0.210144 0.000000
-  CB     vn-sbert   loo100   0.303167 0.170360 0.000000
-  CF    ma-hcl_G1     cold   0.869919 0.691448 0.000000
-  CF    ma-hcl_G3     cold   0.852033 0.644018 0.000000
-  CF    ma-hcl_G2     cold   0.843089 0.659985 0.000000
-  CF   xsimgcl_G2     cold   0.436179 0.315610 0.000000
-  CF   xsimgcl_G3     cold   0.406911 0.283255 0.000000
-  CF    simgcl_G2     cold   0.239837 0.144010 0.000000
-  CF    simgcl_G3     cold   0.235366 0.136330 0.000000
-  CF  lightgcl_G3     cold   0.199187 0.097512 0.000000
-  CF  lightgcl_G1     cold   0.193496 0.094426 0.000000
-  CF  lightgcl_G2     cold   0.189431 0.101174 0.000000
-  CF   xsimgcl_G1     cold   0.099187 0.058617 0.000000
-  CF sim-mahgn_G3     cold   0.073171 0.041530 0.000000
-  CF sim-mahgn_G1     cold   0.060163 0.026286 0.000000
-  CF    simgcl_G1     cold   0.056098 0.030534 0.000000
-  CF sim-mahgn_G2     cold   0.045122 0.022840 0.000000
-  CF    ma-hcl_G1     full   0.890748 0.797491 0.000000
-  CF    ma-hcl_G2     full   0.875712 0.786840 0.000000
-  CF    ma-hcl_G3     full   0.872528 0.779056 0.000000
-  CF   xsimgcl_G2     full   0.585572 0.478817 0.000000
-  CF   xsimgcl_G3     full   0.581017 0.476836 0.000000
-  CF    simgcl_G2     full   0.457479 0.330302 0.000000
-  CF    simgcl_G3     full   0.446661 0.333808 0.000000
-  CF  lightgcl_G2     full   0.124353 0.061796 0.000000
-  CF  lightgcl_G3     full   0.123771 0.058176 0.000000
-  CF   xsimgcl_G1     full   0.120859 0.064873 0.000000
-  CF sim-mahgn_G2     full   0.109472 0.057779 0.000000
-  CF  lightgcl_G1     full   0.109446 0.051301 0.000000
-  CF sim-mahgn_G1     full   0.099508 0.048864 0.000000
-  CF sim-mahgn_G3     full   0.085391 0.045997 0.000000
-  CF    simgcl_G1     full   0.060093 0.030706 0.000000
-  CF    ma-hcl_G2   loo100   0.938263 0.844172 0.000000
-  CF    ma-hcl_G3   loo100   0.935520 0.856783 0.000000
-  CF    ma-hcl_G1   loo100   0.934239 0.862142 0.000000
-  CF   xsimgcl_G2   loo100   0.695562 0.567809 0.000000
-  CF   xsimgcl_G3   loo100   0.691058 0.570125 0.000000
-  CF    simgcl_G2   loo100   0.574068 0.442503 0.000000
-  CF    simgcl_G3   loo100   0.574055 0.436897 0.000000
-  CF  lightgcl_G2   loo100   0.269966 0.157657 0.000000
-  CF  lightgcl_G1   loo100   0.255292 0.141888 0.000000
-  CF   xsimgcl_G1   loo100   0.247748 0.140946 0.000000
-  CF sim-mahgn_G1   loo100   0.245626 0.133812 0.000000
-  CF sim-mahgn_G3   loo100   0.243517 0.124391 0.000000
-  CF  lightgcl_G3   loo100   0.238975 0.134364 0.000000
-  CF sim-mahgn_G2   loo100   0.224094 0.124506 0.000000
-  CF    simgcl_G1   loo100   0.171946 0.085404 0.000000"""
+  CB       bge-m3     cold   0.061958 0.029704 0.659792
+  CB     vn-sbert     cold   0.049566 0.024571 0.621024
+  CB        tfidf     cold   0.049566 0.026243 0.581515
+  CB       bge-m3     full   0.054546 0.028066 0.689575
+  CB        tfidf     full   0.048748 0.027035 0.628283
+  CB     vn-sbert     full   0.047256 0.024389 0.647051
+  CB        tfidf   loo100   0.388016 0.205936 0.000000
+  CB       bge-m3   loo100   0.330425 0.188102 0.000000
+  CB     vn-sbert   loo100   0.291449 0.162670 0.000000
+  CF    simgcl_G2     cold   0.320632 0.231625 0.000000
+  CF    simgcl_G3     cold   0.314230 0.229445 0.000000
+  CF   xsimgcl_G3     cold   0.295023 0.185639 0.000000
+  CF   xsimgcl_G2     cold   0.282838 0.181610 0.000000
+  CF  lightgcl_G2     cold   0.061958 0.032432 0.000000
+  CF   xsimgcl_G1     cold   0.058860 0.032476 0.000000
+  CF  lightgcl_G1     cold   0.056588 0.029438 0.000000
+  CF  lightgcl_G3     cold   0.055762 0.029731 0.000000
+  CF    hetgnn_G1     cold   0.041099 0.019029 0.000000
+  CF    ma-hcl_G2     cold   0.038414 0.021147 0.000000
+  CF    hetgnn_G2     cold   0.030979 0.016893 0.000000
+  CF    hetgnn_G3     cold   0.030772 0.015291 0.000000
+  CF    ma-hcl_G1     cold   0.030772 0.014613 0.000000
+  CF    simgcl_G1     cold   0.030359 0.015828 0.000000
+  CF    ma-hcl_G3     cold   0.025816 0.015331 0.000000
+  CF    ma_hgn_G3     cold   0.020756 0.010296 0.000000
+  CF    ma_hgn_G2     cold   0.019000 0.008363 0.000000
+  CF sim-mahgn_G2     cold   0.017348 0.009119 0.000000
+  CF    ma_hgn_G1     cold   0.015903 0.008039 0.000000
+  CF sim-mahgn_G1     cold   0.014663 0.007588 0.000000
+  CF sim-mahgn_G3     cold   0.005576 0.002091 0.000000
+  CF    simgcl_G3     full   0.236744 0.176540 0.000000
+  CF    simgcl_G2     full   0.234960 0.178415 0.000000
+  CF   xsimgcl_G3     full   0.228539 0.150610 0.000000
+  CF   xsimgcl_G2     full   0.225417 0.153181 0.000000
+  CF  lightgcl_G2     full   0.064333 0.035657 0.000000
+  CF   xsimgcl_G1     full   0.062467 0.035661 0.000000
+  CF  lightgcl_G3     full   0.060425 0.034036 0.000000
+  CF  lightgcl_G1     full   0.060198 0.036290 0.000000
+  CF    ma-hcl_G2     full   0.044994 0.025065 0.000000
+  CF    ma-hcl_G3     full   0.044659 0.028273 0.000000
+  CF    ma-hcl_G1     full   0.043998 0.025346 0.000000
+  CF    hetgnn_G2     full   0.038405 0.018888 0.000000
+  CF    hetgnn_G1     full   0.036061 0.018521 0.000000
+  CF    hetgnn_G3     full   0.035246 0.019440 0.000000
+  CF    ma_hgn_G3     full   0.028228 0.013967 0.000000
+  CF    ma_hgn_G1     full   0.027269 0.014814 0.000000
+  CF    simgcl_G1     full   0.023193 0.012742 0.000000
+  CF    ma_hgn_G2     full   0.022836 0.011386 0.000000
+  CF sim-mahgn_G2     full   0.010067 0.005417 0.000000
+  CF sim-mahgn_G1     full   0.009589 0.004792 0.000000
+  CF sim-mahgn_G3     full   0.007040 0.003703 0.000000
+  CF   xsimgcl_G2   loo100   0.601206 0.459361 0.000000
+  CF   xsimgcl_G3   loo100   0.591055 0.457118 0.000000
+  CF    simgcl_G3   loo100   0.502644 0.395773 0.000000
+  CF    simgcl_G2   loo100   0.496464 0.396062 0.000000
+  CF    hetgnn_G2   loo100   0.350975 0.208274 0.000000
+  CF    hetgnn_G1   loo100   0.341402 0.201708 0.000000
+  CF  lightgcl_G1   loo100   0.340239 0.221901 0.000000
+  CF  lightgcl_G2   loo100   0.339167 0.224757 0.000000
+  CF    hetgnn_G3   loo100   0.335426 0.196841 0.000000
+  CF  lightgcl_G3   loo100   0.334053 0.206183 0.000000
+  CF   xsimgcl_G1   loo100   0.315457 0.201893 0.000000
+  CF    ma_hgn_G3   loo100   0.304741 0.170625 0.000000
+  CF    ma_hgn_G1   loo100   0.303175 0.172781 0.000000
+  CF    ma_hgn_G2   loo100   0.284447 0.164893 0.000000
+  CF    ma-hcl_G2   loo100   0.250089 0.158419 0.000000
+  CF    ma-hcl_G1   loo100   0.239973 0.158053 0.000000
+  CF    ma-hcl_G3   loo100   0.238483 0.154780 0.000000
+  CF    simgcl_G1   loo100   0.203699 0.121342 0.000000
+  CF sim-mahgn_G3   loo100   0.129641 0.071282 0.000000
+  CF sim-mahgn_G1   loo100   0.120336 0.063306 0.000000
+  CF sim-mahgn_G2   loo100   0.116602 0.058511 0.000000"""
 
 # Parse data
 rows = [line.split() for line in data.strip().split('\n')]
 headers = rows[0]
 df = pd.DataFrame(rows[1:], columns=headers)
-df['Recall@10'] = pd.to_numeric(df['Recall@10'])
-df['NDCG@10'] = pd.to_numeric(df['NDCG@10'])
 
-# 1. Best overall model
-best_model = df.loc[df['Recall@10'].idxmax()]
+# Dynamically convert all metric columns to numeric
+metric_cols = [c for c in df.columns if '@' in c or c == 'AUC' or c == 'MRR' or c.lower().startswith('hitrate')]
+for col in metric_cols:
+    df[col] = pd.to_numeric(df[col], errors='coerce')
 
-# 2. Compare G1, G2, G3 for the top model (MA-HCL seems dominant)
-mahcl = df[df['Model'].str.contains('ma-hcl')]
-mahcl_pivoted = mahcl.pivot(index='Protocol', columns='Model', values='Recall@10')
+# 1. Best overall model (based on first metric column, usually Recall@10 or Recall@50)
+main_metric = metric_cols[0] if metric_cols else 'Recall@10'
+best_model = df.loc[df[main_metric].idxmax()]
+
+# 2. Compare G1, G2, G3 for the top model
+models_to_compare = ['ma-hcl', 'simgcl', 'xsimgcl', 'hetgnn']
+comparison_results = {}
+for m_name in models_to_compare:
+    m_df = df[df['Model'].str.contains(m_name, case=False)]
+    if not m_df.empty:
+        try:
+            comparison_results[m_name] = m_df.pivot(index='Protocol', columns='Model', values=main_metric)
+        except:
+            pass
 
 # 3. Compare protocols (Full vs Cold vs LOO)
-protocols = df.groupby(['Protocol', 'Type'])['Recall@10'].mean().reset_index()
+protocols = df.groupby(['Protocol', 'Type'])[metric_cols].mean().reset_index()
 
 # 4. Compare CF vs CB
-cf_vs_cb = df.groupby('Type')['Recall@10'].mean()
+cf_vs_cb = df.groupby('Type')[metric_cols].mean()
 
 print("TOP MODEL:")
 print(best_model)
-print("\nMA-HCL Comparison (G1 vs G2 vs G3):")
-print(mahcl_pivoted)
-print("\nAverage Recall per Protocol:")
+
+print("\nModel Comparisons (G1 vs G2 vs G3):")
+for m_name, pivot_df in comparison_results.items():
+    print(f"\n--- {m_name.upper()} ---")
+    print(pivot_df)
+
+print("\nAverage Metrics per Protocol:")
 print(protocols)
+
+print("\nCF vs CB Averages:")
+print(cf_vs_cb)
