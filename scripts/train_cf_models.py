@@ -703,8 +703,24 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
                      articles_path = resolve_path('articles.csv', search_dirs)
                      if (not articles_path) and data_path: articles_path = Path(data_path).parent / 'articles.csv'
                      if not articles_path: articles_path = Path('data/raw/articles.csv')
+
+                 # --- DEEP SEARCH FALLBACK ---
+                 if not articles_path or not articles_path.exists():
+                     print("  ⚠️ Standard paths failed. Attempting deep search for 'articles.csv'...")
+                     potential_roots = ['/kaggle/input', 'data']
+                     found = False
+                     for root in potential_roots:
+                         if not os.path.exists(root): continue
+                         for r, d, f in os.walk(root):
+                             if 'articles.csv' in f:
+                                 articles_path = Path(r) / 'articles.csv'
+                                 print(f"  🔍 Found articles.csv via deep search: {articles_path}")
+                                 found = True
+                                 break
+                         if found: break
+                 # ----------------------------
                  
-                 if not articles_path.exists():
+                 if not articles_path or not articles_path.exists():
                      print(f"  ❌ Articles file not found. Cannot encode. Fallback to Random.")
                      return None
                      
