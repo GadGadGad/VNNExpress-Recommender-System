@@ -10,7 +10,7 @@ PATIENCE=15
 BATCH_SIZE=2048
 
 # Define models, graphs, and protocols
-CF_MODELS=("simgcl" "xsimgcl" "lightgcl" "ma-hcl" "hetgnn" "ma_hgn" "sim-mahgn" "ngcf")
+CF_MODELS=("simgcl" "xsimgcl" "lightgcl" "ma-hcl" "ma_hgn" "sim-mahgn" "ngcf")
 CB_MODELS=("tfidf" "bge-m3" "vn-sbert")
 GRAPHS=("strict_g1" "strict_g2" "strict_g3")
 PROTOCOLS=("cold" "full" "loo100")

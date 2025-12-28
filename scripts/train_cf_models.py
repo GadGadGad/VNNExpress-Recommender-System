@@ -23,7 +23,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.models.simplex import SimpleX
 from src.models.directau import DirectAU
 from src.models.sgl import SGL
-from src.models import NGCF, LightGCL, SimGCL, XSimGCL, MAHGN, SimMAHGN, HetGNN
+from src.models import NGCF, LightGCL, SimGCL, XSimGCL, MAHGN, SimMAHGN
 from src.models.ncl import NCL
 from src.models.cgrc import CGRC
 from src.models.bigcf import BIGCF
@@ -949,7 +949,7 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
     # Check if the graph used for message passing contains more interactions than the training set.
     # NOTE: For bipartite models, we check edge_index (already filtered in load_data).
     #       For hetero models (ma_hgn, hetgnn), we check edge_index_dict.
-    is_hetero_model = args.model in ['ma_hgn', 'hetgnn', 'sim-mahgn']
+    is_hetero_model = args.model in ['ma_hgn', 'sim-mahgn']
     graph_to_check = edge_index_dict if (is_hetero_model and edge_index_dict is not None) else edge_index
     
     if graph_to_check is not None:
@@ -1021,36 +1021,7 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
             optimizer.zero_grad()
             
             # Different models have different loss signatures
-            if isinstance(model, HetGNN):
-                # HetGNN needs x_dict and edge_index_dict
-                graph_structure = getattr(data, 'edge_index_dict', None)
-                if graph_structure is None and isinstance(data, dict):
-                    graph_structure = data.get('edge_index_dict')
-                if graph_structure is None:
-                        # Fallback: Construct edge_index_dict from bipartite edge_index
-                        # This happens when loading strict_g3 (GraphWithNegatives) which is homogeneous Data
-                        if 'edge_index' in locals():
-                            src, dst = edge_index
-                            n_users_limit = data['n_users']
-                            mask = (src < n_users_limit) & (dst >= n_users_limit)
-                            u_i_src = src[mask]
-                            u_i_dst = dst[mask] - n_users_limit
-                            
-                            u_i_edges = torch.stack([u_i_src, u_i_dst], dim=0)
-                            i_u_edges = torch.stack([u_i_dst, u_i_src], dim=0)
-                            
-                            graph_structure = {
-                                ('user', 'interacts', 'item'): u_i_edges,
-                                ('item', 'rev_interacts', 'user'): i_u_edges
-                            }
-                        else:
-                            graph_structure = None # Critical error likely
-
-                loss, reg = model.bpr_loss(users, pos_items, neg_items, x_dict=None, edge_index_dict=graph_structure)
-                loss = loss + args.weight_decay * reg
-
-            elif hasattr(model, 'calculate_loss'):
-                # Graph-based models need `adj_norm`
+            if hasattr(model, 'calculate_loss'):
                 if args.model in ['simgcl', 'cgrc', 'bigcf', 'igcl', 'xsimgcl', 'sgl', 'ncl', 'sim-mahgn']:
                     graph_structure = data.get('adj_norm')
                     if graph_structure is None:
@@ -1067,7 +1038,7 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
                      # In main(), `model` is assigned `LightGCLWrapper(...).model`? Or the wrapper itself?
                      # Let's assume wrapper extracts what it needs.
                      graph_structure = data.get('adj_norm') # Pass it anyway
-                elif args.model == 'ma_hgn':
+                elif args.model in ['ma_hgn', 'ma-hcl']:
                     # MA-HGN needs the full heterogeneous edge dictionary
                     graph_structure = getattr(data, 'edge_index_dict', None)
                     if graph_structure is None and isinstance(data, dict):
@@ -1120,20 +1091,22 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
                     loss, bpr, cl, reg = model.calculate_loss(graph_structure, users, pos_items, neg_items)
                 elif isinstance(model, IGCL):
                     loss, bpr, ssl, reg = model.calculate_loss(graph_structure, users, pos_items, neg_items)
-                elif isinstance(model, SimMAHGN) or args.model in ['ma-hcl', 'ma-hcl-v2']:
-                    # SimMAHGN and MA-HCL need the full heterogeneous edge dictionary
+                elif isinstance(model, SimMAHGN):
+                    # SimMAHGN logic (unchanged fallback behavior for now)
                     hetero_graph_structure = getattr(data, 'edge_index_dict', None)
                     if hetero_graph_structure is None and isinstance(data, dict):
-                        # Nested in 'graph' attribute from load_data
                         if 'graph' in data and hasattr(data['graph'], 'edge_index_dict'):
                              hetero_graph_structure = data['graph'].edge_index_dict
                         else:
                              hetero_graph_structure = data.get('edge_index_dict')
                              
                     if hetero_graph_structure is None:
-                         # Fallback to bipartite edge_index if no hetero data
                          hetero_graph_structure = edge_index
                     loss, bpr, cl, reg = model.calculate_loss(hetero_graph_structure, users, pos_items, neg_items)
+
+                elif args.model in ['ma-hcl', 'ma-hcl-v2']:
+                     # MA-HCL uses graph_structure computed above (lines 1041+)
+                     loss, bpr, cl, reg = model.calculate_loss(graph_structure, users, pos_items, neg_items)
                 else:
                     loss, bpr, reg, ssl = model.calculate_loss(graph_structure, users, pos_items, neg_items)
             elif hasattr(model, 'bpr_loss'):
@@ -1172,6 +1145,24 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
             
             adj_norm = data.get('adj_norm') if isinstance(data, dict) else getattr(data, 'adj_norm', None)
             
+            # Fallback for Hetero models on Homogeneous Data (strict_g3)
+            if edge_index_dict is None and args.model in ['ma_hgn', 'sim-mahgn', 'ma-hcl']:
+                 if edge_index is not None:
+                     src, dst = edge_index
+                     n_users_limit = data['n_users']
+                     
+                     mask = (src < n_users_limit) & (dst >= n_users_limit)
+                     u_i_src = src[mask]
+                     u_i_dst = dst[mask] - n_users_limit # Remove offset
+                     
+                     u_i_edges = torch.stack([u_i_src, u_i_dst], dim=0)
+                     i_u_edges = torch.stack([u_i_dst, u_i_src], dim=0)
+                     
+                     edge_index_dict = {
+                         ('user', 'interacts', 'item'): u_i_edges,
+                         ('item', 'rev_interacts', 'user'): i_u_edges
+                     }
+
             metrics = evaluate(model, test_dict, train_dict, n_items, edge_index, device=device, adj_norm=adj_norm,
                                re_ranker=re_ranker, rerank_strategy=args.rerank, eval_protocol=args.eval_protocol,
                                cold_users=cold_users, edge_index_dict=edge_index_dict)
@@ -1539,19 +1530,6 @@ def main():
     elif args.model == 'ma_hgn':
         model = MAHGN(n_users, n_items, args.hidden_dim, args.n_layers, args.dropout).to(device)
 
-    elif args.model == 'hetgnn':
-        model = HetGNN(
-            n_users=n_users,
-            n_items=n_items,
-            n_categories=data.get('n_categories', 15), # Default fallback
-            embedding_dim=args.hidden_dim,
-            n_layers=args.n_layers
-            # Use defaults for others: heads=4, dropout=0.1
-        ).to(device)
-        if pretrained_emb is not None:
-             model.item_embedding.weight.data.copy_(pretrained_emb)
-             print("  Transferred embeddings to HetGNN")
-        
     elif args.model == 'xsimgcl':
         model = XSimGCL(n_users, n_items, embedding_dim=args.hidden_dim, n_layers=args.n_layers,
                          ssl_weight=args.ssl_weight, temp=args.temp).to(device)

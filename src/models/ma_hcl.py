@@ -92,7 +92,7 @@ class MAHCL(nn.Module):
         ua_edges = None
         for key in edge_dict.keys():
             if isinstance(key, tuple) and len(key) == 3:
-                if 'user' in str(key[0]).lower() and 'article' in str(key[2]).lower():
+                if 'user' in str(key[0]).lower() and ('article' in str(key[2]).lower() or 'item' in str(key[2]).lower()):
                     ua_edges = edge_dict[key]
                     break
         

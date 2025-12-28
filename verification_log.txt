@@ -1,0 +1,106 @@
+>>> Setting up test data...
+Testing 21 combinations...
+Testing simgcl on test_g1 (cold)... ✅ PASSED
+Testing simgcl on test_g2 (cold)... ✅ PASSED
+Testing simgcl on test_g3 (cold)... ✅ PASSED
+Testing xsimgcl on test_g1 (cold)... ✅ PASSED
+Testing xsimgcl on test_g2 (cold)... ✅ PASSED
+Testing xsimgcl on test_g3 (cold)... ✅ PASSED
+Testing lightgcl on test_g1 (cold)... ✅ PASSED
+Testing lightgcl on test_g2 (cold)... ✅ PASSED
+Testing lightgcl on test_g3 (cold)... ✅ PASSED
+Testing ma-hcl on test_g1 (cold)... ❌ FAILED
+Testing ma-hcl on test_g2 (cold)... ❌ FAILED
+Testing ma-hcl on test_g3 (cold)... ❌ FAILED
+Testing ma_hgn on test_g1 (cold)... ✅ PASSED
+Testing ma_hgn on test_g2 (cold)... ✅ PASSED
+Testing ma_hgn on test_g3 (cold)... ✅ PASSED
+Testing sim-mahgn on test_g1 (cold)... ✅ PASSED
+Testing sim-mahgn on test_g2 (cold)... ✅ PASSED
+Testing sim-mahgn on test_g3 (cold)... ✅ PASSED
+Testing ngcf on test_g1 (cold)... ✅ PASSED
+Testing ngcf on test_g2 (cold)... ✅ PASSED
+Testing ngcf on test_g3 (cold)... ✅ PASSED
+
+==================================================
+Verification Complete: 18 Passed, 3 Failed
+
+Failures:
+--------------------
+ma-hcl on test_g1 (cold):
+line 23, in forward
+    deg = degree(col, x.size(0), dtype=x.dtype)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gad/miniforge3/lib/python3.12/site-packages/torch_geometric/utils/_degree.py", line 31, in degree
+    return out.scatter_add_(0, index, one)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: index 9323 is out of bounds for dimension 0 with size 5778
+
+============================================================
+Training MA-HCL
+Embedding Initialization: RANDOM
+Graph Type: BIPARTITE
+Data Path: data/processed/test_g1
+============================================================
+  Loading cached data from data/processed/test_g1/cf_cache_random.pt (Strategy: random)...
+Users: 4010, Items: 1768
+Train: 15719, Test users: 2035
+Cold-start users (≤3 interactions): 2658
+
+Precomputing normalized adjacency for MA-HCL...
+  Using 13481 pre-filtered social edges from data dictionary.
+  Injecting user-user social edges into adjacency (weight=1.0)...
+Parameters: 369,794
+
+--------------------
+ma-hcl on test_g2 (cold):
+line 23, in forward
+    deg = degree(col, x.size(0), dtype=x.dtype)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gad/miniforge3/lib/python3.12/site-packages/torch_geometric/utils/_degree.py", line 31, in degree
+    return out.scatter_add_(0, index, one)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: index 9323 is out of bounds for dimension 0 with size 5778
+
+============================================================
+Training MA-HCL
+Embedding Initialization: RANDOM
+Graph Type: BIPARTITE
+Data Path: data/processed/test_g2
+============================================================
+  Loading cached data from data/processed/test_g2/cf_cache_random.pt (Strategy: random)...
+Users: 4010, Items: 1768
+Train: 15719, Test users: 2035
+Cold-start users (≤3 interactions): 2658
+
+Precomputing normalized adjacency for MA-HCL...
+  Using 13481 pre-filtered social edges from data dictionary.
+  Injecting user-user social edges into adjacency (weight=1.0)...
+Parameters: 369,794
+
+--------------------
+ma-hcl on test_g3 (cold):
+line 23, in forward
+    deg = degree(col, x.size(0), dtype=x.dtype)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/gad/miniforge3/lib/python3.12/site-packages/torch_geometric/utils/_degree.py", line 31, in degree
+    return out.scatter_add_(0, index, one)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: index 9323 is out of bounds for dimension 0 with size 5778
+
+============================================================
+Training MA-HCL
+Embedding Initialization: RANDOM
+Graph Type: BIPARTITE
+Data Path: data/processed/test_g3
+============================================================
+  Loading cached data from data/processed/test_g3/cf_cache_random.pt (Strategy: random)...
+Users: 4010, Items: 1768
+Train: 15719, Test users: 2035
+Cold-start users (≤3 interactions): 2658
+
+Precomputing normalized adjacency for MA-HCL...
+  Using 13481 pre-filtered social edges from data dictionary.
+  Injecting user-user social edges into adjacency (weight=1.0)...
+Parameters: 369,794
+
