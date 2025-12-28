@@ -89,9 +89,20 @@ def check_leakage(data_dir):
         
         # Unpack if wrapper dict
         if isinstance(graph, dict) and 'graph' in graph:
+             # Check if we have splits info to identify training edges
+             if 'splits' in graph and 'train' in graph['splits']:
+                 print("   [INFO] Found splits dict. Extracting training edges from splits['train']...")
+                 train_data = graph['splits']['train']
+                 if 'pos_users' in train_data and 'pos_articles' in train_data:
+                     u_train = train_data['pos_users']
+                     v_train = train_data['pos_articles']
+                     target_edges = torch.stack([u_train, v_train], dim=0)
+                 elif 'edge_index' in train_data:
+                     target_edges = train_data['edge_index']
+             
              graph = graph['graph'] 
 
-        if hasattr(graph, 'edge_index_dict'):
+        if target_edges is None and hasattr(graph, 'edge_index_dict'):
              if ('user', 'comments', 'article') in graph.edge_index_dict:
                 store = graph['user', 'comments', 'article']
                 
@@ -99,10 +110,9 @@ def check_leakage(data_dir):
                 if g_file == 'graph_with_negatives.pt':
                      if hasattr(store, 'train_mask') and store.train_mask is not None:
                          target_edges = store.edge_index[:, store.train_mask]
-                     else:
-                         print("   [INFO] graph_with_negatives contains all edges. Checking Train Mask intersection...")
-                         # Can't easily verify without mask
-                         continue
+                     elif target_edges is None: # Only warn if we didn't find it in splits above
+                         print("   [INFO] No train mask/split found. Checking ALL edges in graph (conservative check)...")
+                         target_edges = store.edge_index
                 else:
                      target_edges = store.edge_index
         

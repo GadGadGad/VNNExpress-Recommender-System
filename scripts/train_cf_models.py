@@ -23,7 +23,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.models.simplex import SimpleX
 from src.models.directau import DirectAU
 from src.models.sgl import SGL
-from src.models import NGCF, LightGCL, SimGCL, XSimGCL, MAHGN, SimMAHGN
+from src.models import NGCF, LightGCL, SimGCL, XSimGCL, MAHGN, SimMAHGN, HetGNN
 from src.models.ncl import NCL
 from src.models.cgrc import CGRC
 from src.models.bigcf import BIGCF
@@ -230,16 +230,24 @@ def load_data(data_path, min_interactions=2):
         if isinstance(data, (Data, HeteroData)) or any(k not in data for k in required_keys):
             print("  Ensuring interaction data and splits...")
             
-            # ATTEMPT TO FIND MASTER SPLITS in the same directory to ensure consistency
-            master_split_path = cache_path.parent / 'graph_with_negatives.pt'
+            # ATTEMPT TO FIND MASTER SPLITS
             master_splits = None
-            if master_split_path.exists() and master_split_path != cache_path:
-                print(f"  Synchronizing splits with master: {master_split_path}")
-                master_data = torch.load(master_split_path, weights_only=False)
-                if isinstance(master_data, dict) and 'splits' in master_data:
-                    master_splits = master_data['splits']
+            if isinstance(data, dict) and 'splits' in data:
+                # The file we just loaded IS the master split file
+                master_splits = data['splits']
+            else:
+                # Look for it in the directory
+                master_split_path = cache_path.parent / 'graph_with_negatives.pt'
+                if master_split_path.exists():
+                    print(f"  Synchronizing splits with master: {master_split_path}")
+                    master_data = torch.load(master_split_path, weights_only=False)
+                    if isinstance(master_data, dict) and 'splits' in master_data:
+                        master_splits = master_data['splits']
             
             edge_index = None
+            n_users = 0
+            n_items = 0
+            n_categories = 0 # Initialize n_categories
             if isinstance(data, HeteroData):
                 if ('user', 'comments', 'article') in data.edge_types:
                     edge_index = data['user', 'comments', 'article'].edge_index
@@ -252,34 +260,34 @@ def load_data(data_path, min_interactions=2):
                     n_categories = data['category'].num_nodes
             elif isinstance(data, Data):
                 edge_index = data.edge_index
-                n_users = data.num_nodes # Approximate if not specified
-                n_items = data.num_nodes
+                # Search for n_users if encoded in edge_index or specified in data
+                n_users = data.get('n_users') or data.get('num_users') or 0
+                n_items = data.get('n_items') or data.get('num_articles') or data.get('num_items') or 0
             elif isinstance(data, dict):
                 # Try to get interactions from either edge_index or existing train_pairs
                 if 'edge_index' in data:
                     edge_index = data['edge_index']
                 elif 'graph' in data and hasattr(data['graph'], 'edge_index_dict'):
                     # HeteroGraph in dict
-                    edge_index = data['graph']['user', 'comments', 'article'].edge_index
-                elif 'train_pairs' in data:
-                    interactions = list(set(data['train_pairs']))
+                    if ('user', 'comments', 'article') in data['graph'].edge_types:
+                        edge_index = data['graph']['user', 'comments', 'article'].edge_index
+                    else:
+                        edge_index = next(iter(data['graph'].edge_index_dict.values()))
                 elif 'splits' in data:
-                    # Will be handled below in pre-defined splits block
                     pass
                 else:
                     return data
             
-            if edge_index is not None:
-                interactions = list(set(zip(edge_index[0].tolist(), edge_index[1].tolist())))
-            
             # Get n_users/n_items from dictionary if not set by graph extraction
-            if 'n_users' not in locals(): 
+            if n_users == 0: 
                 n_users = data.get('n_users') or data.get('num_users') or 0
-            if 'n_items' not in locals(): 
+                if isinstance(data, dict) and 'num_users' in data: n_users = data['num_users']
+            if n_items == 0: 
                 n_items = data.get('n_items') or data.get('num_articles') or data.get('num_items') or 0
+                if isinstance(data, dict) and 'num_articles' in data: n_items = data['num_articles']
 
             if master_splits is not None:
-                print("  Using pre-defined splits from master (graph_with_negatives.pt)...")
+                print("  Using pre-defined splits from format (splits dictionary)...")
                 splits = master_splits
                 train_pairs = list(zip(splits['train']['pos_users'].tolist(), splits['train']['pos_articles'].tolist()))
                 test_dict = {}
@@ -291,17 +299,57 @@ def load_data(data_path, min_interactions=2):
                     if u not in train_dict: train_dict[u] = set()
                     train_dict[u].add(i)
                 
+                # IMPORTANT: Synchronize edge_index with train_pairs to prevent leakage
+                # Message passing should ONLY use training edges.
+                new_edge_index = torch.stack([
+                    torch.tensor([u for u, i in train_pairs], dtype=torch.long),
+                    torch.tensor([i for u, i in train_pairs], dtype=torch.long)
+                ], dim=0)
+
                 data_dict = {
                     'n_users': n_users,
                     'n_items': n_items,
-                    'n_categories': n_categories if 'n_categories' in locals() else 0,
+                    'n_categories': n_categories if 'n_categories' in locals() else (data.get('n_categories') or 0),
                     'train_pairs': train_pairs,
                     'test_dict': test_dict,
                     'train_dict': train_dict,
-                    'edge_index': torch.tensor(train_pairs, dtype=torch.long).t(),
-                    'graph': data # Store PyG object if available
+                    'edge_index': new_edge_index,
+                    'graph': data # Store original object
                 }
+                
+                # If it's a hetero graph, we should also prune its internal edge_index_dict
+                if isinstance(data, HeteroData) or (isinstance(data, dict) and 'graph' in data and isinstance(data['graph'], HeteroData)):
+                    target_graph = data if isinstance(data, HeteroData) else data['graph']
+                    # We update both directions to ensure symmetry and proper message passing
+                    ua_key = ('user', 'comments', 'article')
+                    rev_ua_key = ('article', 'rev_comments', 'user')
+                    
+                    if ua_key in target_graph.edge_types:
+                         target_graph[ua_key].edge_index = new_edge_index
+                    
+                    if rev_ua_key in target_graph.edge_types:
+                         target_graph[rev_ua_key].edge_index = torch.stack([new_edge_index[1], new_edge_index[0]], dim=0)
+                    
+                    # Also check for 'interacts' naming convention
+                    i_key = ('user', 'interacts', 'item')
+                    rev_i_key = ('item', 'rev_interacts', 'user')
+                    if i_key in target_graph.edge_types:
+                         target_graph[i_key].edge_index = new_edge_index
+                    if rev_i_key in target_graph.edge_types:
+                         target_graph[rev_i_key].edge_index = torch.stack([new_edge_index[1], new_edge_index[0]], dim=0)
+                         
+                    data_dict['edge_index_dict'] = target_graph.edge_index_dict
+
                 return data_dict
+
+            if edge_index is not None:
+                interactions = list(set(zip(edge_index[0].tolist(), edge_index[1].tolist())))
+            
+            # Get n_users/n_items from dictionary if not set by graph extraction
+            if n_users == 0: 
+                n_users = data.get('n_users') or data.get('num_users') or 0
+            if n_items == 0: 
+                n_items = data.get('n_items') or data.get('num_articles') or data.get('num_items') or 0
 
             if edge_index is not None:
                 np.random.seed(42)
@@ -725,7 +773,7 @@ def evaluate(model, test_dict, train_dict, n_items, edge_index, k_list=[1, 5, 10
             topk_k = set(topk_list[:k])
             hits = len(topk_k & test_items)
             
-            results[f'recall@{k}'].append(hits / min(k, len(test_items)))
+            results[f'recall@{k}'].append(hits / len(test_items))
             results[f'hitrate@{k}'].append(1.0 if hits > 0 else 0.0)
             
             # Precision@k: hits / k
@@ -793,6 +841,49 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
     test_dict = data['test_dict']
     n_items = data['n_items']
     
+    # --- STRUCTURAL LEAKAGE CHECK ---
+    # Check if the graph used for message passing contains more interactions than the training set.
+    # This happens if test edges were not removed from the graph index during data conversion.
+    graph_to_check = edge_index_dict if edge_index_dict is not None else edge_index
+    if graph_to_check is not None:
+        if isinstance(graph_to_check, dict):
+            # Hetero graph: Look for user->article or user->item edges
+            ua_edges = None
+            for key, val in graph_to_check.items():
+                if isinstance(key, tuple) and len(key) == 3:
+                    if 'user' in str(key[0]).lower() and ('article' in str(key[2]).lower() or 'item' in str(key[2]).lower()):
+                        ua_edges = val
+                        break
+        else:
+            # Bipartite graph: It's usually symmetric [2, 2*E] or directed [2, E]
+            # Since we offset items, we check src < n_users and dst >= n_users
+            ua_edges = graph_to_check
+            
+        if ua_edges is not None and hasattr(ua_edges, 'size'):
+            # For symmetric bipartite graphs in MA-HCL etc, edge_index has 2*E edges.
+            # We only care about unique interactions.
+            n_graph_edges = ua_edges.size(1)
+            # If symmetric [2, 2*E], we divide by 2
+            if not isinstance(graph_to_check, dict):
+                src, dst = ua_edges[0], ua_edges[1]
+                # Filter to only directed user->item edges if it's symmetric
+                is_user_item = (src < data['n_users']) & (dst >= data['n_users'])
+                n_graph_interactions = is_user_item.sum().item()
+            else:
+                n_graph_interactions = n_graph_edges
+                
+            n_train_interactions = len(train_pairs)
+            
+            if n_graph_interactions > n_train_interactions:
+                print(f"\n" + "!"*60)
+                print(f"⚠️  CRITICAL LEAKAGE DETECTED!")
+                print(f"   Message Passing Graph has {n_graph_interactions:,} user-item interactions.")
+                print(f"   Training Set has only {n_train_interactions:,} interactions.")
+                print(f"   Leakage: {n_graph_interactions - n_train_interactions:,} test edges are visible to the model!")
+                print(f"   REASON: Graph was likely built with '--min-user-interactions' on ALL data.")
+                print(f"   FIX: Regenerate graph using leakage-fixed converter.")
+                print("!"*60 + "\n")
+    
     best_recall = 0
     best_metrics = {}
     best_state = None
@@ -823,7 +914,18 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
             optimizer.zero_grad()
             
             # Different models have different loss signatures
-            if hasattr(model, 'calculate_loss'):
+            if isinstance(model, HetGNN):
+                # HetGNN needs x_dict and edge_index_dict
+                graph_structure = getattr(data, 'edge_index_dict', None)
+                if graph_structure is None and isinstance(data, dict):
+                    graph_structure = data.get('edge_index_dict')
+                if graph_structure is None:
+                        # Fallback to bipartite edge_index if no hetero data
+                        graph_structure = edge_index
+                loss, reg = model.bpr_loss(users, pos_items, neg_items, x_dict=None, edge_index_dict=graph_structure)
+                loss = loss + args.weight_decay * reg
+
+            elif hasattr(model, 'calculate_loss'):
                 # Graph-based models need `adj_norm`
                 if args.model in ['simgcl', 'cgrc', 'bigcf', 'igcl', 'xsimgcl', 'sgl', 'ncl', 'sim-mahgn']:
                     graph_structure = data.get('adj_norm')
@@ -851,6 +953,7 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
                          graph_structure = edge_index
                 else:
                     graph_structure = edge_index
+                
                 
                 if isinstance(model, CGRC):
                     loss, bpr, recon, reg = model.calculate_loss(graph_structure, users, pos_items, neg_items, item_content)
@@ -936,15 +1039,15 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
             
             pbar.set_postfix({
                 'loss': f"{total_loss:.4f}", 
-                'R@10': f"{metrics.get('recall@10', 0):.4f}"
+                'R@50': f"{metrics.get('recall@50', 0):.4f}"
             })
             
             tqdm.write(f"Epoch {epoch+1:3d} | Loss: {total_loss:.4f} | "
-                  f"R@10: {metrics.get('recall@10', 0):.4f} | NDCG@10: {metrics.get('ndcg@10', 0):.4f}")
+                  f"R@50: {metrics.get('recall@50', 0):.4f} | NDCG@50: {metrics.get('ndcg@50', 0):.4f}")
             
-            recall_10 = metrics.get('recall@10', 0)
-            if recall_10 > best_recall:
-                best_recall = recall_10
+            recall_50 = metrics.get('recall@50', 0)
+            if recall_50 > best_recall:
+                best_recall = recall_50
                 best_metrics = metrics.copy()
                 best_state = model.state_dict().copy()
                 patience_counter = 0
@@ -961,7 +1064,7 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
 
 def main():
     parser = argparse.ArgumentParser(description='Train CF/CL Models')
-    parser.add_argument('--model', '-m', choices=['ngcf', 'simplex', 'directau', 'sgl', 'simgcl', 'ncl', 'lightgcl', 'cgrc', 'bigcf', 'igcl', 'xsimgcl', 'ma_hgn', 'sim-mahgn', 'ma-hcl', 'ma-hcl-v2'],
+    parser.add_argument('--model', '-m', choices=['ngcf', 'simplex', 'directau', 'sgl', 'simgcl', 'ncl', 'lightgcl', 'cgrc', 'bigcf', 'igcl', 'xsimgcl', 'ma_hgn', 'sim-mahgn', 'ma-hcl', 'ma-hcl-v2', 'hetgnn'],
                         default='ngcf', help='Model to train')
     parser.add_argument('--data-path', default='data/processed', help='Data directory')
     parser.add_argument('--epochs', type=int, default=100)
@@ -1282,6 +1385,19 @@ def main():
              
     elif args.model == 'ma_hgn':
         model = MAHGN(n_users, n_items, args.hidden_dim, args.n_layers, args.dropout).to(device)
+
+    elif args.model == 'hetgnn':
+        model = HetGNN(
+            n_users=n_users,
+            n_items=n_items,
+            n_categories=data.get('n_categories', 15), # Default fallback
+            embedding_dim=args.hidden_dim,
+            n_layers=args.n_layers
+            # Use defaults for others: heads=4, dropout=0.1
+        ).to(device)
+        if pretrained_emb is not None:
+             model.item_embedding.weight.data.copy_(pretrained_emb)
+             print("  Transferred embeddings to HetGNN")
         
     elif args.model == 'xsimgcl':
         model = XSimGCL(n_users, n_items, embedding_dim=args.hidden_dim, n_layers=args.n_layers,

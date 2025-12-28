@@ -61,10 +61,28 @@ class HetGNN(nn.Module):
                 'category': self.category_embedding.weight,
             }
         
+        # Handle raw tensor input (fallback from bipartite graph)
+        if isinstance(edge_index_dict, torch.Tensor):
+            device = x_dict['user'].device
+            edge_index_dict = {
+                ('user', 'interacts', 'item'): edge_index_dict.to(device),
+                ('item', 'rev_interacts', 'user'): torch.stack([edge_index_dict[1], edge_index_dict[0]]).to(device),
+                # Empty category edges (required by HeteroConv but won't be used)
+                ('item', 'belongs_to', 'category'): torch.zeros((2, 0), dtype=torch.long, device=device),
+                ('category', 'rev_belongs_to', 'item'): torch.zeros((2, 0), dtype=torch.long, device=device),
+            }
+        
         all_embs = {k: [v] for k, v in x_dict.items()}
         
         for conv in self.convs:
-            x_dict = conv(x_dict, edge_index_dict)
+            # Store original embeddings to prevent KeyError
+            x_dict_prev = {k: v.clone() for k, v in x_dict.items()}
+            
+            x_dict_new = conv(x_dict, edge_index_dict)
+            
+            # Update: keep previous embedding if no new message received
+            x_dict = {k: x_dict_new.get(k, x_dict_prev[k]) for k in x_dict_prev.keys()}
+            
             x_dict = {k: F.relu(self.dropout(v)) for k, v in x_dict.items()}
             for k, v in x_dict.items():
                 all_embs[k].append(v)

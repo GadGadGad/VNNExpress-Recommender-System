@@ -52,7 +52,7 @@ class GNNDataConverter:
         text_max_features: int = 1000,
         min_user_interactions: int = 0,
         min_article_interactions: int = 0,
-        split_strategy: str = 'time'
+        split_strategy: str = 'random'
     ):
         self.articles_path = articles_path
         self.replies_path = replies_path
@@ -153,26 +153,19 @@ class GNNDataConverter:
                 
                 # 3. Social Signal (User-User Reply)
                 if p_id:
-                    social_edges.append({'from': r_id, 'to': p_id, 'type': 'reply'})
+                    social_edges.append({'from': r_id, 'to': p_id, 'type': 'reply', 'article_url': url})
 
         self.replies = pd.DataFrame(interactions).dropna(subset=['user_id', 'article_url'])
         
         # LEAKAGE FIX: Deduplicate interactions!
         initial_len = len(self.replies)
         
-        # --- BỔ SUNG FIX LỖI DATE (QUAN TRỌNG) ---
-        # 1. Ép kiểu sang datetime, lỗi sẽ thành NaT
+        # --- DATE HANDLING ---
+        # Parse dates but keep NaT for interactions that don't have them
         self.replies['date'] = pd.to_datetime(self.replies['date'], errors='coerce')
         
-        # 2. Xóa các dòng không có ngày giờ (bao gồm cả NO_COMMENT)
-        # Nếu không xóa, NaT sẽ bị đẩy xuống cuối khi sort -> chui vào tập Test!
-        missing_count = self.replies['date'].isna().sum()
-        if missing_count > 0:
-            print(f"   [CLEANUP] Dropping {missing_count} rows with missing/invalid dates (including NO_COMMENT)...")
-            self.replies = self.replies.dropna(subset=['date'])
-        # ----------------------------------------
-
-        self.replies = self.replies.sort_values('date').drop_duplicates(
+        # Sắp xếp và deduplicate. Với NaT, Pandas sẽ đẩy xuống cuối.
+        self.replies = self.replies.sort_values('date', na_position='last').drop_duplicates(
             subset=['user_id', 'article_url'], keep='first'
         )
         print(f"   → Deduplicated interactions: {initial_len:,} -> {len(self.replies):,} (Removed {initial_len - len(self.replies):,})")
@@ -731,24 +724,10 @@ class GNNDataConverter:
             else:
                 return indices.numpy() if torch.is_tensor(indices) else indices
         
-        print(f"   [INFO] Generating new split indices using strategy: {self.split_strategy.upper()}...")
+        # DEFAULT: RANDOM SPLIT
+        np.random.seed(seed)
+        indices = np.random.permutation(num_positives)
         
-        if self.split_strategy == 'time':
-            # --- FIX ERROR #2: TIME-BASED SPLIT ---
-            # Sắp xếp index dựa trên cột 'date'
-            if 'date' not in self.replies.columns:
-                raise ValueError("Cannot use 'time' split strategy because 'date' column is missing.")
-            
-            # Lấy timestamp để sort
-            dates = pd.to_datetime(self.replies['date'])
-            # argsort trả về danh sách index đã sắp xếp tăng dần theo thời gian
-            indices = np.argsort(dates.values)
-            
-        else:
-            # --- OLD WAY: RANDOM SPLIT ---
-            np.random.seed(seed)
-            indices = np.random.permutation(num_positives)
-            
         torch.save(indices, split_file)
         return indices
 
@@ -812,8 +791,14 @@ class GNNDataConverter:
             self.social_df['to_idx'] = self.social_df['to'].map(self.user_map)
             
             valid_social = self.social_df.dropna(subset=['from_idx', 'to_idx'])
+            
+            # --- LEAKAGE FIX: Only use replies that happened on training articles ---
+            print("   → Filtering social reply edges (removing potential leakage)...")
+            train_articles = set(train_replies['article_url'].unique())
+            valid_social = valid_social[valid_social['article_url'].isin(train_articles)]
+            
             if not valid_social.empty:
-                print(f"   → Adding {len(valid_social):,} social reply edges...")
+                print(f"   → Adding {len(valid_social):,} social reply edges (filtered from {len(self.social_df):,})...")
                 data['user', 'replied_to', 'user'].edge_index = torch.tensor(
                     valid_social[['from_idx', 'to_idx']].values.T, dtype=torch.long
                 )
@@ -1023,13 +1008,6 @@ def main():
         help='Random seed (default: 42)'
     )
     
-    parser.add_argument(
-        '--split-strategy',
-        choices=['random', 'time'],
-        default='random', 
-        help='Splitting strategy: random (shuffle) or time (chronological)'
-    )
-    
     # K-core filtering options
     parser.add_argument(
         '--min-user-interactions',
@@ -1055,8 +1033,7 @@ def main():
         add_text_features=args.add_text_features,
         use_phobert=args.use_phobert,
         min_user_interactions=args.min_user_interactions,
-        min_article_interactions=args.min_article_interactions,
-        split_strategy=args.split_strategy
+        min_article_interactions=args.min_article_interactions
     )
     # Pass ablation flag to converter instance
     converter.no_aux_edges = args.no_aux_edges

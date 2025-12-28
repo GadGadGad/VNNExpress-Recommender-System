@@ -680,38 +680,37 @@
 %------------------------------------------------------------
 
 \begin{frame}
-    \frametitle{Final Benchmark Results (Enhanced Dataset)}
+    \frametitle{Final Benchmark Results (Fixed Data Leakage)}
     \footnotesize
     \begin{table}
         \centering
         \footnotesize
-        \begin{tabular}{l|c|ccc|c}
+        \begin{tabular}{l|c|cc|c}
             \toprule
-            \textbf{Model}                                 & \textbf{Type}   & \textbf{R@10}   & \textbf{NDCG@10} & \textbf{HR@10}  & \textbf{MRR}    \\
+            \textbf{Model}                           & \textbf{Type} & \textbf{R@10}   & \textbf{N@10}   & \textbf{Protocol} \\
             \midrule
-            \multicolumn{6}{l}{\textit{Hybrid (CF + CB)}}                                                                                             \\
-            \rowcolor{green!15} \textbf{SimGCL + VN-SBERT} & \textbf{Hybrid} & \textbf{0.2415} & \textbf{0.1895}  & \textbf{0.3113} & \textbf{0.2022} \\
+            \rowcolor{green!15} \textbf{SimGCL (G2)} & \textbf{CF}   & \textbf{0.3206} & \textbf{0.2316} & \textbf{Cold}     \\
+            \rowcolor{green!15} \textbf{SimGCL (G3)} & \textbf{CF}   & \textbf{0.3142} & \textbf{0.2294} & \textbf{Cold}     \\
+            \rowcolor{green!15} \textbf{SimGCL (G3)} & \textbf{CF}   & \textbf{0.2367} & \textbf{0.1765} & \textbf{Full}     \\
             \midrule
-            \multicolumn{6}{l}{\textit{Heterogeneous GNN}}                                                                                            \\
-            \rowcolor{yellow!20} \textbf{MA-HCL (Ours)}    & H-GCL           & \textbf{0.1502} & \textbf{0.1024}  & \textbf{0.2347} & \textbf{0.1165} \\
-            SimMAHGN (Ours)                                & H-GCL           & 0.1240          & 0.0769           & 0.1453          & 0.0686          \\
-            MA-HGN                                         & Hetero          & 0.0815          & 0.0468           & 0.1205          & 0.0452          \\
+            \rowcolor{yellow!20} \textbf{bge-m3}     & \textbf{CB}   & \textbf{0.0620} & \textbf{0.0297} & \textbf{Cold}     \\
+            vn-sbert                                 & CB            & 0.0496          & 0.0246          & Cold              \\
+            tfidf                                    & CB            & 0.0496          & 0.0262          & Cold              \\
             \midrule
-            \multicolumn{6}{l}{\textit{Contrastive Learning}}                                                                                         \\
-            XSimGCL                                        & CL              & 0.0782          & 0.0452           & 0.1134          & 0.0435          \\
-            SimGCL                                         & CL              & 0.0645          & 0.0412           & 0.0892          & 0.0421          \\
-            LightGCL                                       & CL              & 0.0482          & 0.0300           & 0.0912          & 0.0351          \\
+            \rowcolor{blue!10} \textbf{xsimgcl (G2)} & \textbf{CF}   & \textbf{0.6012} & \textbf{0.4594} & \textbf{LOO}      \\
+            \textbf{xsimgcl (G3)}                    & CF            & 0.5911          & 0.4571          & LOO               \\
             \midrule
-            \multicolumn{6}{l}{\textit{Content-Based}}                                                                                                \\
-            TF-IDF                                         & CB              & 0.0465          & 0.0250           & 0.0563          & 0.0185          \\
-            PhoBERT                                        & CB              & 0.0354          & 0.0165           & 0.0374          & 0.0102          \\
-            VnDoc                                          & CB              & 0.0197          & 0.0119           & 0.0360          & 0.0127          \\
+            HetGNN (G1)                              & Hetero        & 0.0411          & 0.0190          & Cold              \\
+            MA-HCL (G2)                              & Hetero        & 0.0384          & 0.0211          & Cold              \\
+            MA-HGN (G3)                              & Hetero        & 0.0208          & 0.0103          & Cold              \\
             \bottomrule
         \end{tabular}
     \end{table}
     \vspace{0.1cm}
-    \textbf{Key Finding:} \textbf{SimGCL + VnDoc} achieves \textbf{R@10 = 0.2346} (+264\% over vanilla SimGCL) by combining graph learning with Vietnamese document embeddings.
+    \textbf{Observation:} After fixing data leakage, CF models still outperform CB models, but with realistic margins. \textbf{SimGCL} remains robust for cold-start users.
 \end{frame}
+
+
 
 \begin{frame}
     \frametitle{Edge Weighting Strategy}

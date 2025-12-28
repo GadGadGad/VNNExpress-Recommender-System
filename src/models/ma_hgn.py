@@ -82,12 +82,22 @@ class MAHGN(nn.Module):
                 key: ei.to(device) if hasattr(ei, 'to') else ei 
                 for key, ei in edge_index_dict.items()
             }
+            # Store original embeddings to prevent KeyError if some node types don't receive messages
+            h_dict_prev = {k: v.clone() for k, v in h_dict.items()}
+            
             # Message Passing
-            h_dict = conv(h_dict, edge_index_dict_gpu)
+            h_dict_new = conv(h_dict, edge_index_dict_gpu)
+            
+            # Update: keep previous embedding if no new message received
+            h_dict = {k: h_dict_new.get(k, h_dict_prev[k]) for k in h_dict_prev.keys()}
             
             # Activation & Dropout
             h_dict = {k: F.leaky_relu(v) for k, v in h_dict.items()}
             h_dict = {k: self.dropout(v) for k, v in h_dict.items()}
+            
+            # Diagnostic: ensure user/article always exist
+            if 'user' not in h_dict: h_dict['user'] = h_dict_prev['user']
+            if 'article' not in h_dict: h_dict['article'] = h_dict_prev['article']
             
             all_user_embs.append(h_dict['user'])
             all_item_embs.append(h_dict['article'])
