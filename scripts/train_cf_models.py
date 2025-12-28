@@ -490,16 +490,43 @@ def load_data(data_path, min_interactions=2, split_strategy='random'):
             test_dict[u] = set()
         test_dict[u].add(i)
     
-    # Create edge index from TRAIN PAIRS ONLY
+    # --- [NEW CODE] FIX LỖI 2: TRÍCH XUẤT SOCIAL EDGES CHỈ TỪ TẬP TRAIN ---
+    print("   [INFO] Extracting Social Edges (User-Reply-User) from TRAIN data only...")
+    # Lấy các dòng replies thuộc tập train (dựa vào split_idx đã tính ở trên)
+    if 'split_idx' in locals():
+        train_replies_df = replies.iloc[:split_idx].copy()
+    else:
+        # Fallback nếu dùng logic cũ không có biến split_idx
+        # Nhưng nếu bạn đã fix Lỗi 1 thì chắc chắn có split_idx
+        train_replies_df = replies.iloc[:int(len(replies)*0.8)].copy()
+
+    # Map parent_user_id sang index
+    train_replies_df['parent_idx'] = train_replies_df['parent_user_id'].map(user_map)
+    
+    # Lọc bỏ các dòng lỗi (parent không tồn tại trong map)
+    valid_social = train_replies_df.dropna(subset=['user_idx', 'parent_idx'])
+    
+    if len(valid_social) > 0:
+        social_src = torch.tensor(valid_social['user_idx'].values.astype('int64'), dtype=torch.long)
+        social_dst = torch.tensor(valid_social['parent_idx'].values.astype('int64'), dtype=torch.long)
+        
+        # Tạo cạnh vô hướng (User <-> User)
+        user_user_edges = torch.stack([
+            torch.cat([social_src, social_dst]),
+            torch.cat([social_dst, social_src])
+        ], dim=0)
+        
+        # Xóa cạnh trùng lặp
+        user_user_edges = torch.unique(user_user_edges, dim=1)
+        print(f"   -> Created {user_user_edges.shape[1]} safe social edges from past interactions.")
+    else:
+        user_user_edges = None
+        print("   -> No valid social edges found in training set.")
+    # ----------------------------------------------------------------------
+    
+    # Create edge index from TRAIN PAIRS ONLY (no data leakage)
     train_users = torch.tensor([u for u, i in train_pairs], dtype=torch.long)
-    train_items = torch.tensor([i for u, i in train_pairs], dtype=torch.long)
-    
-    # Bipartite graph edge index (train only)
-    edge_index = torch.stack([
-        torch.cat([train_users, train_items + n_users]),
-        torch.cat([train_items + n_users, train_users])
-    ], dim=0)
-    
+
     data = {
         'n_users': n_users,
         'n_items': n_items,
@@ -509,6 +536,7 @@ def load_data(data_path, min_interactions=2, split_strategy='random'):
         'train_pairs': train_pairs,
         'train_dict': train_dict,
         'test_dict': test_dict,
+        'user_user_edges': user_user_edges, # <--- THÊM DÒNG NÀY
     }
     
     # Save cache with strategy name
@@ -559,7 +587,7 @@ def sample_batch(train_pairs, train_dict, n_items, batch_size, neg_ratio=1, samp
     )
 
 
-def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'):
+def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu', train_item_indices=None):
     """Load pretrained embeddings and project to target dimension."""
     if embedding_type == 'random':
         return None
@@ -603,29 +631,38 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
             return None
             
     elif embedding_type == 'tfidf':
-        print("  Computing TF-IDF embeddings (LSA)...")
+        print("   Computing TF-IDF embeddings (LSA)...")
         import pandas as pd
         from sklearn.feature_extraction.text import TfidfVectorizer
         from sklearn.decomposition import TruncatedSVD
         
-        # Load articles to get text
         try:
-            pass
+            # --- [FIX] KHAI BÁO BIẾN BỊ THIẾU ---
+            texts = [] # Khởi tạo list texts để không bị lỗi gợn sóng
             
-            # Re-implementation to be safe: Load the full dataloader to get mapping
-            sys.path.insert(0, str(Path(__file__).parent.parent))
-            from src.data.dataloader_lightgcl import LightGCLDataLoader
+            # Load articles CSV để lấy nội dung text
+            articles_path = Path('data/raw/articles.csv')
+            if not articles_path.exists():
+                # Thử tìm ở thư mục cha nếu đang chạy từ scripts/
+                articles_path = Path('data/processed').parent / 'raw' / 'articles.csv'
             
-            # Initialize loader with root 'data' path (assuming project structure)
-            loader = LightGCLDataLoader('data')
-            
-            # Load processed data which populates idx2item
-            if loader.load_processed() is None:
-                print("  Error: Could not load processed LightGCL data for mapping. Run training first.")
+            if not articles_path.exists():
+                print(f"      Error: Articles file not found at {articles_path}")
                 return None
                 
+            articles = pd.read_csv(articles_path) # Định nghĩa biến articles
+            # ------------------------------------
+
+            # Load mapping idx2item
+            sys.path.insert(0, str(Path(__file__).parent.parent))
+            from src.data.dataloader_lightgcl import LightGCLDataLoader
+            loader = LightGCLDataLoader('data')
+            if loader.load_processed() is None:
+                print("      Error: Could not load processed LightGCL data for mapping.")
+                return None
+            
             idx2item = loader.idx2item
-            print(f"  Loaded mapping for {len(idx2item)} items")
+            print(f"      Loaded mapping for {len(idx2item)} items")
             
             # Create text list in index order
             article_map = dict(zip(articles['url'], zip(articles['title'], articles['short_description'])))
@@ -634,33 +671,36 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
                 url = idx2item.get(idx, None)
                 if url and url in article_map:
                     title, desc = article_map[url]
-                    # Handle NaNs
                     title = str(title) if pd.notna(title) else ""
                     desc = str(desc) if pd.notna(desc) else ""
                     texts.append(f"{title} {desc}")
                 else:
                     texts.append("")
             
-            print(f"  Collected {len(texts)} texts. Computing TF-IDF...")
+            print(f"      Collected {len(texts)} texts. Computing TF-IDF...")
             
-            # Compute TF-IDF
-            # Use stricter max_features to avoid noise, but SVD handles dimension reduction anyway
             vectorizer = TfidfVectorizer(max_features=10000, stop_words=None) 
-            tfidf_matrix = vectorizer.fit_transform(texts)
+            
+            if train_item_indices is not None:
+                print("      -> Fitting TF-IDF only on TRAIN items to prevent leakage...")
+                train_texts = [texts[i] for i in train_item_indices if i < len(texts)]
+                vectorizer.fit(train_texts)
+                tfidf_matrix = vectorizer.transform(texts)
+            else:
+                print("      -> [WARNING] Fitting on ALL items (Data Snooping).")
+                tfidf_matrix = vectorizer.fit_transform(texts)
             
             # Reduce dimension with SVD (LSA)
-            print(f"  Reducing dimension {tfidf_matrix.shape[1]} -> {target_dim} with SVD...")
+            print(f"      Reducing dimension {tfidf_matrix.shape[1]} -> {target_dim} with SVD...")
             svd = TruncatedSVD(n_components=target_dim, random_state=42)
             embeddings = torch.tensor(svd.fit_transform(tfidf_matrix), dtype=torch.float32)
-            
-            # Normalize calculated embeddings
             embeddings = F.normalize(embeddings, p=2, dim=1)
             
-            print(f"  Computed LSA embeddings: {embeddings.shape}")
-            return embeddings.to(device) # Return directly, skipping external normalization block to avoid double norm
-            
+            print(f"      Computed LSA embeddings: {embeddings.shape}")
+            return embeddings.to(device)
+
         except Exception as e:
-            print(f"  Error computing TF-IDF: {e}. Using random.")
+            print(f"      Error computing TF-IDF: {e}. Using random.")
             import traceback
             traceback.print_exc()
             return None
@@ -1260,29 +1300,39 @@ def main():
                 edge_weights = edge_weights.numpy()
             print(f"  Found {len(edge_weights)} edge weights. Using weighted adjacency.")
         
-        # Check for social edges
-        user_user_edges = None
-        social_graph_path = Path(args.data_path) / 'full_hetero_graph.pt'
-        if social_graph_path.exists():
-            print(f"  Loading social signals from {social_graph_path}...")
-            social_data = torch.load(social_graph_path, weights_only=False)
-            if isinstance(social_data, dict) and 'edge_index_dict' in social_data:
-                # If saved as dict
-                edges_dict = social_data['edge_index_dict']
-                user_user_edges = edges_dict.get(('user', 'replied_to', 'user'))
-            elif hasattr(social_data, 'edge_index_dict'):
-                # If PyG HeteroData
-                user_user_edges = social_data['user', 'replied_to', 'user'].edge_index
+        user_user_edges = data.get('user_user_edges') 
+        
+        if user_user_edges is not None:
+             print(f"  Using {user_user_edges.shape[1]} pre-filtered social edges from data dictionary.")
+        else:
+             # Fallback (Code cũ): Chỉ chạy nếu không tìm thấy trong data
+             user_user_edges = None
+             social_graph_path = Path(args.data_path) / 'full_hetero_graph.pt'
+             if social_graph_path.exists():
+                print(f"  [WARNING] Loading social signals from {social_graph_path} (Potential Leakage if not filtered!)")
+                social_data = torch.load(social_graph_path, weights_only=False)
+                if isinstance(social_data, dict) and 'edge_index_dict' in social_data:
+                    edges_dict = social_data['edge_index_dict']
+                    user_user_edges = edges_dict.get(('user', 'replied_to', 'user'))
+                elif hasattr(social_data, 'edge_index_dict'):
+                    user_user_edges = social_data['user', 'replied_to', 'user'].edge_index
         
         data['adj_norm'] = compute_normalized_adjacency(n_users, n_items, data['train_pairs'], device, 
                                                        item_item_edges, user_user_edges, 
                                                        edge_weights=edge_weights, social_weight=args.social_weight)
         data['augmented_pairs'] = augmented_pairs # Store for LightGCL
     
-    # Load pretrained embeddings if requested
-    
-    # Load pretrained embeddings if requested
-    pretrained_emb = load_pretrained_embeddings(args.embedding, n_items, args.hidden_dim, device)
+    # --- [NEW CODE] Lấy danh sách index các bài báo dùng trong tập train ---
+    train_item_indices = list(set([i for u, i in data['train_pairs']]))
+    # ---------------------------------------------------------------------
+
+    pretrained_emb = load_pretrained_embeddings(
+        args.embedding, 
+        n_items, 
+        args.hidden_dim, 
+        device, 
+        train_item_indices=train_item_indices # <--- QUAN TRỌNG: Phải truyền vào đây
+    )
     
     # Generate Semantic IDs if requested
     semantic_ids = None
