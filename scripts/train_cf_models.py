@@ -1466,7 +1466,13 @@ def main():
              print("  Transferred embeddings to MA-HCL")
              
     elif args.model == 'ma_hgn':
-        model = MAHGN(n_users, n_items, args.hidden_dim, n_layers=args.n_layers, n_categories=data.get('n_categories', 0), gnn_type=args.gnn_type).to(device)
+        num_cats = 0
+        if isinstance(data, dict):
+            num_cats = data.get('n_categories', 0)
+        elif hasattr(data, 'n_categories'):
+            num_cats = data.n_categories
+        
+        model = MAHGN(n_users, n_items, args.hidden_dim, n_layers=args.n_layers, n_categories=num_cats, gnn_type=args.gnn_type).to(device)
 
     elif args.model == 'xsimgcl':
         model = XSimGCL(n_users, n_items, embedding_dim=args.hidden_dim, n_layers=args.n_layers,
