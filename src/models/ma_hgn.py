@@ -15,7 +15,7 @@ class MAHGN(nn.Module):
     Models 'Social' (user-user) and 'Behavioral' (user-article) signals 
     with different semantic weights.
     """
-    def __init__(self, n_users, n_items, embedding_dim=64, n_layers=2, dropout=0.2, n_categories=0, gnn_type='gat'):
+    def __init__(self, n_users, n_items, embedding_dim=64, n_layers=2, dropout=0.2, n_categories=0, gnn_type='gat', cl_weight=0.0, temp=0.2):
         super().__init__()
         self.n_users = n_users
         self.n_items = n_items
@@ -23,6 +23,9 @@ class MAHGN(nn.Module):
         self.embedding_dim = embedding_dim
         self.n_layers = n_layers
         self.gnn_type = gnn_type.lower()
+        self.cl_weight = 0.1
+        self.temp = 0.2
+        self.eps = 0.1
         
         # Learnable embeddings
         self.user_emb = nn.Embedding(n_users, embedding_dim)
@@ -73,7 +76,7 @@ class MAHGN(nn.Module):
         if hasattr(self, 'category_emb'):
             nn.init.normal_(self.category_emb.weight, std=0.1)
 
-    def forward(self, x_dict, edge_index_dict):
+    def forward(self, x_dict, edge_index_dict, perturbed=False):
         """
         Forward pass with multi-aspect feature aggregation.
         """
@@ -84,6 +87,11 @@ class MAHGN(nn.Module):
             }
             if self.n_categories > 0:
                 x_dict['category'] = self.category_emb.weight
+        
+        # Perturbation for SimGCL
+        if perturbed:
+            x_dict = {k: v + torch.sign(v) * F.normalize(torch.randn_like(v), dim=1) * self.eps 
+                      for k, v in x_dict.items()}
             
         h_dict = x_dict
         all_user_embs = [h_dict['user']]
@@ -138,7 +146,38 @@ class MAHGN(nn.Module):
         # L2 Regularization
         reg_loss = (u_emb.norm(2).pow(2) + pos_emb.norm(2).pow(2) + neg_emb.norm(2).pow(2)) / users.shape[0]
         
-        return mf_loss + 1e-4 * reg_loss, mf_loss, torch.tensor(0.0).to(mf_loss.device), reg_loss
+        # Contrastive Learning Loss (SimGCL)
+        cl_loss = torch.tensor(0.0, device=mf_loss.device)
+        if self.cl_weight > 0:
+            user_view1, item_view1 = self.forward(None, edge_index_dict, perturbed=True)
+            user_view2, item_view2 = self.forward(None, edge_index_dict, perturbed=True)
+            cl_loss = self.cal_cl_loss([users], user_view1, user_view2) + \
+                      self.cal_cl_loss([pos_items], item_view1, item_view2)
+            cl_loss *= self.cl_weight
+
+        return mf_loss + 1e-4 * reg_loss + cl_loss, mf_loss, cl_loss, reg_loss
+
+    def cal_cl_loss(self, idx, view1, view2):
+        """SimGCL InfoNCE Loss"""
+        u_idx = torch.unique(torch.cat(idx))
+        view1_norm = F.normalize(view1[u_idx], dim=1)
+        view2_norm = F.normalize(view2[u_idx], dim=1)
+        
+        pos_score = (view1_norm * view2_norm).sum(dim=1) / self.temp
+        exp_pos = torch.exp(pos_score)
+        
+        # Approximate denominator with batch negatives for efficiency
+        # Or full negatives if memory allows (SimGCL uses full)
+        # Here we follow standard SimGCL implementation: full matrix multiplication
+        # But for huge graphs, we might need batching. 
+        # Using the standard SimGCL formula: -log( exp(sim(u,u')) / sum(exp(sim(u, v'))) )
+        
+        # Simplified implementation for speed (Batch-wise contrastive)
+        ttl_score = torch.matmul(view1_norm, view2_norm.transpose(0, 1)) / self.temp
+        exp_ttl = torch.exp(ttl_score).sum(dim=1)
+        
+        cl_loss = -torch.log(exp_pos / exp_ttl).mean()
+        return cl_loss
 
     def predict(self, users, items, edge_index_dict):
         """Prediction for inference."""

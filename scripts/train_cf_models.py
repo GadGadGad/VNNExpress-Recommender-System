@@ -612,49 +612,116 @@ def sample_batch(train_pairs, train_dict, n_items, batch_size, neg_ratio=1, samp
     )
 
 
-def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu', train_item_indices=None):
+def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu', train_item_indices=None, data_path=None):
     """Load pretrained embeddings and project to target dimension."""
     if embedding_type == 'random':
         return None
         
     print(f"\nLoading {embedding_type} embeddings...")
     embeddings = None
+
+    # Helper to find file in multiple locations
+    def resolve_path(filename, search_paths):
+        for p in search_paths:
+            if p is None: continue
+            candidate = Path(p) / filename
+            if candidate.exists():
+                return candidate
+        return None
+
+    # Common locations to search
+    search_dirs = [
+        'checkpoints', 
+        'data/raw', 
+        'data',
+        '/kaggle/working/checkpoints',
+        '/kaggle/input/vnexpress-news-dataset'
+    ]
+    if data_path:
+        search_dirs.insert(0, Path(data_path).parent) # e.g., /kaggle/input/vnexpress-graph-processed
+        search_dirs.insert(0, Path(data_path))
     
+    # 1. Resolve Embedding Path
+    emb_filename = None
     if embedding_type == 'phobert':
-        path = 'checkpoints/phobert_article_embeddings.pt'
-        if os.path.exists(path):
-            embeddings = torch.load(path, map_location='cpu')
-            print(f"  Loaded PhoBERT embeddings: {embeddings.shape}")
-        else:
-            print(f"  Warning: {path} not found. Using random initialization.")
-            return None
-            
+        emb_filename = 'phobert_article_embeddings.pt'
     elif embedding_type == 'vndoc':
-        path = 'checkpoints/vndoc_article_embeddings.pt'
-        if os.path.exists(path):
-            embeddings = torch.load(path, map_location='cpu')
-            print(f"  Loaded VnDoc embeddings: {embeddings.shape}")
-        else:
-            print(f"  Warning: {path} not found. Using random initialization.")
-            return None
-    
+        emb_filename = 'vndoc_article_embeddings.pt'
     elif embedding_type in ['bge-m3', 'gte', 'e5-large', 'e5-base', 'vn-sbert']:
-        # Map shortnames to full paths
-        path_map = {
-            'bge-m3': 'checkpoints/bge-m3_article_embeddings.pt',
-            'gte': 'checkpoints/gte-multilingual_article_embeddings.pt',
-            'e5-large': 'checkpoints/e5-large_article_embeddings.pt',
-            'e5-base': 'checkpoints/e5-base_article_embeddings.pt',
-            'vn-sbert': 'checkpoints/vietnamese-sbert_article_embeddings.pt'
+        name_map = {
+            'bge-m3': 'bge-m3_article_embeddings.pt',
+            'gte': 'gte-multilingual_article_embeddings.pt',
+            'e5-large': 'e5-large_article_embeddings.pt',
+            'e5-base': 'e5-base_article_embeddings.pt',
+            'vn-sbert': 'vietnamese-sbert_article_embeddings.pt'
         }
-        path = path_map[embedding_type]
-        if os.path.exists(path):
-            embeddings = torch.load(path, map_location='cpu')
-            print(f"  Loaded {embedding_type} embeddings: {embeddings.shape}")
+        emb_filename = name_map[embedding_type]
+    
+    if emb_filename:
+        # Special check for checkpoints folder
+        path = resolve_path(emb_filename, ['checkpoints'] + search_dirs)
+        
+        if path and path.exists():
+             embeddings = torch.load(path, map_location='cpu')
+             print(f"  Loaded {embedding_type} embeddings from {path}: {embeddings.shape}")
         else:
-            print(f"  Warning: {path} not found. Using random initialization.")
-            return None
-            
+             print(f"  Warning: {emb_filename} not found locally.")
+             
+             # Fallback: Auto-Download & Encode
+             print("  ⚠️ Attempting to download and encode on-the-fly (this may take time)...")
+             try:
+                 from sentence_transformers import SentenceTransformer
+                 import pandas as pd
+                 
+                 # HF Model Names
+                 hf_map = {
+                     'bge-m3': 'BAAI/bge-m3',
+                     'gte': 'thenlper/gte-large', 
+                     'e5-large': 'intfloat/multilingual-e5-large',
+                     'e5-base': 'intfloat/multilingual-e5-base',
+                     'vn-sbert': 'keepitreal/vietnamese-sbert'
+                 }
+                 
+                 model_name = hf_map.get(embedding_type)
+                 if not model_name:
+                     print(f"  ❌ No HF model mapping for {embedding_type}. Fallback to Random.")
+                     return None
+                     
+                 # Load Articles
+                 articles_path = resolve_path('articles.csv', search_dirs)
+                 if (not articles_path) and data_path: articles_path = Path(data_path).parent / 'articles.csv'
+                 if not articles_path: articles_path = Path('data/raw/articles.csv')
+                 
+                 if not articles_path.exists():
+                     print(f"  ❌ Articles file not found. Cannot encode. Fallback to Random.")
+                     return None
+                     
+                 df = pd.read_csv(articles_path)
+                 print(f"  Loaded {len(df)} articles. Encoding with {model_name}...")
+                 
+                 # Prepare Text
+                 df['text'] = df['title'].fillna('') + ' ' + df['abstract'].fillna('')
+                 texts = df['text'].tolist()
+                 
+                 # Encode
+                 model = SentenceTransformer(model_name, device=device)
+                 emb_matrix = model.encode(texts, batch_size=32, show_progress_bar=True, convert_to_tensor=True)
+                 embeddings = emb_matrix.cpu()
+                 
+                 # Save for future
+                 save_dir = Path('checkpoints')
+                 save_dir.mkdir(exist_ok=True)
+                 save_path = save_dir / emb_filename
+                 torch.save(embeddings, save_path)
+                 print(f"  ✅ Saved cached embeddings to {save_path}")
+                 
+             except ImportError:
+                 print("  ❌ `sentence_transformers` not installed. Cannot auto-encode. Fallback to Random.")
+                 return None
+             except Exception as e:
+                 print(f"  ❌ Auto-encoding failed: {e}. Fallback to Random.")
+                 return None
+
     elif embedding_type == 'tfidf':
         print("   Computing TF-IDF embeddings (LSA)...")
         import pandas as pd
@@ -666,10 +733,12 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
             texts = [] # Khởi tạo list texts để không bị lỗi gợn sóng
             
             # Load articles CSV để lấy nội dung text
-            articles_path = Path('data/raw/articles.csv')
-            if not articles_path.exists():
-                # Thử tìm ở thư mục cha nếu đang chạy từ scripts/
-                articles_path = Path('data/processed').parent / 'raw' / 'articles.csv'
+            # Load articles CSV
+            articles_path = resolve_path('articles.csv', search_dirs)
+            
+            if not articles_path:
+                 # Last resort fallback
+                 articles_path = Path('data/raw/articles.csv')
             
             if not articles_path.exists():
                 print(f"      Error: Articles file not found at {articles_path}")
@@ -1377,7 +1446,8 @@ def main():
         n_items, 
         args.hidden_dim, 
         device, 
-        train_item_indices=train_item_indices # <--- QUAN TRỌNG: Phải truyền vào đây
+        train_item_indices=train_item_indices,
+        data_path=args.data_path # <--- Pass data_path here
     )
     
     # Generate Semantic IDs if requested
@@ -1474,7 +1544,9 @@ def main():
         elif hasattr(data, 'n_categories'):
             num_cats = data.n_categories
         
-        model = MAHGN(n_users, n_items, args.hidden_dim, n_layers=args.n_layers, n_categories=num_cats, gnn_type=args.gnn_type).to(device)
+        model = MAHGN(n_users, n_items, args.hidden_dim, n_layers=args.n_layers, 
+                      n_categories=num_cats, gnn_type=args.gnn_type,
+                      cl_weight=args.ssl_weight, temp=args.temp).to(device)
 
     elif args.model == 'xsimgcl':
         model = XSimGCL(n_users, n_items, embedding_dim=args.hidden_dim, n_layers=args.n_layers,

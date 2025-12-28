@@ -861,29 +861,61 @@
 %     \end{block}
 % \end{frame}
 
-\begin{frame}
-    \frametitle{Impact of Graph Structure (Ablation Study)}
-    \textbf{Question:} Which graph topology yields the best performance?\\
-    Testing \textbf{SimGCL} on different graph types:
+\end{frame}
 
-    \vspace{0.3cm}
+\begin{frame}
+    \frametitle{Ablation Study: GNN Architecture}
+    \textbf{Question:} Does the choice of aggregator matter?
+    Comparing \textbf{GAT} (default), \textbf{GraphSAGE}, and \textbf{TransformerConv}.
+
+    \vspace{0.2cm}
     \begin{table}
         \centering
-        \small
-        \begin{tabular}{l|l|p{5cm}}
+        \scriptsize
+        \begin{tabular}{l|cc|cc|c}
             \toprule
-            \textbf{Graph} & \textbf{Stats}                                      & \textbf{Description} \\
+            \multirow{2}{*}{\textbf{Backbone}} & \multicolumn{2}{c|}{\textbf{LOO Protocol (Warm)}} & \multicolumn{2}{c|}{\textbf{Full Protocol (Cold)}} & \multirow{2}{*}{\textbf{Trend}}                                           \\
+                                               & R@10                                              & N@10                                               & R@10                            & N@10            &                       \\
             \midrule
-            \textbf{G1}    & \parbox{4.5cm}{\textbf{Nodes:} 13k Users, 3.6k Arts                        \\ \textbf{Edges:} 30k (0.06\%) \\ \textbf{Deg:} 2.35} & \textbf{Base Bipartite}: Classic User-Item graph. Very sparse interactions.                        \\
-            \midrule
-            \textbf{G2}    & \parbox{4.5cm}{\textbf{+Social Edges:} 61k                                 \\ \textbf{Edges:} \textbf{92k} (0.064\%)}     & \textbf{Heterogeneous}: Adds 51k Reply + 10k Interact edges. \textbf{3x denser} than G1.           \\
-            \midrule
-            \textbf{G3}    & \parbox{4.5cm}{\textbf{Nodes:} +6 Categories                               \\ \textbf{Edges:} 16k (User-Cat)}           & \textbf{Abstracted}: Projects users to abstract categories. High density but low specificity. \\
+            GAT                                & 0.3436                                            & 0.2074                                             & 0.0262                          & 0.0163          & Baseline              \\
+            SAGE                               & 0.3876                                            & 0.2322                                             & 0.0303                          & 0.0182          & Better (+12\%)        \\
+            \rowcolor{green!15} \textbf{TRANS} & \textbf{0.4492}                                   & \textbf{0.2700}                                    & \textbf{0.0504}                 & \textbf{0.0266} & \textbf{Best (+30\%)} \\
             \bottomrule
         \end{tabular}
     \end{table}
 
-    \textbf{Insight:} Although G1 suffers from cold-start sparsity (~2 interactions/user), \textbf{G2} triples the signal volume by leveraging social wisdom (homophily), explaining its superior performance.
+    \vspace{0.2cm}
+    \textbf{Analysis:}
+    \begin{itemize}
+        \item \textbf{Transformer Superiority:} The multi-head attention mechanism in TransformerConv captures complex dependencies better than GAT's simple attention or SAGE's mean pooling.
+        \item \textbf{GAT Underperformance:} Standard GAT struggles, possibly due to the "static" nature of its attention mechanism compared to Transformer's dynamic query-key value pairs.
+        \item \textbf{Consistent Ranking:} The hierarchy (Transformer $>$ SAGE $>$ GAT) holds true for both Warm and Cold start scenarios.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Impact of Graph Structure (Ablation Study)}
+    \textbf{Question:} Which graph topology yields the best performance?\\
+    Testing \textbf{MA-HGN} on different graph types:
+
+    \vspace{0.3cm}
+    \begin{table}
+        \centering
+        \scriptsize
+        \begin{tabular}{l|l|c|l}
+            \toprule
+            \textbf{Graph} & \textbf{Structure Stats}                  & \textbf{R@10} & \textbf{Impact} \\
+            \midrule
+            G1 (Base)      & \parbox{3.5cm}{13k Users, 30k Edges                                         \\ Density: 0.06\%}               & 0.4015          & \textbf{Baseline}. Sparse, cold-start prone.        \\
+            \midrule
+            \textbf{G2}    & \parbox{3.5cm}{\textbf{+61k Social Edges}                                   \\ Density: \textbf{0.064\%}} & \textbf{0.4364} & \textbf{+8.7\%}. Social wisdom (Homophily) helps.   \\
+            \midrule
+            G3             & \parbox{3.5cm}{+6 Categories                                                \\ 16k User-Cat Edges}                   & 0.2617          & \textbf{-35\%}. Categories are too broad (Noise).   \\
+            \bottomrule
+        \end{tabular}
+    \end{table}
+
+    \textbf{Insight:} Denser is not always better. \textbf{G2} succeeds because social edges provide \textit{high-quality} signals, whereas \textbf{G3}'s category edges dilute specific user interests.
 
 
     \vspace{0.2cm}
