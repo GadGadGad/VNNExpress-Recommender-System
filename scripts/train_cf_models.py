@@ -195,23 +195,27 @@ class LightGCLWrapper:
         return total_loss, torch.tensor(0.0, device=total_loss.device)
 
 
-def load_data(data_path, min_interactions=2):
+def load_data(data_path, min_interactions=2, split_strategy='random'):
     """Load and process data for CF models."""
     import pandas as pd
     from torch_geometric.data import HeteroData
     
     # Check if data_path is already a file or a directory
     p = Path(data_path)
+    cache_filename = f'cf_cache_{split_strategy}.pt'
     if p.is_file():
         cache_path = p
     else:
-        cache_path = p / 'cf_cache.pt'
-        if not cache_path.exists():
+        cache_path = p / cache_filename
+        if not cache_path.exists() and split_strategy == 'random':
             cache_path = p / 'graph_with_negatives.pt'
-            if not cache_path.exists():
+            if (p / 'graph_with_negatives.pt').exists():
+                cache_path = p / 'graph_with_negatives.pt'
+            elif (p / 'user_article_graph.pt').exists():
                 cache_path = p / 'user_article_graph.pt'
         
     if cache_path.exists():
+        print(f"  Loading cached data from {cache_path} (Strategy: {split_strategy})...")
         data = torch.load(cache_path, weights_only=False)
         
         # Normalization for different graph types
@@ -410,7 +414,7 @@ def load_data(data_path, min_interactions=2):
 
         return data
     
-    print("Processing data...")
+    print(f"Processing data from raw CSVs (Strategy: {split_strategy})...")
     raw_replies = Path('data/raw/replies.csv')
     if not raw_replies.exists():
         raw_replies = Path(data_path).parent / 'raw' / 'replies.csv'
@@ -451,15 +455,38 @@ def load_data(data_path, min_interactions=2):
     replies['user_idx'] = replies['user_id'].map(user_map)
     replies['item_idx'] = replies['article_url'].map(article_map)
     
-    # Split train/test FIRST, then create edge_index from train only
-    interactions = list(zip(replies['user_idx'].values, replies['item_idx'].values))
-    interactions = list(set(interactions))
-    np.random.seed(42)  # Reproducibility
-    np.random.shuffle(interactions)
-    
-    split_idx = int(len(interactions) * 0.8)
-    train_pairs = interactions[:split_idx]
-    test_pairs = interactions[split_idx:]
+    if split_strategy == 'time':
+        print("   [INFO] Strategy: TIME-BASED SPLIT")
+        print("   -> Preserving CSV order (assuming sorted by time)")
+        
+        # 1. Deduplicate giữ nguyên thứ tự (Keep First)
+        replies = replies.drop_duplicates(subset=['user_idx', 'item_idx'], keep='first')
+        
+        # 2. Tạo list interactions theo dòng chảy thời gian
+        interactions = list(zip(replies['user_idx'].values, replies['item_idx'].values))
+        
+        # 3. Cắt theo mốc thời gian (80% đầu là train, 20% sau là test)
+        split_idx = int(len(interactions) * 0.8)
+        train_pairs = interactions[:split_idx]
+        test_pairs = interactions[split_idx:]
+        
+        print(f"   -> Split Point: Interaction #{split_idx}")
+        print(f"   -> Train: {len(train_pairs)} (Past) | Test: {len(test_pairs)} (Future)")
+        
+    else: # split_strategy == 'random'
+        print("   [INFO] Strategy: RANDOM SPLIT (Legacy)")
+        print("   -> Shuffling interactions...")
+        
+        # Logic cũ: Dùng set (mất thứ tự) và shuffle
+        interactions = list(zip(replies['user_idx'].values, replies['item_idx'].values))
+        interactions = list(set(interactions))
+        np.random.seed(42)
+        np.random.shuffle(interactions)
+        
+        split_idx = int(len(interactions) * 0.8)
+        train_pairs = interactions[:split_idx]
+        test_pairs = interactions[split_idx:]
+        print(f"   -> Train: {len(train_pairs)} | Test: {len(test_pairs)}")
     
     train_dict = {}
     for u, i in train_pairs:
@@ -473,7 +500,7 @@ def load_data(data_path, min_interactions=2):
             test_dict[u] = set()
         test_dict[u].add(i)
     
-    # Create edge index from TRAIN PAIRS ONLY (no data leakage)
+    # Create edge index from TRAIN PAIRS ONLY
     train_users = torch.tensor([u for u, i in train_pairs], dtype=torch.long)
     train_items = torch.tensor([i for u, i in train_pairs], dtype=torch.long)
     
@@ -494,9 +521,16 @@ def load_data(data_path, min_interactions=2):
         'test_dict': test_dict,
     }
     
-    # Ensure directory exists
-    cache_path.parent.mkdir(parents=True, exist_ok=True)
-    torch.save(data, cache_path)
+    # Save cache with strategy name
+    # Nếu là file path, ta lưu vào parent directory với tên mới
+    if p.is_file():
+        save_path = p.parent / cache_filename
+    else:
+        save_path = p / cache_filename
+        
+    save_path.parent.mkdir(parents=True, exist_ok=True)
+    torch.save(data, save_path)
+    print(f"   -> Processed data saved to {save_path}")
 
     return data
 
@@ -1119,6 +1153,8 @@ def main():
                         help='Weight for social reply edges in adjacency matrix (default: 1.0)')
     parser.add_argument('--graph-type', choices=['bipartite', 'hetero', 'article', 'category'], default='bipartite',
                         help='Graph type: bipartite, hetero, article (Article-Augmented), or category (Category Hubs)')
+    parser.add_argument('--split-strategy', choices=['random', 'time'], default='random',
+                        help='Data splitting strategy: "random" (shuffle) or "time" (chronological)')
     # SimMAHGN specific arguments
     parser.add_argument('--emb-dim', type=int, default=64, help='Embedding dimension for SimMAHGN')
     parser.add_argument('--cl-rate', type=float, default=0.1, help='Contrastive loss rate for SimMAHGN')
@@ -1142,10 +1178,10 @@ def main():
             
         if hetero_path.exists():
             print(f"  Loading Heterogeneous Graph from: {hetero_path}")
-            data = load_data(str(hetero_path))
+            data = load_data(str(hetero_path), split_strategy=args.split_strategy)
         else:
             print(f"  Warning: {hetero_path} not found. Falling back to default bipartite graph.")
-            data = load_data(args.data_path)
+            data = load_data(args.data_path, split_strategy=args.split_strategy)
     elif args.graph_type == 'category':
         cat_path = Path(args.data_path) / 'all_graphs' / 'category_graph.pt'
         if not cat_path.exists():
@@ -1153,17 +1189,17 @@ def main():
              
         if cat_path.exists():
             print(f"  Loading Category-Augmented Graph from: {cat_path}")
-            data = load_data(str(cat_path))
+            data = load_data(str(cat_path), split_strategy=args.split_strategy)
         else:
             print(f"  Warning: {cat_path} not found. Falling back.")
-            data = load_data(args.data_path)
+            data = load_data(args.data_path, split_strategy=args.split_strategy)
 
     elif args.graph_type == 'article':
         # Load full hetero graph as base to ensure consistent dimensions
         hetero_path = Path(args.data_path) / 'all_graphs' / 'full_hetero_graph.pt'
         if hetero_path.exists():
             print(f"  Loading Full Base Graph from: {hetero_path}")
-            data = load_data(str(hetero_path))
+            data = load_data(args.data_path, split_strategy=args.split_strategy)
             
             # REMOVE Social Edges to ensure purely Article-Augmented experiment
             if isinstance(data, dict):
@@ -1178,7 +1214,7 @@ def main():
 
         else:
              print("Full graph not found, falling back (might fail dimensions)")
-             data = load_data(args.data_path)
+             data = load_data(args.data_path, split_strategy=args.split_strategy)
         
         # Load auxiliary Article-Article graph
         article_path = Path(args.data_path) / 'all_graphs' / 'article_article_graph_users.pt'
