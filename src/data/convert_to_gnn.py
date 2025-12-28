@@ -115,6 +115,14 @@ class GNNDataConverter:
         
         print(f"\nLoading articles from {self.articles_path}...")
         self.articles = pd.read_csv(self.articles_path)
+        
+        # Deduplicate articles: keep first category for multi-category articles
+        id_col = 'article_id' if 'article_id' in self.articles.columns else 'id'
+        initial_count = len(self.articles)
+        self.articles = self.articles.drop_duplicates(subset=[id_col], keep='first')
+        if len(self.articles) < initial_count:
+            print(f"   → Deduplicated articles: {initial_count} -> {len(self.articles)} (Removed {initial_count - len(self.articles)} duplicates)")
+        
         print(f"   → {len(self.articles):,} articles loaded")
         
         print(f"Loading replies from {self.replies_path}...")
