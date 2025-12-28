@@ -725,7 +725,7 @@ def evaluate(model, test_dict, train_dict, n_items, edge_index, k_list=[1, 5, 10
             topk_k = set(topk_list[:k])
             hits = len(topk_k & test_items)
             
-            results[f'recall@{k}'].append(hits / min(k, len(test_items)))
+            results[f'recall@{k}'].append(hits / len(test_items))
             results[f'hitrate@{k}'].append(1.0 if hits > 0 else 0.0)
             
             # Precision@k: hits / k
