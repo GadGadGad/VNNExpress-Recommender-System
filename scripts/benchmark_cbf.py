@@ -43,6 +43,9 @@ def get_metrics(topk_items, ground_truth, k_list=[1, 5, 10, 50]):
                 n_hits += 1
                 ap += n_hits / (i + 1)
         results[f'map@{k}'] = ap / min(k, len(ground_truth)) if len(ground_truth) > 0 else 0
+        
+        # HitRate@k
+        results[f'hitrate@{k}'] = 1.0 if hits > 0 else 0.0
     
     return results
 
@@ -231,7 +234,7 @@ def benchmark(embedding_type, data_path, eval_protocol='full', cold_users=None, 
     # 4. Evaluate
     k_list = [1, 5, 10, 50]
     max_k = max(k_list)
-    all_results = {f'{m}@{k}': [] for m in ['recall', 'ndcg', 'precision', 'map'] for k in k_list}
+    all_results = {f'{m}@{k}': [] for m in ['recall', 'ndcg', 'precision', 'map', 'hitrate'] for k in k_list}
     aucs = []
     
     # Choose which users to evaluate based on protocol
@@ -301,7 +304,7 @@ def benchmark(embedding_type, data_path, eval_protocol='full', cold_users=None, 
     
     print(f"  Result for {embedding_type}:")
     for k in k_list:
-        print(f"  @{k}: R={avg_results[f'recall@{k}']:.4f} N={avg_results[f'ndcg@{k}']:.4f} P={avg_results[f'precision@{k}']:.4f} mAP={avg_results[f'map@{k}']:.4f}")
+        print(f"  @{k}: R={avg_results[f'recall@{k}']:.4f} N={avg_results[f'ndcg@{k}']:.4f} H={avg_results[f'hitrate@{k}']:.4f} P={avg_results[f'precision@{k}']:.4f} mAP={avg_results[f'map@{k}']:.4f}")
     print(f"  AUC: {avg_results['auc']:.4f}")
     
     return avg_results

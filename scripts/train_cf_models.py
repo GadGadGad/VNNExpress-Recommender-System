@@ -1026,15 +1026,15 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
             
             pbar.set_postfix({
                 'loss': f"{total_loss:.4f}", 
-                'R@10': f"{metrics.get('recall@10', 0):.4f}"
+                'R@50': f"{metrics.get('recall@50', 0):.4f}"
             })
             
             tqdm.write(f"Epoch {epoch+1:3d} | Loss: {total_loss:.4f} | "
-                  f"R@10: {metrics.get('recall@10', 0):.4f} | NDCG@10: {metrics.get('ndcg@10', 0):.4f}")
+                  f"R@50: {metrics.get('recall@50', 0):.4f} | NDCG@50: {metrics.get('ndcg@50', 0):.4f}")
             
-            recall_10 = metrics.get('recall@10', 0)
-            if recall_10 > best_recall:
-                best_recall = recall_10
+            recall_50 = metrics.get('recall@50', 0)
+            if recall_50 > best_recall:
+                best_recall = recall_50
                 best_metrics = metrics.copy()
                 best_state = model.state_dict().copy()
                 patience_counter = 0
