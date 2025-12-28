@@ -222,7 +222,10 @@ def train_model(model, train_dict, n_items, epochs=10, batch_size=1024, lr=1e-3,
     
     print(f"\nStart Training: {epochs} epochs, {n_samples} interactions")
     
-    for epoch in range(epochs):
+    # Outer progress bar for epochs
+    epoch_pbar = tqdm(range(epochs), desc="Training", ncols=100)
+    
+    for epoch in epoch_pbar:
         model.train()
         total_loss = 0
         
@@ -231,8 +234,12 @@ def train_model(model, train_dict, n_items, epochs=10, batch_size=1024, lr=1e-3,
         users = all_users[perm]
         items = all_items[perm]
         
-        pbar = tqdm(range(0, n_samples, batch_size), desc=f"Epoch {epoch+1}/{epochs}", ncols=80, leave=False)
-        for i in pbar:
+        # Inner loop (Optional: disable inner tqdm to keep it clean, or use leave=False)
+        # We'll just iterate without tqdm for inner loop to minimize spam, 
+        # or use a very minimal one if batch count is huge. Here we silence inner loop.
+        n_batches = (n_samples + batch_size - 1) // batch_size
+        
+        for i in range(0, n_samples, batch_size):
             batch_idx = slice(i, i+batch_size)
             batch_u = users[batch_idx].to(model.device)
             batch_pos = items[batch_idx].to(model.device)
@@ -242,9 +249,7 @@ def train_model(model, train_dict, n_items, epochs=10, batch_size=1024, lr=1e-3,
             u_input = user_means[batch_u] 
             u_vec = model.user_preference_encoder(u_input) # [B, Dim]
             
-            # Use item_encoder (Symmetric Two Tower)
-            # Need to get raw embeddings first, then pass through item_encoder
-            # Note: article_embeddings are on device already
+            # Use item_encoder 
             pos_raw = model.article_embeddings[batch_pos]
             neg_raw = model.article_embeddings[batch_neg]
             
@@ -263,9 +268,9 @@ def train_model(model, train_dict, n_items, epochs=10, batch_size=1024, lr=1e-3,
             optimizer.step()
             
             total_loss += loss.item()
-            pbar.set_postfix({'loss': f"{loss.item():.4f}"})
             
-        print(f"Epoch {epoch+1}: Loss = {total_loss / (len(pbar)+1):.4f}")
+        avg_loss = total_loss / n_batches
+        epoch_pbar.set_postfix({'loss': f"{avg_loss:.4f}"})
 
     print("Training finished.")
 
