@@ -302,15 +302,39 @@ class GNNTrainer:
         else:
             self.scheduler = CosineAnnealingLR(self.optimizer, T_max=100)
         
-        # --- FIX ERROR 2: Dùng Split có sẵn (Time-based) thay vì RandomLinkSplit ---
         if self.splits is not None:
-            print("   -> Using pre-computed splits (Time-based / Hard Negatives)")
-            # Gán trực tiếp dữ liệu đã split
-            self.train_data = data # Bản gốc chứa tất cả node features
-            self.val_data = data
-            self.test_data = data
+            print("   -> Using pre-computed splits. MASKING edges to prevent leakage...")
+            
+            # --- 1. Xây dựng TRAIN DATA (Chỉ chứa cạnh Train) ---
+            self.train_data = data.clone()
+            # Lấy edges từ split train để làm khung xương cho Message Passing
+            tr_u = self.splits['train']['pos_users'].long()
+            tr_v = self.splits['train']['pos_articles'].long()
+            train_edge_index = torch.stack([tr_u, tr_v], dim=0)
+            
+            # Cập nhật edge_index của graph train: CHỈ chứa cạnh train
+            self.train_data[self.edge_type].edge_index = train_edge_index
+            
+            # --- 2. Xây dựng VAL DATA (Message Passing dùng Train edges) ---
+            # Khi validate, model chỉ được biết các cạnh quá khứ (Train) để dự đoán Val
+            self.val_data = data.clone()
+            self.val_data[self.edge_type].edge_index = train_edge_index
+            
+            # --- 3. Xây dựng TEST DATA (Message Passing dùng Train + Val edges) ---
+            # Khi test, model được phép biết toàn bộ lịch sử (Train + Val) để dự đoán Test
+            self.test_data = data.clone()
+            
+            # Lấy thêm cạnh Val
+            val_u = self.splits['val']['pos_users'].long()
+            val_v = self.splits['val']['pos_articles'].long()
+            val_edge_index = torch.stack([val_u, val_v], dim=0)
+            
+            # Gộp Train + Val lại cho Test phase
+            historical_edges = torch.cat([train_edge_index, val_edge_index], dim=1)
+            self.test_data[self.edge_type].edge_index = historical_edges
+            
         else:
-            print("   -> [WARNING] Using RandomLinkSplit (Might cause Data Leakage!)")
+            print("   -> [WARNING] Using RandomLinkSplit (Might cause Data Leakage if not careful!)")
             self.train_data, self.val_data, self.test_data = self._split_data(data)
 
         self.train_data = self.train_data.to(device)
