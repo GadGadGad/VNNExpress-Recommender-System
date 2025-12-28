@@ -112,6 +112,10 @@ class MAHCL(nn.Module):
     
     def _build_social_graph(self, edge_index_dict):
         """Build user-user social graph."""
+        # Handle raw tensor input (fallback from bipartite graph) - no social edges
+        if isinstance(edge_index_dict, torch.Tensor):
+            return None
+        
         # Convert to regular dict if needed
         if hasattr(edge_index_dict, 'keys'):
             edge_dict = dict(edge_index_dict)
