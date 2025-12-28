@@ -119,10 +119,10 @@
         \begin{column}{0.5\textwidth}
             \textbf{Statistics:}
             \begin{itemize}
-                \item \textbf{Users:} 3,000+
-                \item \textbf{Articles:} 2,500+
-                \item \textbf{Interactions:} 8,000+
-                \item \textbf{Sparsity:} 99.9\%
+                \item \textbf{Users:} 13,117
+                \item \textbf{Articles:} 3,645
+                \item \textbf{Interactions:} 38,505
+                \item \textbf{Sparsity:} 99.92\%
             \end{itemize}
             \vspace{0.2cm}
             \small The dataset is highly sparse, typical of news domains where users read only a tiny fraction of daily content.
@@ -330,12 +330,12 @@
         \end{itemize}
 
         \column{0.5\textwidth}
-        \textbf{Graph Interaction Set:}
+        \textbf{Graph Interaction Set (G1-G3):}
         \begin{itemize}
-            \item \textbf{4,266} Active Users
-            \item \textbf{2,299} Active Articles
-            \item \textbf{64,944} Total Interactions
-            \item \textbf{Sparsity: 99.34\%}
+            \item \textbf{13,117} Unique Users
+            \item \textbf{3,645} Active Articles
+            \item \textbf{38,505} Total Interactions
+            \item \textbf{Sparsity: 99.919\%}
         \end{itemize}
     \end{columns}
 \end{frame}
@@ -414,15 +414,15 @@
     \vspace{0.2cm}
     \textbf{VnExpress Graph Calculation:}
     \begin{itemize}
-        \item Interactions ($|\mathcal{E}_{obs}|$): \textbf{64,944}
-        \item Active Users ($|\mathcal{V}_u|$): \textbf{4,266}
-        \item Active Articles ($|\mathcal{V}_i|$): \textbf{2,299}
-        \item Total Possible Edges: $4,266 \times 2,299 = \mathbf{9,807,534}$
+        \item Interactions ($|\mathcal{E}_{obs}|$): \textbf{38,505}
+        \item Active Users ($|\mathcal{V}_u|$): \textbf{13,117}
+        \item Active Articles ($|\mathcal{V}_i|$): \textbf{3,645}
+        \item Total Possible Edges: $13,117 \times 3,645 = \mathbf{47,811,465}$
     \end{itemize}
 
     \vspace{0.2cm}
     \centering
-    $\Rightarrow \text{Sparsity} = 1 - \frac{64,944}{9,807,534} = \mathbf{99.3378\%}$
+    $\Rightarrow \text{Sparsity} = 1 - \frac{38,505}{47,811,465} = \mathbf{99.919\%}$
 \end{frame}
 
 %------------------------------------------------------------
@@ -785,11 +785,11 @@
         \centering
         \begin{tabular}{l|c|cc|c}
             \toprule
-            \textbf{Graph Type} & \textbf{Edges} & \textbf{R@10}   & \textbf{NDCG@10} & \textbf{Result} \\
+            \textbf{Graph Type} & \textbf{Edges} & \textbf{Nodes} & \textbf{Type} \\
             \midrule
-            G1: Bipartite       & 39k            & 0.0214          & 0.0094          & baseline        \\
-            G2: Heterogeneous   & 53k            & 0.2107          & \textbf{0.1534} & \textbf{+771\%} \\
-            G3: Category Hubs   & 53k+           & \textbf{0.2127} & 0.1391          & \textbf{+772\%} \\
+            G1: Bipartite       & 30.8k          & 16.7k          & UI Baseline    \\
+            G2: Heterogeneous   & 92.6k          & 16.7k          & UI + Social    \\
+            G3: Category Hubs   & 47.4k          & 16.7k+         & UI + Semantic  \\
             \bottomrule
         \end{tabular}
     \end{table}

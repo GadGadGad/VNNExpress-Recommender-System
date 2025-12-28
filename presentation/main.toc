@@ -1,0 +1,9 @@
+\babel@toc {english}{}\relax 
+\beamer@sectionintoc {1}{Project Overview \& Methodology}{3}{0}{1}
+\beamer@sectionintoc {2}{Exploratory Data Analysis}{7}{0}{2}
+\beamer@sectionintoc {3}{State-of-the-Art (SOTA) Baselines}{10}{0}{3}
+\beamer@sectionintoc {4}{VnExpress Data Science}{14}{0}{4}
+\beamer@sectionintoc {5}{Proposed Method: MA-HGN}{29}{0}{5}
+\beamer@sectionintoc {6}{Engineering Implementation}{31}{0}{6}
+\beamer@sectionintoc {7}{Experimental Results \& Innovations}{35}{0}{7}
+\beamer@sectionintoc {8}{Live Demo \& Conclusion}{52}{0}{8}
