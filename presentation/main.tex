@@ -710,32 +710,7 @@
     \textbf{Observation:} After fixing data leakage, CF models still outperform CB models, but with realistic margins. \textbf{SimGCL} remains robust for cold-start users.
 \end{frame}
 
-\begin{frame}
-    \frametitle{Data Integrity: The Anti-Leakage Fix}
-    \textbf{Challenge:} Previous runs showed inflated scores (R@10 > 0.8) due to unintentional data leakage in the time-split.
 
-    \vspace{0.4cm}
-    \begin{columns}
-        \begin{column}{0.45\textwidth}
-            \begin{block}{The Problem}
-                Future connections were visible in the graph structure during training, allowing models to "peek" at test results.
-            \end{block}
-        \end{column}
-        \begin{column}{0.5\textwidth}
-            \begin{block}{Our Solution}
-                \begin{itemize}
-                    \item \textbf{Strict Masking:} Synchronized graph edges with training timestamps.
-                    \item \textbf{Symmetry Fix:} Balanced bidirectional message passing.
-                    \item \textbf{Robustness:} Fallback logic for sparse nodes after pruning.
-                \end{itemize}
-            \end{block}
-        \end{column}
-    \end{columns}
-
-    \vspace{0.4cm}
-    \centering
-    \textit{"A trustworthy lower score is more valuable than an inflated false result."}
-\end{frame}
 
 \begin{frame}
     \frametitle{Edge Weighting Strategy}
