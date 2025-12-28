@@ -387,8 +387,23 @@ def load_data(data_path, min_interactions=2):
                 data.update(data_dict)
                 return data
             
-            # For ma_hgn, preserve edge_index_dict if present in original data
+            # For HeteroData, we must filter edge_index_dict to only contain train edges
+            # to prevent leakage. The original edge_index_dict may contain test edges.
             if isinstance(data, HeteroData):
+                train_edge_index = torch.stack([
+                    torch.tensor([u for u, i in data_dict['train_pairs']], dtype=torch.long),
+                    torch.tensor([i for u, i in data_dict['train_pairs']], dtype=torch.long)
+                ], dim=0)
+                
+                # Update the HeteroData object's edges to only contain training interactions
+                ua_key = ('user', 'comments', 'article')
+                rev_ua_key = ('article', 'rev_comments', 'user')
+                
+                if ua_key in data.edge_types:
+                    data[ua_key].edge_index = train_edge_index
+                if rev_ua_key in data.edge_types:
+                    data[rev_ua_key].edge_index = torch.stack([train_edge_index[1], train_edge_index[0]], dim=0)
+                
                 data_dict['edge_index_dict'] = data.edge_index_dict
                 
             return data_dict
