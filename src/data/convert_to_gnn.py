@@ -293,6 +293,39 @@ class GNNDataConverter:
         return features
 
     
+    def _get_split_indices(self, seed=42):
+        """Get indices split by Time or Randomly."""
+        import numpy as np
+        
+        # Consistent cache filename
+        filename = f'split_indices_{self.split_strategy}.pt' 
+        split_file = self.output_dir / filename
+        num_positives = len(self.replies)
+        
+        if split_file.exists():
+            indices = torch.load(split_file, weights_only=False)
+            if len(indices) == num_positives:
+                return indices.numpy() if torch.is_tensor(indices) else indices
+        
+        # Default: Random split
+        np.random.seed(seed)
+        indices = np.random.permutation(num_positives)
+        torch.save(indices, split_file)
+        return indices
+
+    def _get_train_mask(self, seed=42, train_ratio=0.8):
+        """Get mask for training interactions."""
+        import numpy as np
+        indices = self._get_split_indices(seed)
+        num_positives = len(indices)
+        
+        train_end = int(num_positives * train_ratio)
+        train_idx = indices[:train_end]
+        
+        mask = np.zeros(num_positives, dtype=bool)
+        mask[train_idx] = True
+        return mask
+
     def build_user_article_graph(self) -> 'HeteroData':
         """
         Build User-Article bipartite graph (PyTorch Geometric HeteroData).
@@ -355,8 +388,29 @@ class GNNDataConverter:
         
         data = T.ToUndirected()(data)
         
+        # Consistent metadata for train_cf_models
+        indices = self._get_split_indices()
+        num_pos = len(self.replies)
+        train_end = int(num_pos * 0.8)
+        
+        result = {
+            'graph': data,
+            'n_users': len(self.user_map),
+            'n_items': len(self.article_map),
+            'splits': {
+                'train': {
+                    'pos_users': torch.tensor(self.replies.iloc[indices[:train_end]]['user_idx'].values, dtype=torch.long),
+                    'pos_articles': torch.tensor(self.replies.iloc[indices[:train_end]]['article_idx'].values, dtype=torch.long),
+                },
+                'test': {
+                    'pos_users': torch.tensor(self.replies.iloc[indices[train_end:]]['user_idx'].values, dtype=torch.long),
+                    'pos_articles': torch.tensor(self.replies.iloc[indices[train_end:]]['article_idx'].values, dtype=torch.long),
+                }
+            }
+        }
+        
         save_path = self.output_dir / 'user_article_graph.pt'
-        torch.save(data, save_path)
+        torch.save(result, save_path)
         self._save_mappings()
         
         print(f"   [OK] User nodes: {data['user'].x.shape}")
@@ -364,405 +418,11 @@ class GNNDataConverter:
         print(f"   [OK] Edges: {data['user', 'comments', 'article'].edge_index.shape}")
         print(f"   [OK] Saved to: {save_path}")
         
-        return data
-    
-    def generate_negative_samples(
-        self,
-        num_negatives: int = 1,
-        strategy: str = 'random',
-        seed: int = 42
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        """
-        Generate negative samples (user-article pairs that don't exist).
-        
-        Args:
-            num_negatives: Number of negatives per positive sample
-            strategy: 'random', 'popular', or 'hard'
-                - random: Uniform random negative articles
-                - popular: Sample from popular articles (harder negatives)
-                - hard: Sample from same category (hardest negatives)
-            seed: Random seed for reproducibility
-        
-        Returns:
-            neg_users, neg_articles: Arrays of negative user-article pairs
-        """
-        print(f"\nGenerating negative samples (strategy={strategy}, ratio={num_negatives})...")
-        
-        np.random.seed(seed)
-        
-        num_users = len(self.user_map)
-        num_articles = len(self.article_map)
-        num_positives = len(self.replies)
-        num_neg_samples = num_positives * num_negatives
-        
-        positive_set = set(
-            zip(self.replies['user_idx'].values, self.replies['article_idx'].values)
-        )
-        
-        neg_users = []
-        neg_articles = []
-        
-        if strategy == 'random':
-            print("   -> Random negative sampling...")
-            attempts = 0
-            max_attempts = num_neg_samples * 10
-            
-            while len(neg_users) < num_neg_samples and attempts < max_attempts:
-                batch_size = min(num_neg_samples - len(neg_users), 10000)
-                u_batch = np.random.randint(0, num_users, batch_size)
-                a_batch = np.random.randint(0, num_articles, batch_size)
-                
-                for u, a in zip(u_batch, a_batch):
-                    if (u, a) not in positive_set:
-                        neg_users.append(u)
-                        neg_articles.append(a)
-                        if len(neg_users) >= num_neg_samples:
-                            break
-                
-                attempts += batch_size
-            
-        elif strategy == 'popular':
-            print("   -> Popularity-based negative sampling...")
-            article_counts = self.replies['article_idx'].value_counts()
-            article_probs = article_counts / article_counts.sum()
-            popular_articles = article_probs.index.values
-            probs = article_probs.values
-            
-            user_indices = self.replies['user_idx'].unique()
-            
-            for _ in tqdm(range(num_negatives), desc="   Generating negatives"):
-                for user_idx in user_indices:
-                    for _ in range(10):  # Max attempts per user
-                        article_idx = np.random.choice(popular_articles, p=probs)
-                        if (user_idx, article_idx) not in positive_set:
-                            neg_users.append(user_idx)
-                            neg_articles.append(article_idx)
-                            break
-                    
-                    if len(neg_users) >= num_neg_samples:
-                        break
-                        
-        elif strategy == 'hard':
-            print("   -> Hard negative sampling (Popularity-based from other categories)...")
-            # Sample "popular" items that this user has NOT interacted with
-            # but which are globally popular, making them "tricky" negatives.
-            article_counts = self.replies['article_idx'].value_counts()
-            article_probs = article_counts / article_counts.sum()
-            popular_articles = article_probs.index.values
-            p_vals = article_probs.values
-            
-            user_indices = self.replies['user_idx'].unique()
-            user_recs = self.replies.groupby('user_idx')['article_idx'].apply(set).to_dict()
-            
-            for _ in range(num_negatives):
-                for user_idx in tqdm(user_indices, desc="   Sampling Hard Negatives"):
-                    pos_set = user_recs.get(user_idx, set())
-                    for _ in range(20): # Max attempts
-                        neg_idx = np.random.choice(popular_articles, p=p_vals)
-                        if neg_idx not in pos_set:
-                            neg_users.append(user_idx)
-                            neg_articles.append(neg_idx)
-                            break
-                    if len(neg_users) >= num_neg_samples:
-                        break
-                if len(neg_users) >= num_neg_samples:
-                    break
-        
-        neg_users = np.array(neg_users[:num_neg_samples])
-        neg_articles = np.array(neg_articles[:num_neg_samples])
-        
-        print(f"   [OK] Generated {len(neg_users):,} negative samples")
-        
-        return neg_users, neg_articles
-    
-    def build_graph_with_negatives(
-        self,
-        neg_ratio: int = 1,
-        neg_strategy: str = 'random',
-        train_ratio: float = 0.8,
-        val_ratio: float = 0.1,
-        seed: int = 42
-    ) -> Dict:
-        """
-        Build graph with explicit positive and negative samples, pre-split into train/val/test.
-        
-        This is the format commonly used in recommendation papers.
-        
-        Args:
-            neg_ratio: Number of negative samples per positive
-            neg_strategy: Negative sampling strategy
-            train_ratio: Proportion for training
-            val_ratio: Proportion for validation (test = 1 - train - val)
-            seed: Random seed
-        
-        Returns:
-            Dictionary containing train/val/test data with pos/neg samples
-        """
-        print("\nBuilding Graph with Negative Samples...")
-        
-        try:
-            from torch_geometric.data import HeteroData
-        except ImportError:
-            raise ImportError("Please install torch_geometric: pip install torch-geometric")
-        
-        np.random.seed(seed)
-        
-        pos_users = self.replies['user_idx'].values
-        pos_articles = self.replies['article_idx'].values
-        num_positives = len(pos_users)
-        
-        # Use persistent indices for consistency
-        indices = self._get_split_indices(seed)
-        train_end = int(num_positives * train_ratio)
-        val_end = int(num_positives * (train_ratio + val_ratio))
-        
-        train_idx = indices[:train_end]
-        val_idx = indices[train_end:val_end]
-        test_idx = indices[val_end:]
-        
-        print(f"   Positive splits: train={len(train_idx)}, val={len(val_idx)}, test={len(test_idx)}")
-        
-        neg_users, neg_articles = self.generate_negative_samples(
-            num_negatives=neg_ratio,
-            strategy=neg_strategy,
-            seed=seed
-        )
-        
-        neg_indices = np.random.permutation(len(neg_users))
-        neg_train_end = int(len(neg_users) * train_ratio)
-        neg_val_end = int(len(neg_users) * (train_ratio + val_ratio))
-        
-        neg_train_idx = neg_indices[:neg_train_end]
-        neg_val_idx = neg_indices[neg_train_end:neg_val_end]
-        neg_test_idx = neg_indices[neg_val_end:]
-        
-        print(f"   Negative splits: train={len(neg_train_idx)}, val={len(neg_val_idx)}, test={len(neg_test_idx)}")
-        
-        data = HeteroData()
-        data['user'].x = self._create_user_features()
-        data['article'].x = self._create_article_features()
-        
-        data['user', 'comments', 'article'].edge_index = torch.stack([
-            torch.tensor(pos_users[train_idx], dtype=torch.long),
-            torch.tensor(pos_articles[train_idx], dtype=torch.long)
-        ])
-        
-        splits = {
-            'train': {
-                'pos_users': torch.tensor(pos_users[train_idx], dtype=torch.long),
-                'pos_articles': torch.tensor(pos_articles[train_idx], dtype=torch.long),
-                'neg_users': torch.tensor(neg_users[neg_train_idx], dtype=torch.long),
-                'neg_articles': torch.tensor(neg_articles[neg_train_idx], dtype=torch.long),
-            },
-            'val': {
-                'pos_users': torch.tensor(pos_users[val_idx], dtype=torch.long),
-                'pos_articles': torch.tensor(pos_articles[val_idx], dtype=torch.long),
-                'neg_users': torch.tensor(neg_users[neg_val_idx], dtype=torch.long),
-                'neg_articles': torch.tensor(neg_articles[neg_val_idx], dtype=torch.long),
-            },
-            'test': {
-                'pos_users': torch.tensor(pos_users[test_idx], dtype=torch.long),
-                'pos_articles': torch.tensor(pos_articles[test_idx], dtype=torch.long),
-                'neg_users': torch.tensor(neg_users[neg_test_idx], dtype=torch.long),
-                'neg_articles': torch.tensor(neg_articles[neg_test_idx], dtype=torch.long),
-            }
-        }
-        
-        # Package everything
-        result = {
-            'graph': data,
-            'splits': splits,
-            'num_users': len(self.user_map),
-            'num_articles': len(self.article_map),
-            'neg_ratio': neg_ratio,
-            'neg_strategy': neg_strategy
-        }
-        
-        save_path = self.output_dir / 'graph_with_negatives.pt'
-        torch.save(result, save_path)
-        self._save_mappings()
-        
-        print(f"\n   [OK] User nodes: {data['user'].x.shape}")
-        print(f"   [OK] Article nodes: {data['article'].x.shape}")
-        print(f"   [OK] Train edges: {len(train_idx)} pos + {len(neg_train_idx)} neg")
-        print(f"   [OK] Val edges: {len(val_idx)} pos + {len(neg_val_idx)} neg")
-        print(f"   [OK] Test edges: {len(test_idx)} pos + {len(neg_test_idx)} neg")
-        print(f"   [OK] Saved to: {save_path}")
-        
         return result
-    
-    def build_user_user_graph(self, min_shared: int = 2) -> 'Data':
-        """
-        Build User-User graph based on shared article interactions.
-        
-        Edge: Two users are connected if they commented on >= min_shared same articles.
-        Weight: Number of shared articles.
-        """
-        print(f"\nBuilding User-User Graph (min_shared={min_shared})...")
-        
-        try:
-            from torch_geometric.data import Data
-        except ImportError:
-            raise ImportError("Please install torch_geometric: pip install torch-geometric")
-        
-        # Find articles each user commented on
-        user_articles = self.replies.groupby('user_idx')['article_idx'].apply(set).to_dict()
-        
-        # Build edges
-        edges = []
-        weights = []
-        user_ids = list(user_articles.keys())
-        
-        print("   → Computing user-user edges...")
-        for i in tqdm(range(len(user_ids)), desc="   Processing users"):
-            u1 = user_ids[i]
-            articles_u1 = user_articles[u1]
-            
-            for j in range(i + 1, len(user_ids)):
-                u2 = user_ids[j]
-                articles_u2 = user_articles[u2]
-                
-                shared = len(articles_u1 & articles_u2)
-                if shared >= min_shared:
-                    edges.append([u1, u2])
-                    edges.append([u2, u1])  # Undirected
-                    weights.extend([shared, shared])
-        
-        if not edges:
-            print("   No edges found! Try lowering min_shared.")
-            return None
-        
-        # Create Data object
-        edge_index = torch.tensor(edges, dtype=torch.long).T
-        edge_weight = torch.tensor(weights, dtype=torch.float32)
-        
-        data = Data(
-            x=self._create_user_features(),
-            edge_index=edge_index,
-            edge_weight=edge_weight
-        )
-        
-        save_path = self.output_dir / 'user_user_graph.pt'
-        torch.save(data, save_path)
-        self._save_mappings()
-        
-        print(f"   [OK] Nodes: {data.x.shape[0]}")
-        print(f"   [OK] Edges: {edge_index.shape[1]}")
-        print(f"   [OK] Saved to: {save_path}")
-        
-        return data
-    
-    def build_article_article_graph(self, method: str = 'users') -> 'Data':
-        """
-        Build Article-Article graph.
-        
-        Methods:
-            - 'users': Connect articles with shared commenters (default)
-        """
-        print(f"\nBuilding Article-Article Graph (method={method})...")
-        
-        try:
-            from torch_geometric.data import Data
-        except ImportError:
-            raise ImportError("Please install torch_geometric: pip install torch-geometric")
-        
-        edges = []
-        weights = []
-        
-        # Find users who commented on each article
-        article_users = self.replies.groupby('article_idx')['user_idx'].apply(set).to_dict()
-        article_ids = list(article_users.keys())
-        
-        print("   → Connecting articles by shared users...")
-        for i in tqdm(range(len(article_ids)), desc="   Processing articles"):
-            a1 = article_ids[i]
-            users_a1 = article_users[a1]
-            
-            for j in range(i + 1, len(article_ids)):
-                a2 = article_ids[j]
-                users_a2 = article_users[a2]
-                
-                shared = len(users_a1 & users_a2)
-                if shared >= 1:
-                    edges.append([a1, a2])
-                    edges.append([a2, a1])
-                    weights.extend([shared, shared])
-        
-        if not edges:
-            print("   No edges found!")
-            return None
-        
-        edge_index = torch.tensor(edges, dtype=torch.long).T
-        edge_weight = torch.tensor(weights, dtype=torch.float32)
-        
-        data = Data(
-            x=self._create_article_features(),
-            edge_index=edge_index,
-            edge_weight=edge_weight
-        )
-        
-        save_path = self.output_dir / f'article_article_graph_{method}.pt'
-        torch.save(data, save_path)
-        self._save_mappings()
-        
-        print(f"   [OK] Nodes: {data.x.shape[0]}")
-        print(f"   [OK] Edges: {edge_index.shape[1]}")
-        print(f"   [OK] Saved to: {save_path}")
-        
-        return data
-    
-        return data
-    
-        return data
-    
-    def _get_split_indices(self, seed=42):
-        """Get indices split by Time or Randomly."""
-        import numpy as np
-        
-        # Lưu tên file cache kèm theo strategy để tránh dùng nhầm file cũ
-        filename = f'split_indices_{self.split_strategy}.pt' 
-        split_file = self.output_dir / filename
-        num_positives = len(self.replies)
-        
-        if split_file.exists():
-            print(f"   [INFO] Loading existing split indices ({self.split_strategy}) from {split_file}...")
-            indices = torch.load(split_file, weights_only=False)
-            if len(indices) != num_positives:
-                print(f"   [WARNING] Mismatch. Regenerating...")
-            else:
-                return indices.numpy() if torch.is_tensor(indices) else indices
-        
-        # DEFAULT: RANDOM SPLIT
-        np.random.seed(seed)
-        indices = np.random.permutation(num_positives)
-        
-        torch.save(indices, split_file)
-        return indices
-
-    def _get_train_mask(self, seed=42, train_ratio=0.8):
-        """Get mask for training interactions."""
-        import numpy as np
-        indices = self._get_split_indices(seed)
-        num_positives = len(indices)
-        
-        train_end = int(num_positives * train_ratio)
-        train_idx = indices[:train_end]
-        
-        mask = np.zeros(num_positives, dtype=bool)
-        mask[train_idx] = True
-        return mask
 
     def build_full_hetero_graph(self) -> 'HeteroData':
         """
         Build full heterogeneous graph with all node types and relations.
-        
-        Nodes:
-            - user: Commenting users
-            - article: News articles
-        
-        Edges:
-            - (user, comments, article)
-            - (user, interacts_with, user) - shared article interactions
         """
         print("\nBuilding Full Heterogeneous Graph...")
         
@@ -775,16 +435,11 @@ class GNNDataConverter:
         data = HeteroData()
         
         # ===== NODE FEATURES =====
-        # Users
         data['user'].x = self._create_user_features()
-        
-        # Articles  
         data['article'].x = self._create_article_features()
         
         # ===== EDGES =====
-        # User -> Article (comments)
-        # CRITICAL FIX: Only use training interactions for the graph structure!
-        print("   → Filtering interactions for User-Article edges (removing potential leakage)...")
+        print("   → Filtering interactions for User-Article edges...")
         train_mask = self._get_train_mask()
         train_replies = self.replies[train_mask]
 
@@ -794,40 +449,30 @@ class GNNDataConverter:
         
         # User -> User (Social Reply Network)
         if hasattr(self, 'social_df') and not self.social_df.empty:
-            # Map IDs to indices
             self.social_df['from_idx'] = self.social_df['from'].map(self.user_map)
             self.social_df['to_idx'] = self.social_df['to'].map(self.user_map)
-            
             valid_social = self.social_df.dropna(subset=['from_idx', 'to_idx'])
             
-            # --- LEAKAGE FIX: Only use replies that happened on training articles ---
-            print("   → Filtering social reply edges (removing potential leakage)...")
+            print("   → Filtering social reply edges...")
             train_articles = set(train_replies['article_url'].unique())
             valid_social = valid_social[valid_social['article_url'].isin(train_articles)]
             
             if not valid_social.empty:
-                print(f"   → Adding {len(valid_social):,} social reply edges (filtered from {len(self.social_df):,})...")
                 data['user', 'replied_to', 'user'].edge_index = torch.tensor(
                     valid_social[['from_idx', 'to_idx']].values.T, dtype=torch.long
                 )
         
-        # User -> User (Shared Interest - Latent)
+        # User -> User (Shared Interest)
         if not (hasattr(self, 'no_aux_edges') and self.no_aux_edges):
-            # CRITICAL CHECK FOR LEAKAGE:
-            # We must ONLY use training interactions to infer shared interests.
-            # Otherwise, if we use Test interactions to link users, we leak the Test set structure.
-            print("   → Filtering interactions for Shared Interest edges (removing potential leakage)...")
-            train_mask = self._get_train_mask()
-            train_replies = self.replies[train_mask]
-            
+            print("   → Filtering interactions for Shared Interest edges...")
             user_articles = train_replies.groupby('user_idx')['article_idx'].apply(set).to_dict()
             shared_edges = []
             user_ids = list(user_articles.keys())
             
-            print(f"   → Computing latent user-user edges from {len(train_replies)} training interactions (shared >= 2)...")
+            print(f"   → Computing latent user-user edges (shared >= 2)...")
             for i in range(len(user_ids)):
                 u1 = user_ids[i]
-                for j in range(i + 1, min(i + 500, len(user_ids))): # Limit search for speed
+                for j in range(i + 1, min(i + 500, len(user_ids))):
                     u2 = user_ids[j]
                     if len(user_articles[u1] & user_articles[u2]) >= 2:
                         shared_edges.append([u1, u2])
@@ -840,249 +485,148 @@ class GNNDataConverter:
         
         data = T.ToUndirected()(data)
         
-        data = T.ToUndirected()(data)
+        # Consistent metadata for train_cf_models
+        indices = self._get_split_indices()
+        num_pos = len(self.replies)
+        train_end = int(num_pos * 0.8)
+        
+        result = {
+            'graph': data,
+            'n_users': len(self.user_map),
+            'n_items': len(self.article_map),
+            'splits': {
+                'train': {
+                    'pos_users': torch.tensor(self.replies.iloc[indices[:train_end]]['user_idx'].values, dtype=torch.long),
+                    'pos_articles': torch.tensor(self.replies.iloc[indices[:train_end]]['article_idx'].values, dtype=torch.long),
+                },
+                'test': {
+                    'pos_users': torch.tensor(self.replies.iloc[indices[train_end:]]['user_idx'].values, dtype=torch.long),
+                    'pos_articles': torch.tensor(self.replies.iloc[indices[train_end:]]['article_idx'].values, dtype=torch.long),
+                }
+            }
+        }
         
         filename = 'full_hetero_graph_no_aux.pt' if (hasattr(self, 'no_aux_edges') and self.no_aux_edges) else 'full_hetero_graph.pt'
         save_path = self.output_dir / filename
-        torch.save(data, save_path)
+        torch.save(result, save_path)
         self._save_mappings()
         
         print(f"   [OK] User nodes: {data['user'].x.shape}")
         print(f"   [OK] Article nodes: {data['article'].x.shape}")
         print(f"   [OK] Saved to: {save_path}")
         
-        return data
+        return result
     
-    def export_to_networkx(self, graph_type: str = 'user-article'):
-        """Export graph to NetworkX format for visualization/analysis."""
-        print(f"\nExporting to NetworkX ({graph_type})...")
+    def build_user_category_graph(self) -> Dict:
+        """
+        Build User-Category bipartite graph (G3).
+        Users connected to categories based on their article interactions.
+        Uses ONLY training interactions to prevent leakage.
+        """
+        print("\nBuilding User-Category Bipartite Graph (G3)...")
         
-        try:
-            import networkx as nx
-        except ImportError:
-            raise ImportError("Please install networkx: pip install networkx")
+        # Merge interactions with article categories
+        self.articles['article_url'] = self.articles['url']
         
-        G = nx.Graph()
+        # LEAKAGE FIX: Only use training interactions for category weights
+        train_mask = self._get_train_mask()
+        train_replies = self.replies[train_mask]
         
-        if graph_type == 'user-article':
-            # Add nodes
-            for user_id, idx in self.user_map.items():
-                G.add_node(f"u_{idx}", node_type='user', original_id=user_id)
-            
-            for article_url, idx in self.article_map.items():
-                G.add_node(f"a_{idx}", node_type='article')
-            
-            # Add edges
-            for _, row in self.replies.iterrows():
-                G.add_edge(
-                    f"u_{int(row['user_idx'])}",
-                    f"a_{int(row['article_idx'])}",
-                    weight=float(row.get('parent_reactions', 1) or 1)
-                )
+        merged = train_replies.merge(
+            self.articles[['article_url', 'source_category']], 
+            on='article_url', 
+            how='inner'
+        )
         
-        save_path = self.output_dir / f'{graph_type}_networkx.gpickle'
-        nx.write_gpickle(G, save_path)
+        # Create mappings
+        categories = merged['source_category'].unique()
+        cat_map = {c: i for i, c in enumerate(categories)}
         
-        print(f"   [OK] Nodes: {G.number_of_nodes()}")
-        print(f"   [OK] Edges: {G.number_of_edges()}")
-        print(f"   [OK] Saved to: {save_path}")
+        # Build edge weights (user -> category interaction count)
+        user_cat_counts = merged.groupby(['user_idx', 'source_category']).size().reset_index(name='count')
         
-        return G
-    
-    def export_to_dgl(self, graph_type: str = 'user-article'):
-        """Export to DGL format."""
-        print(f"\nExporting to DGL ({graph_type})...")
+        src = torch.tensor(user_cat_counts['user_idx'].values, dtype=torch.long)
+        dst = torch.tensor([cat_map[c] for c in user_cat_counts['source_category']], dtype=torch.long)
+        weights = torch.tensor(user_cat_counts['count'].values, dtype=torch.float32)
         
-        try:
-            import dgl
-        except ImportError:
-            raise ImportError("Please install dgl: pip install dgl")
+        # Prepare splits for train_cf_models consistency
+        indices = self._get_split_indices()
+        num_pos = len(self.replies)
+        train_end = int(num_pos * 0.8)
         
-        if graph_type == 'user-article':
-            src = torch.tensor(self.replies['user_idx'].values, dtype=torch.long)
-            dst = torch.tensor(self.replies['article_idx'].values, dtype=torch.long)
-            
-            # Create heterogeneous graph
-            graph_data = {
-                ('user', 'comments', 'article'): (src, dst),
-                ('article', 'commented_by', 'user'): (dst, src),  # Reverse
+        data = {
+            'user_category_edge_index': torch.stack([src, dst]),
+            'user_category_edge_weight': weights,
+            'cat_map': cat_map,
+            'n_users': len(self.user_map),
+            'n_categories': len(cat_map),
+            'n_items': len(self.article_map),
+            'splits': {
+                'train': {
+                    'pos_users': torch.tensor(self.replies.iloc[indices[:train_end]]['user_idx'].values, dtype=torch.long),
+                    'pos_articles': torch.tensor(self.replies.iloc[indices[:train_end]]['article_idx'].values, dtype=torch.long),
+                },
+                'test': {
+                    'pos_users': torch.tensor(self.replies.iloc[indices[train_end:]]['user_idx'].values, dtype=torch.long),
+                    'pos_articles': torch.tensor(self.replies.iloc[indices[train_end:]]['article_idx'].values, dtype=torch.long),
+                }
             }
-            
-            g = dgl.heterograph(graph_data)
-            
-            # Add features
-            g.nodes['user'].data['x'] = self._create_user_features()
-            g.nodes['article'].data['x'] = self._create_article_features()
-            
-            save_path = self.output_dir / 'user_article_dgl.bin'
-            dgl.save_graphs(str(save_path), [g])
-            self._save_mappings()
-            
-            print(f"   [OK] User nodes: {g.num_nodes('user')}")
-            print(f"   [OK] Article nodes: {g.num_nodes('article')}")
-            print(f"   [OK] Saved to: {save_path}")
-            
-            return g
+        }
         
-        return None
-
+        save_path = self.output_dir / 'category_graph.pt'
+        torch.save(data, save_path)
+        print(f"   [OK] Saved to: {save_path}")
+        return data
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Convert crawled VnExpress data to GNN-ready format'
+        description='Convert crawled VnExpress data to GNN-Ready Benchmark Formats (G1, G2, G3)'
     )
     parser.add_argument(
         '--graph-type', '-g',
-        choices=['user-article', 'user-user', 'article-article', 'hetero', 'with-negatives', 'all'],
-        default='user-article',
-        help='Type of graph to build (default: user-article)'
+        choices=['g1', 'g2', 'g3', 'all'],
+        default='g2',
+        help='Benchmark type: g1 (Bipartite), g2 (Full Hetero), g3 (User-Category)'
     )
-    parser.add_argument(
-        '--articles', '-a',
-        default='data/raw/articles.csv',
-        help='Path to articles CSV'
-    )
-    parser.add_argument(
-        '--replies', '-r',
-        default='data/raw/replies.csv',
-        help='Path to replies CSV'
-    )
-    parser.add_argument(
-        '--output', '-o',
-        default='data/processed',
-        help='Output directory'
-    )
-    parser.add_argument(
-        '--hidden-dim', '-d',
-        type=int,
-        default=64,
-        help='Hidden dimension for node features'
-    )
-    parser.add_argument(
-        '--add-text-features',
-        action='store_true',
-        help='Add TF-IDF text features to article nodes'
-    )
-    parser.add_argument(
-        '--use-phobert',
-        action='store_true',
-        help='Use pre-computed PhoBERT embeddings'
-    )
-    parser.add_argument(
-        '--export-networkx',
-        action='store_true',
-        help='Also export to NetworkX format'
-    )
-    parser.add_argument(
-        '--export-dgl',
-        action='store_true',
-        help='Also export to DGL format'
-    )
-    parser.add_argument(
-        '--no-aux-edges',
-        action='store_true',
-        help='Skip generation of auxiliary edges (user-user, article-article) in hetero graph'
-    )
-    
-    # Negative sampling options
-    parser.add_argument(
-        '--neg-ratio',
-        type=int,
-        default=1,
-        help='Number of negative samples per positive (default: 1)'
-    )
-    parser.add_argument(
-        '--neg-strategy',
-        choices=['random', 'popular', 'hard'],
-        default='random',
-        help='Negative sampling strategy: random, popular, hard (default: random)'
-    )
-    parser.add_argument(
-        '--train-ratio',
-        type=float,
-        default=0.8,
-        help='Training set ratio (default: 0.8)'
-    )
-    parser.add_argument(
-        '--val-ratio',
-        type=float,
-        default=0.1,
-        help='Validation set ratio (default: 0.1)'
-    )
-    parser.add_argument(
-        '--seed',
-        type=int,
-        default=42,
-        help='Random seed (default: 42)'
-    )
-    
-    # K-core filtering options
-    parser.add_argument(
-        '--min-user-interactions',
-        type=int,
-        default=0,
-        help='Minimum interactions per user (0 = no filtering, 5 recommended)'
-    )
-    parser.add_argument(
-        '--min-article-interactions',
-        type=int,
-        default=0,
-        help='Minimum interactions per article (0 = no filtering, 5 recommended)'
-    )
+    parser.add_argument('--articles', '-a', default='data/raw/articles.csv')
+    parser.add_argument('--replies', '-r', default='data/raw/replies.csv')
+    parser.add_argument('--output', '-o', default='data/processed')
+    parser.add_argument('--hidden-dim', '-d', type=int, default=64)
+    parser.add_argument('--use-phobert', action='store_true')
+    parser.add_argument('--min-user-interactions', type=int, default=0)
+    parser.add_argument('--min-article-interactions', type=int, default=0)
     
     args = parser.parse_args()
     
-    # Initialize converter
-    converter = GNNDataConverter(
-        articles_path=args.articles,
-        replies_path=args.replies,
-        output_dir=args.output,
-        hidden_dim=args.hidden_dim,
-        add_text_features=args.add_text_features,
-        use_phobert=args.use_phobert,
-        min_user_interactions=args.min_user_interactions,
-        min_article_interactions=args.min_article_interactions
-    )
-    # Pass ablation flag to converter instance
-    converter.no_aux_edges = args.no_aux_edges
+    # Base directory
+    base_output = Path(args.output)
     
-    # Note: K-core filtering is now done automatically in _load_data() via iterative filtering
-    
-    # Build requested graph type(s)
-    if args.graph_type in ['user-article', 'all']:
-        converter.build_user_article_graph()
-        
-    if args.graph_type in ['user-user', 'all']:
-        converter.build_user_user_graph()
-        
-    if args.graph_type in ['article-article', 'all']:
-        converter.build_article_article_graph(method='category')
-        converter.build_article_article_graph(method='users')
-        
-    if args.graph_type in ['hetero', 'all']:
-        converter.build_full_hetero_graph()
-    
-    if args.graph_type in ['with-negatives', 'all']:
-        converter.build_graph_with_negatives(
-            neg_ratio=args.neg_ratio,
-            neg_strategy=args.neg_strategy,
-            train_ratio=args.train_ratio,
-            val_ratio=args.val_ratio,
-            seed=args.seed
+    def get_converter(folder_name):
+        out_dir = base_output / folder_name
+        out_dir.mkdir(parents=True, exist_ok=True)
+        return GNNDataConverter(
+            articles_path=args.articles,
+            replies_path=args.replies,
+            output_dir=out_dir,
+            hidden_dim=args.hidden_dim,
+            use_phobert=args.use_phobert,
+            min_user_interactions=args.min_user_interactions,
+            min_article_interactions=args.min_article_interactions
         )
     
-    # Optional exports
-    if args.export_networkx:
-        converter.export_to_networkx()
-        
-    if args.export_dgl:
-        converter.export_to_dgl()
-    
-    print("\n" + "=" * 60)
-    print("GNN Data Conversion Complete!")
-    print(f"   Output directory: {args.output}")
-    print("=" * 60)
+    if args.graph_type in ['g1', 'all']:
+        converter = get_converter('strict_g1')
+        converter.build_user_article_graph()
+    if args.graph_type in ['g2', 'all']:
+        converter = get_converter('strict_g2')
+        converter.build_full_hetero_graph()
+    if args.graph_type in ['g3', 'all']:
+        converter = get_converter('strict_g3')
+        converter.build_user_category_graph()
 
+    print("\n" + "=" * 60)
+    print("GNN Benchmark Data Conversion Complete!")
+    print("=" * 60)
 
 if __name__ == "__main__":
     main()

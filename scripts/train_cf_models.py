@@ -20,12 +20,8 @@ from datetime import datetime
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.models.simplex import SimpleX
-from src.models.directau import DirectAU
-from src.models.sgl import SGL
-from src.models import NGCF, LightGCL, SimGCL, XSimGCL, MAHGN, SimMAHGN
-from src.models.ncl import NCL
-from src.models.cgrc import CGRC
+from src.models import NGCF, LightGCL, SimGCL, XSimGCL, MAHGN
+from src.models.ma_hcl import MAHCL
 from src.models.bigcf import BIGCF
 from src.models.igcl import IGCL
 from src.models.semantic_id import generate_semantic_ids
@@ -208,11 +204,14 @@ def load_data(data_path, min_interactions=2, split_strategy='random'):
     else:
         cache_path = p / cache_filename
         if not cache_path.exists() and split_strategy == 'random':
-            cache_path = p / 'graph_with_negatives.pt'
             if (p / 'graph_with_negatives.pt').exists():
                 cache_path = p / 'graph_with_negatives.pt'
             elif (p / 'user_article_graph.pt').exists():
                 cache_path = p / 'user_article_graph.pt'
+            elif (p / 'full_hetero_graph.pt').exists():
+                cache_path = p / 'full_hetero_graph.pt'
+            elif (p / 'category_graph.pt').exists():
+                cache_path = p / 'category_graph.pt'
         
     if cache_path.exists():
         print(f"  Loading cached data from {cache_path} (Strategy: {split_strategy})...")
@@ -810,7 +809,7 @@ def evaluate(model, test_dict, train_dict, n_items, edge_index, k_list=[1, 5, 10
             item_emb = model.item_embedding.weight
     
     max_k = max(k_list)
-    results = {f'{metric}@{k}': [] for metric in ['recall', 'ndcg', 'hitrate', 'precision', 'map'] for k in k_list}
+    results = {f'{metric}@{k}': [] for metric in ['recall', 'ndcg', 'hitrate', 'precision', 'map', 'f1'] for k in k_list}
     results['mrr'] = []
     
     # Choose which users to evaluate based on protocol
@@ -878,11 +877,15 @@ def evaluate(model, test_dict, train_dict, n_items, edge_index, k_list=[1, 5, 10
             topk_k = set(topk_list[:k])
             hits = len(topk_k & test_items)
             
-            results[f'recall@{k}'].append(hits / len(test_items))
+            prec = hits / k
+            rec = hits / len(test_items)
+            results[f'recall@{k}'].append(rec)
             results[f'hitrate@{k}'].append(1.0 if hits > 0 else 0.0)
+            results[f'precision@{k}'].append(prec)
             
-            # Precision@k: hits / k
-            results[f'precision@{k}'].append(hits / k)
+            # F1@k
+            f1 = (2 * prec * rec) / (prec + rec) if (prec + rec) > 0 else 0
+            results[f'f1@{k}'].append(f1)
             
             # NDCG@k
             dcg = sum(1.0 / np.log2(i + 2) for i, item in enumerate(topk_list[:k]) if item in test_items)
@@ -1022,7 +1025,7 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
             
             # Different models have different loss signatures
             if hasattr(model, 'calculate_loss'):
-                if args.model in ['simgcl', 'cgrc', 'bigcf', 'igcl', 'xsimgcl', 'sgl', 'ncl', 'sim-mahgn']:
+                if args.model in ['simgcl', 'bigcf', 'igcl', 'xsimgcl']:
                     graph_structure = data.get('adj_norm')
                     if graph_structure is None:
                         # Fallback if not computed (shouldn't happen if setup is correct)
@@ -1067,9 +1070,7 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
                     graph_structure = edge_index
                 
                 
-                if isinstance(model, CGRC):
-                    loss, bpr, recon, reg = model.calculate_loss(graph_structure, users, pos_items, neg_items, item_content)
-                elif isinstance(model, XSimGCL):
+                if isinstance(model, XSimGCL):
                     if args.denoise_ratio > 0 and epoch >= 5: # Burn-in 5 epochs
                         loss, bpr_sample, ssl, reg = model.calculate_loss(graph_structure, users, pos_items, neg_items, 
                                                                          semantic_ids=semantic_ids, user_priors=user_priors,
@@ -1091,8 +1092,8 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
                     loss, bpr, cl, reg = model.calculate_loss(graph_structure, users, pos_items, neg_items)
                 elif isinstance(model, IGCL):
                     loss, bpr, ssl, reg = model.calculate_loss(graph_structure, users, pos_items, neg_items)
-                elif isinstance(model, SimMAHGN):
-                    # SimMAHGN logic (unchanged fallback behavior for now)
+                elif isinstance(model, MAHGN):
+                    # MAHGN logic for heterogeneous graph structure
                     hetero_graph_structure = getattr(data, 'edge_index_dict', None)
                     if hetero_graph_structure is None and isinstance(data, dict):
                         if 'graph' in data and hasattr(data['graph'], 'edge_index_dict'):
@@ -1104,8 +1105,8 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
                          hetero_graph_structure = edge_index
                     loss, bpr, cl, reg = model.calculate_loss(hetero_graph_structure, users, pos_items, neg_items)
 
-                elif args.model in ['ma-hcl', 'ma-hcl-v2']:
-                     # MA-HCL uses graph_structure computed above (lines 1041+)
+                elif isinstance(model, MAHCL):
+                     # MAHCL uses graph_structure computed above
                      loss, bpr, cl, reg = model.calculate_loss(graph_structure, users, pos_items, neg_items)
                 else:
                     loss, bpr, reg, ssl = model.calculate_loss(graph_structure, users, pos_items, neg_items)
@@ -1114,13 +1115,7 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
                 loss, reg = model.bpr_loss(users, pos_items, neg_items, edge_index)
                 loss = loss + args.weight_decay * reg
             else:
-                if isinstance(model, (SimGCL, CGRC, BIGCF, IGCL)):
-                    if isinstance(model, CGRC):
-                        user_emb, item_emb = model(data['adj_norm'], item_content)
-                    else:
-                        user_emb, item_emb = model(data['adj_norm'])
-                else:
-                    user_emb, item_emb = model(edge_index)
+                user_emb, item_emb = model(edge_index)
                 
                 pos_scores = (user_emb[users] * item_emb[pos_items]).sum(dim=1)
                 neg_scores = (user_emb[users] * item_emb[neg_items]).sum(dim=1)
@@ -1133,8 +1128,8 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
         else:
             pbar.set_postfix({'loss': f"{total_loss:.4f}"})
         
-        # Evaluate every 5 epochs
-        if (epoch + 1) % 5 == 0 or epoch == args.epochs - 1:
+        # Evaluate only at the final epoch
+        if epoch == args.epochs - 1:
             edge_index_dict = None
             if isinstance(data, dict):
                 edge_index_dict = data.get('edge_index_dict')
@@ -1167,27 +1162,8 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
                                re_ranker=re_ranker, rerank_strategy=args.rerank, eval_protocol=args.eval_protocol,
                                cold_users=cold_users, edge_index_dict=edge_index_dict)
 
-
-            
-            pbar.set_postfix({
-                'loss': f"{total_loss:.4f}", 
-                'R@50': f"{metrics.get('recall@50', 0):.4f}"
-            })
-            
-            tqdm.write(f"Epoch {epoch+1:3d} | Loss: {total_loss:.4f} | "
-                  f"R@50: {metrics.get('recall@50', 0):.4f} | NDCG@50: {metrics.get('ndcg@50', 0):.4f}")
-            
-            recall_50 = metrics.get('recall@50', 0)
-            if recall_50 > best_recall:
-                best_recall = recall_50
-                best_metrics = metrics.copy()
-                best_state = model.state_dict().copy()
-                patience_counter = 0
-            else:
-                patience_counter += 1
-                if patience_counter >= args.patience:
-                    tqdm.write(f"Early stopping at epoch {epoch+1}")
-                    break
+            best_metrics = metrics.copy()
+            best_state = model.state_dict().copy()
     
     if best_state:
         model.load_state_dict(best_state)
@@ -1196,7 +1172,7 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
 
 def main():
     parser = argparse.ArgumentParser(description='Train CF/CL Models')
-    parser.add_argument('--model', '-m', choices=['ngcf', 'simplex', 'directau', 'sgl', 'simgcl', 'ncl', 'lightgcl', 'cgrc', 'bigcf', 'igcl', 'xsimgcl', 'ma_hgn', 'sim-mahgn', 'ma-hcl', 'ma-hcl-v2', 'hetgnn'],
+    parser.add_argument('--model', '-m', choices=['ngcf', 'simgcl', 'xsimgcl', 'lightgcl', 'ma-hcl', 'ma_hgn', 'bigcf', 'igcl'], 
                         default='ngcf', help='Model to train')
     parser.add_argument('--data-path', default='data/processed', help='Data directory')
     parser.add_argument('--epochs', type=int, default=100)
@@ -1238,11 +1214,9 @@ def main():
                         help='Graph type: bipartite, hetero, article (Article-Augmented), or category (Category Hubs)')
     parser.add_argument('--split-strategy', choices=['random', 'time'], default='random',
                         help='Data splitting strategy: "random" (shuffle) or "time" (chronological)')
-    # SimMAHGN specific arguments
-    parser.add_argument('--emb-dim', type=int, default=64, help='Embedding dimension for SimMAHGN')
-    parser.add_argument('--cl-rate', type=float, default=0.1, help='Contrastive loss rate for SimMAHGN')
-    parser.add_argument('--eps', type=float, default=0.1, help='Epsilon for SimMAHGN')
 
+    parser.add_argument('--eps', type=float, default=0.1, help='Epsilon for MA-HCL (default: 0.1)')
+    
     args = parser.parse_args()
     device = torch.device(args.device)
     
@@ -1324,7 +1298,7 @@ def main():
 
     # Precompute adj_norm for SimGCL / CGRC / BIGCF / IGCL / XSimGCL
     # Precompute adj_norm for graph-based models
-    graph_models = ['simgcl', 'cgrc', 'bigcf', 'igcl', 'xsimgcl', 'sgl', 'ncl', 'lightgcl', 'directau', 'sim-mahgn', 'ma-hcl', 'ma-hcl-v2']
+    graph_models = ['simgcl', 'bigcf', 'igcl', 'xsimgcl', 'lightgcl', 'ma-hcl', 'ma_hgn']
     if args.model in graph_models:
         print(f"\nPrecomputing normalized adjacency for {args.model.upper()}...")
         
@@ -1429,25 +1403,12 @@ def main():
         re_ranker = CalibratedReRanker(categories, alpha=0.5, lambda_mmr=0.5)
         print(f"  Loaded {n_cats} categories for {len(categories)} items.")
     
-    # Create model
     if args.model == 'ngcf':
         model = NGCF(n_users, n_items, embedding_dim=args.hidden_dim, n_layers=args.n_layers).to(device)
         if pretrained_emb is not None:
              model.item_embedding.weight.data.copy_(pretrained_emb)
              print("  Transferred embeddings to NGCF")
-             
-    elif args.model == 'simplex':
-        model = SimpleX(n_users, n_items, embedding_dim=args.hidden_dim).to(device)
-        if pretrained_emb is not None:
-             model.item_embedding.weight.data.copy_(pretrained_emb)
-             print("  Transferred embeddings to SimpleX")
-             
-    elif args.model == 'directau':
-        model = DirectAU(n_users, n_items, embedding_dim=args.hidden_dim).to(device)
-        if pretrained_emb is not None:
-             model.item_embedding.weight.data.copy_(pretrained_emb)
-             print("  Transferred embeddings to DirectAU")
-             
+
     elif args.model == 'lightgcl':
         model = LightGCLWrapper(n_users, n_items, embed_dim=args.hidden_dim, n_layers=args.n_layers, 
                                 device=args.device, svd_q=args.svd_q, ssl_weight=args.ssl_weight, temp=args.temp)
@@ -1458,45 +1419,27 @@ def main():
             model.model.E_i_0.data.copy_(pretrained_emb)
             print("  Transferred embeddings to LightGCL (E_i_0)")
             
-    elif args.model == 'cgrc':
-        model = CGRC(n_users, n_items, embedding_dim=args.hidden_dim, 
-                     content_dim=pretrained_emb.shape[1] if pretrained_emb is not None else args.hidden_dim,
-                     n_layers=args.n_layers).to(device)
-        if pretrained_emb is not None:
-             # Initialize item embeddings from pretrained
-             model.item_embedding.weight.data.copy_(pretrained_emb)
-             print("  Transferred embeddings to CGRC")
-             
     elif args.model == 'bigcf':
         model = BIGCF(n_users, n_items, embedding_dim=args.hidden_dim, n_layers=args.n_layers).to(device)
         if pretrained_emb is not None:
              model.item_embedding.weight.data.copy_(pretrained_emb)
              print("  Transferred embeddings to BIGCF")
-             
-    elif args.model == 'sim-mahgn':
-        model = SimMAHGN(
-            n_users=n_users,
-            n_items=n_items,
-            embedding_dim=args.emb_dim,
-            n_layers=args.n_layers,
-            dropout=args.dropout,
-            ssl_weight=args.cl_rate,
-            eps=args.eps,
-            temp=args.temp,
-            n_categories=data.get('n_categories', 0)
-        ).to(device)
+
+    elif args.model == 'igcl':
+        model = IGCL(n_users, n_items, embedding_dim=args.hidden_dim, n_layers=args.n_layers,
+                     ssl_weight=args.ssl_weight, temp=args.temp).to(device)
         if pretrained_emb is not None:
-             model.item_emb.weight.data.copy_(pretrained_emb)
-             print("  Transferred embeddings to SimMAHGN")
-             
+             model.item_embedding.weight.data.copy_(pretrained_emb)
+             print("  Transferred embeddings to IGCL")
+
     elif args.model == 'ma-hcl':
         from src.models.ma_hcl import MAHCL
         model = MAHCL(
             n_users=n_users,
             n_items=n_items,
-            embedding_dim=args.emb_dim,
+            embedding_dim=args.hidden_dim,
             n_layers=args.n_layers,
-            ssl_weight=args.cl_rate,
+            ssl_weight=args.ssl_weight,
             eps=args.eps,
             temp=args.temp,
             n_categories=data.get('n_categories', 0)
@@ -1504,28 +1447,6 @@ def main():
         if pretrained_emb is not None:
              model.item_emb.weight.data.copy_(pretrained_emb)
              print("  Transferred embeddings to MA-HCL")
-             
-    elif args.model == 'ma-hcl-v2':
-        from src.models.ma_hcl_v2 import MAHCLV2
-        model = MAHCLV2(
-            n_users=n_users,
-            n_items=n_items,
-            embedding_dim=args.emb_dim,
-            n_layers=args.n_layers,
-            ssl_weight=args.cl_rate,
-            eps=args.eps,
-            temp=args.temp,
-            n_authors=data.get('n_authors', 0)
-        ).to(device)
-        if pretrained_emb is not None:
-             model.item_emb.weight.data.copy_(pretrained_emb)
-             print("  Transferred embeddings to MA-HCL-V2")
-    elif args.model == 'igcl':
-        model = IGCL(n_users, n_items, embedding_dim=args.hidden_dim, n_layers=args.n_layers,
-                     ssl_weight=args.ssl_weight, temp=args.temp).to(device)
-        if pretrained_emb is not None:
-             model.item_embedding.weight.data.copy_(pretrained_emb)
-             print("  Transferred embeddings to IGCL")
              
     elif args.model == 'ma_hgn':
         model = MAHGN(n_users, n_items, args.hidden_dim, args.n_layers, args.dropout).to(device)
@@ -1550,12 +1471,8 @@ def main():
     # Add other models as needed...
     else:
         # Combined logic for models with standard item_embedding
-        if args.model == 'sgl':
-            model = SGL(n_users, n_items, embedding_dim=args.hidden_dim, n_layers=args.n_layers).to(device)
-        elif args.model == 'simgcl':
+        if args.model == 'simgcl':
             model = SimGCL(n_users, n_items, embedding_dim=args.hidden_dim, n_layers=args.n_layers).to(device)
-        elif args.model == 'ncl':
-             model = NCL(n_users, n_items, embedding_dim=args.hidden_dim, n_layers=args.n_layers).to(device)
         
         # Inject embeddings
         if pretrained_emb is not None:
@@ -1600,19 +1517,27 @@ def main():
     }, save_path)
 
     print(f"\nModel saved: {save_path}")
-    print(f"\nBest Metrics:")
-    print(f"  Recall@1:   {best_metrics.get('recall@1', 0):.4f}")
-    print(f"  Recall@5:   {best_metrics.get('recall@5', 0):.4f}")
-    print(f"  Recall@10:  {best_metrics.get('recall@10', 0):.4f}")
-    print(f"  NDCG@1:     {best_metrics.get('ndcg@1', 0):.4f}")
-    print(f"  NDCG@5:     {best_metrics.get('ndcg@5', 0):.4f}")
-    print(f"  NDCG@10:    {best_metrics.get('ndcg@10', 0):.4f}")
-    print(f"  HitRate@1:  {best_metrics.get('hitrate@1', 0):.4f}")
-    print(f"  HitRate@5:  {best_metrics.get('hitrate@5', 0):.4f}")
-    print(f"  HitRate@10: {best_metrics.get('hitrate@10', 0):.4f}")
-    print(f"  MRR:        {best_metrics.get('mrr', 0):.4f}")
+    print(f"\nBest Metrics (Final Evaluation):")
+    metrics_to_print = ['recall', 'ndcg', 'precision', 'f1', 'hitrate', 'map']
+    k_list = [1, 5, 10, 50]
+    
+    # Print header
+    header = f"{'Metric':<12} | " + " | ".join([f"K={k:<8}" for k in k_list])
+    print(header)
+    print("-" * len(header))
+    
+    for m in metrics_to_print:
+        row = f"{m.upper():<12} | "
+        values = []
+        for k in k_list:
+            val = best_metrics.get(f'{m}@{k}', 0)
+            values.append(f"{val:.6f}")
+        print(row + " | ".join(values))
+    
+    print("-" * len(header))
+    print(f"MRR: {best_metrics.get('mrr', 0):.6f}")
     if 'entropy' in best_metrics:
-        print(f"  Entropy:    {best_metrics['entropy']:.4f}")
+        print(f"Entropy: {best_metrics['entropy']:.6f}")
     
     # Save results json if requested
     if args.save_results:
