@@ -13,7 +13,7 @@ import collections
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.models.ngcf import NGCF
-from src.models.content_based import TFIDFRecommender, PhoBERTEncoder, ContentBasedRecommender
+from src.models.content_based import TFIDFRecommender, ContentBasedRecommender
 
 def clean_id(val):
     try: return str(int(float(val)))

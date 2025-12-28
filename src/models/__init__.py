@@ -6,10 +6,10 @@ from .lightgcl import LightGCL
 from .simgcl import SimGCL
 from .xsimgcl import XSimGCL
 from .content_based import (
-    PhoBERTEncoder,
+    UniversalEncoder,
     ContentBasedRecommender,
     HybridRecommender,
-    SimCSEVietnameseEncoder
+    TFIDFRecommender
 )
 
 from .ma_hgn import MAHGN
@@ -24,8 +24,8 @@ __all__ = [
     'XSimGCL',
     'MAHGN',
     'MAHCL',
-    'PhoBERTEncoder',
+    'UniversalEncoder',
     'ContentBasedRecommender',
     'HybridRecommender',
-    'SimCSEVietnameseEncoder',
+    'TFIDFRecommender',
 ]

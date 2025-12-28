@@ -3,14 +3,16 @@ Content-Based Models for Vietnamese News Recommendation
 ========================================================
 
 Models:
-1. PhoBERTEncoder - Encode articles using PhoBERT
-2. ContentBasedRecommender - Pure content-based recommendation
+1. UniversalEncoder - Flexible encoder supporting multiple backends
+2. ContentBasedRecommender - Pure content-based recommendation  
 3. HybridRecommender - Combine collaborative filtering + content-based
+4. TFIDFRecommender - Lightweight TF-IDF baseline
 
-Pretrained models for Vietnamese:
-- vinai/phobert-base (recommended)
-- vinai/phobert-large
-- VoVanPhuc/sup-SimCSE-VietNamese-phobert-base (for sentence similarity)
+Supported embeddings:
+- phobert: vinai/phobert-base
+- bge-m3, vndoc, e5-large, e5-base, vn-sbert, gte: SentenceTransformers
+- tfidf: TF-IDF + SVD
+- precomputed: Load from .pt file
 """
 
 import torch
@@ -21,163 +23,160 @@ from typing import List, Dict, Tuple, Optional
 import os
 
 
-class PhoBERTEncoder(nn.Module):
+class UniversalEncoder:
     """
-    Encode Vietnamese text using PhoBERT
+    Universal encoder supporting multiple backends:
+    - phobert: PhoBERT (transformers)
+    - sentence-transformers: bge-m3, vndoc, e5, vn-sbert, etc.
+    - tfidf: TF-IDF + SVD
+    - precomputed: Load from .pt file
     """
+    
+    SENTENCE_TRANSFORMER_MODELS = {
+        'bge-m3': 'BAAI/bge-m3',
+        'vndoc': 'bkai-foundation-models/vietnamese-bi-encoder',
+        'e5-large': 'intfloat/multilingual-e5-large',
+        'e5-base': 'intfloat/multilingual-e5-base',
+        'vn-sbert': 'keepitreal/vietnamese-sbert',
+        'gte': 'Alibaba-NLP/gte-multilingual-base',
+    }
     
     def __init__(
         self,
-        model_name: str = "vinai/phobert-base",
-        embedding_dim: int = 256,
-        max_length: int = 256,
-        pooling: str = "mean",  # "mean", "cls", "max"
-        freeze_bert: bool = False,
-        device: str = "cuda",
-        use_raw: bool = False
+        encoder_type: str = 'phobert',
+        model_name: str = None,
+        device: str = 'cuda',
+        precomputed_path: str = None
     ):
-        super(PhoBERTEncoder, self).__init__()
-        
-        from transformers import AutoModel, AutoTokenizer
-        
-        self.model_name = model_name
-        self.embedding_dim = embedding_dim
-        self.max_length = max_length
-        self.pooling = pooling
+        self.encoder_type = encoder_type
         self.device = device
+        self.model = None
+        self.embedding_dim = None
+        self.precomputed_embeddings = None
         
-        print(f"\n[PhoBERTEncoder] Loading {model_name}...")
-        
-        # Load pretrained PhoBERT
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.bert = AutoModel.from_pretrained(model_name)
-        
-        self.use_raw = use_raw
-        
-        # PhoBERT hidden size (768 for base, 1024 for large)
-        self.bert_hidden_size = self.bert.config.hidden_size
-        
-        # Projection layer: 768 -> embedding_dim
-        self.projection = nn.Sequential(
-            nn.Linear(self.bert_hidden_size, embedding_dim * 2),
-            nn.LayerNorm(embedding_dim * 2),
-            nn.GELU(),
-            nn.Dropout(0.1),
-            nn.Linear(embedding_dim * 2, embedding_dim)
-        )
-        
-        # Update embedding_dim if using raw
-        if use_raw:
-            self.embedding_dim = self.bert_hidden_size
-            print(f"  Using RAW embeddings (size: {self.embedding_dim})")
-        
-        if freeze_bert:
-            print("  Freezing BERT parameters...")
-            for param in self.bert.parameters():
-                param.requires_grad = False
-        
-        print(f"  BERT hidden size: {self.bert_hidden_size}")
-        print(f"  Output embedding dim: {embedding_dim}")
-        print(f"  Pooling strategy: {pooling}")
-        
-    def forward(self, texts: List[str]) -> torch.Tensor:
-        """
-        Encode list of texts to embeddings
-        
-        Args:
-            texts: List of Vietnamese text strings
+        if encoder_type == 'precomputed':
+            if precomputed_path and os.path.exists(precomputed_path):
+                self.precomputed_embeddings = torch.load(precomputed_path, map_location='cpu')
+                self.embedding_dim = self.precomputed_embeddings.shape[1]
+                print(f"[UniversalEncoder] Loaded precomputed embeddings: {self.precomputed_embeddings.shape}")
+            else:
+                raise ValueError(f"Precomputed path not found: {precomputed_path}")
+                
+        elif encoder_type == 'phobert':
+            model_name = model_name or 'vinai/phobert-base'
+            from transformers import AutoModel, AutoTokenizer
+            self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+            self.model = AutoModel.from_pretrained(model_name).to(device)
+            self.embedding_dim = self.model.config.hidden_size
+            print(f"[UniversalEncoder] Loaded PhoBERT: {model_name} (dim={self.embedding_dim})")
             
-        Returns:
-            embeddings: [batch_size, embedding_dim]
-        """
-        # Tokenize
-        encoded = self.tokenizer(
-            texts,
-            padding=True,
-            truncation=True,
-            max_length=self.max_length,
-            return_tensors="pt"
-        )
-        
-        input_ids = encoded["input_ids"].to(self.device)
-        attention_mask = encoded["attention_mask"].to(self.device)
-        
-        # Forward through BERT
-        outputs = self.bert(
-            input_ids=input_ids,
-            attention_mask=attention_mask
-        )
-        
-        hidden_states = outputs.last_hidden_state  # [batch, seq_len, hidden]
-        
-        # Pooling
-        if self.pooling == "cls":
-            pooled = hidden_states[:, 0, :]  # CLS token
-        elif self.pooling == "mean":
-            # Mean pooling with attention mask
-            mask_expanded = attention_mask.unsqueeze(-1).float()
-            sum_embeddings = torch.sum(hidden_states * mask_expanded, dim=1)
-            sum_mask = torch.clamp(mask_expanded.sum(dim=1), min=1e-9)
-            pooled = sum_embeddings / sum_mask
-        elif self.pooling == "max":
-            # Max pooling
-            hidden_states[attention_mask == 0] = -1e9
-            pooled, _ = torch.max(hidden_states, dim=1)
+        elif encoder_type in self.SENTENCE_TRANSFORMER_MODELS or encoder_type == 'sentence-transformer':
+            try:
+                from sentence_transformers import SentenceTransformer
+            except ImportError:
+                raise ImportError("Please install: pip install sentence-transformers")
+            
+            if encoder_type in self.SENTENCE_TRANSFORMER_MODELS:
+                model_name = self.SENTENCE_TRANSFORMER_MODELS[encoder_type]
+            elif model_name is None:
+                raise ValueError("Must provide model_name for sentence-transformer")
+                
+            self.model = SentenceTransformer(model_name, device=device)
+            self.embedding_dim = self.model.get_sentence_embedding_dimension()
+            print(f"[UniversalEncoder] Loaded SentenceTransformer: {model_name} (dim={self.embedding_dim})")
+            
+        elif encoder_type == 'tfidf':
+            from sklearn.feature_extraction.text import TfidfVectorizer
+            from sklearn.decomposition import TruncatedSVD
+            self.vectorizer = TfidfVectorizer(max_features=10000)
+            self.svd = TruncatedSVD(n_components=256)
+            self.embedding_dim = 256
+            self._fitted = False
+            print(f"[UniversalEncoder] TF-IDF + SVD (dim={self.embedding_dim})")
+            
         else:
-            raise ValueError(f"Unknown pooling: {self.pooling}")
-        
-        if self.use_raw:
-            return pooled
-            
-        # Project to embedding_dim
-        embeddings = self.projection(pooled)
-        
-        return embeddings
+            raise ValueError(f"Unknown encoder_type: {encoder_type}")
     
-    @torch.no_grad()
-    def encode_batch(
-        self,
-        texts: List[str],
-        batch_size: int = 32,
-        show_progress: bool = True
-    ) -> np.ndarray:
-        """
-        Encode large list of texts in batches
-        """
-        self.eval()
+    def encode(self, texts: List[str], batch_size: int = 32) -> np.ndarray:
+        """Encode texts to embeddings"""
+        
+        if self.encoder_type == 'precomputed':
+            raise ValueError("Cannot encode new texts with precomputed embeddings. Use get_embeddings() instead.")
+        
+        if self.encoder_type == 'phobert':
+            return self._encode_phobert(texts, batch_size)
+        
+        if self.encoder_type in self.SENTENCE_TRANSFORMER_MODELS or self.encoder_type == 'sentence-transformer':
+            return self.model.encode(texts, batch_size=batch_size, show_progress_bar=True)
+        
+        if self.encoder_type == 'tfidf':
+            return self._encode_tfidf(texts)
+        
+    def _encode_phobert(self, texts: List[str], batch_size: int = 32) -> np.ndarray:
+        """Encode using PhoBERT with mean pooling"""
+        self.model.eval()
         all_embeddings = []
         
-        if show_progress:
-            from tqdm import tqdm
-            iterator = tqdm(range(0, len(texts), batch_size), desc="Encoding")
-        else:
-            iterator = range(0, len(texts), batch_size)
+        from tqdm import tqdm
+        for i in tqdm(range(0, len(texts), batch_size), desc="Encoding (PhoBERT)"):
+            batch = texts[i:i+batch_size]
+            encoded = self.tokenizer(batch, padding=True, truncation=True, max_length=256, return_tensors='pt')
             
-        for i in iterator:
-            batch_texts = texts[i:i + batch_size]
-            embeddings = self.forward(batch_texts)
-            all_embeddings.append(embeddings.cpu().numpy())
-            
+            with torch.no_grad():
+                outputs = self.model(
+                    input_ids=encoded['input_ids'].to(self.device),
+                    attention_mask=encoded['attention_mask'].to(self.device)
+                )
+                # Mean pooling
+                mask = encoded['attention_mask'].unsqueeze(-1).float().to(self.device)
+                embeddings = (outputs.last_hidden_state * mask).sum(1) / mask.sum(1)
+                all_embeddings.append(embeddings.cpu().numpy())
+                
         return np.vstack(all_embeddings)
+    
+    def _encode_tfidf(self, texts: List[str]) -> np.ndarray:
+        """Encode using TF-IDF + SVD"""
+        if not self._fitted:
+            tfidf_matrix = self.vectorizer.fit_transform(texts)
+            embeddings = self.svd.fit_transform(tfidf_matrix)
+            self._fitted = True
+        else:
+            tfidf_matrix = self.vectorizer.transform(texts)
+            embeddings = self.svd.transform(tfidf_matrix)
+        return embeddings
+    
+    def get_embeddings(self, indices: List[int] = None) -> torch.Tensor:
+        """Get precomputed embeddings by indices"""
+        if self.precomputed_embeddings is None:
+            raise ValueError("No precomputed embeddings loaded")
+        if indices is None:
+            return self.precomputed_embeddings
+        return self.precomputed_embeddings[indices]
 
 
 class ContentBasedRecommender(nn.Module):
     """
-    Pure Content-Based Recommendation using PhoBERT
+    Pure Content-Based Recommendation with flexible encoder support.
     
-    Recommends articles based on:
-    1. User's history (mean of read articles embeddings)
-    2. Article content similarity
+    Supported encoder_types:
+    - 'phobert': PhoBERT (vinai/phobert-base)
+    - 'bge-m3', 'vndoc', 'e5-large', 'e5-base', 'vn-sbert', 'gte': SentenceTransformers
+    - 'tfidf': TF-IDF + SVD
+    - 'precomputed': Load from .pt file
+    
+    Example:
+        recommender = ContentBasedRecommender(n_users, n_items, encoder_type='bge-m3')
+        recommender.encode_articles(article_texts)
+        recs = recommender.recommend(user_history, k=10)
     """
     
     def __init__(
         self,
         n_users: int,
         n_items: int,
-        embedding_dim: int = 256,
-        bert_model: str = "vinai/phobert-base",
-        max_length: int = 256,
-        freeze_bert: bool = True,
+        encoder_type: str = 'phobert',
+        model_name: str = None,
+        precomputed_path: str = None,
         device: str = "cuda",
         **kwargs
     ):
@@ -185,59 +184,66 @@ class ContentBasedRecommender(nn.Module):
         
         self.n_users = n_users
         self.n_items = n_items
-        self.embedding_dim = embedding_dim
         self.device = device
+        self.encoder_type = encoder_type
         
-        # Article encoder (PhoBERT)
-        self.article_encoder = PhoBERTEncoder(
-            model_name=bert_model,
-            embedding_dim=embedding_dim,
-            max_length=max_length,
-            pooling="mean",
-            freeze_bert=freeze_bert,
+        # Initialize universal encoder
+        self.encoder = UniversalEncoder(
+            encoder_type=encoder_type,
+            model_name=model_name,
             device=device,
-            use_raw=kwargs.get('use_raw', False)
+            precomputed_path=precomputed_path
         )
         
-        self.embedding_dim = self.article_encoder.embedding_dim
+        self.embedding_dim = self.encoder.embedding_dim
         
-        # User preference encoder
-        # Aggregates user's reading history into preference embedding
-        if not kwargs.get('use_raw', False):
-            self.user_preference_encoder = nn.Sequential(
-                nn.Linear(self.embedding_dim, self.embedding_dim),
-                nn.LayerNorm(self.embedding_dim),
-                nn.GELU(),
-                nn.Dropout(0.1),
-                nn.Linear(self.embedding_dim, self.embedding_dim)
-            )
-        else:
-            self.user_preference_encoder = nn.Identity()
+        # User preference encoder (trainable)
+        self.user_preference_encoder = nn.Sequential(
+            nn.Linear(self.embedding_dim, self.embedding_dim),
+            nn.LayerNorm(self.embedding_dim),
+            nn.GELU(),
+            nn.Dropout(0.1),
+            nn.Linear(self.embedding_dim, self.embedding_dim)
+        )
             
-        # Precomputed article embeddings cache
+        # Cached article embeddings
         self.article_embeddings: Optional[torch.Tensor] = None
         
         print(f"\n[ContentBasedRecommender] Initialized")
+        print(f"  Encoder: {encoder_type}")
         print(f"  Users: {n_users}, Items: {n_items}")
         print(f"  Embedding dim: {self.embedding_dim}")
         
     def encode_articles(
         self,
-        article_texts: List[str],
+        article_texts: List[str] = None,
         batch_size: int = 32
     ):
         """
-        Pre-encode all articles and cache embeddings
+        Pre-encode all articles and cache embeddings.
+        If encoder_type='precomputed', article_texts is ignored.
         """
-        print(f"\n[ContentBasedRecommender] Encoding {len(article_texts)} articles...")
+        if self.encoder_type == 'precomputed':
+            self.article_embeddings = self.encoder.get_embeddings().to(self.device)
+            print(f"[ContentBasedRecommender] Using precomputed embeddings: {self.article_embeddings.shape}")
+        else:
+            if article_texts is None:
+                raise ValueError("article_texts required for non-precomputed encoders")
+            print(f"\n[ContentBasedRecommender] Encoding {len(article_texts)} articles...")
+            embeddings = self.encoder.encode(article_texts, batch_size=batch_size)
+            self.article_embeddings = torch.tensor(embeddings, device=self.device, dtype=torch.float32)
+            
+        print(f"  Cached embeddings shape: {self.article_embeddings.shape}")
         
-        embeddings = self.article_encoder.encode_batch(
-            article_texts,
-            batch_size=batch_size,
-            show_progress=True
-        )
-        
-        self.article_embeddings = torch.tensor(embeddings, device=self.device)
+    def load_precomputed_embeddings(self, path: str):
+        """Load pre-computed article embeddings from file"""
+        if os.path.exists(path):
+            self.article_embeddings = torch.load(path, map_location=self.device)
+            self.embedding_dim = self.article_embeddings.shape[1]
+            print(f"[ContentBasedRecommender] Loaded embeddings from {path}: {self.article_embeddings.shape}")
+        else:
+            raise FileNotFoundError(f"Embedding file not found: {path}")
+
         print(f"  Cached embeddings shape: {self.article_embeddings.shape}")
         
     def get_user_preference(
@@ -354,10 +360,10 @@ class HybridRecommender(nn.Module):
         n_users: int,
         n_items: int,
         cf_embedding_dim: int = 64,
-        content_embedding_dim: int = 256,
-        bert_model: str = "vinai/phobert-base",
+        encoder_type: str = 'phobert',
+        model_name: str = None,
+        precomputed_path: str = None,
         alpha: float = 0.5,  # Weight for CF vs Content
-        freeze_bert: bool = True,
         device: str = "cuda"
     ):
         super(HybridRecommender, self).__init__()
@@ -365,7 +371,6 @@ class HybridRecommender(nn.Module):
         self.n_users = n_users
         self.n_items = n_items
         self.cf_embedding_dim = cf_embedding_dim
-        self.content_embedding_dim = content_embedding_dim
         self.alpha = alpha
         self.device = device
         
@@ -376,43 +381,43 @@ class HybridRecommender(nn.Module):
         nn.init.xavier_uniform_(self.user_cf_embedding.weight)
         nn.init.xavier_uniform_(self.item_cf_embedding.weight)
         
-        # ========== Content-Based Component ==========
-        self.article_encoder = PhoBERTEncoder(
-            model_name=bert_model,
-            embedding_dim=content_embedding_dim,
-            pooling="mean",
-            freeze_bert=freeze_bert,
-            device=device
+        # ========== Content-Based Component (Universal Encoder) ==========
+        self.encoder = UniversalEncoder(
+            encoder_type=encoder_type,
+            model_name=model_name,
+            device=device,
+            precomputed_path=precomputed_path
         )
+        self.content_embedding_dim = self.encoder.embedding_dim
         
-        # User content preference (aggregated from read articles)
-        # We learn to project the mean article embedding to a user preference space
+        # User content preference projection
         self.user_content_projection = nn.Sequential(
-            nn.Linear(content_embedding_dim, content_embedding_dim),
-            nn.LayerNorm(content_embedding_dim),
+            nn.Linear(self.content_embedding_dim, self.content_embedding_dim),
+            nn.LayerNorm(self.content_embedding_dim),
             nn.GELU()
         )
         
         # Cached embeddings
         self.article_content_embeddings: Optional[torch.Tensor] = None
-        self.raw_user_profiles: Optional[torch.Tensor] = None  # Precomputed mean history
+        self.raw_user_profiles: Optional[torch.Tensor] = None
         
         print(f"\n[HybridRecommender] Initialized")
+        print(f"  Encoder: {encoder_type}")
         print(f"  Users: {n_users}, Items: {n_items}")
-        print(f"  CF dim: {cf_embedding_dim}, Content dim: {content_embedding_dim}")
+        print(f"  CF dim: {cf_embedding_dim}, Content dim: {self.content_embedding_dim}")
         print(f"  Alpha (CF weight): {alpha}")
         
-    def encode_articles(self, article_texts: List[str], batch_size: int = 32):
-        """Pre-encode all articles"""
-        print(f"\n[HybridRecommender] Encoding {len(article_texts)} articles...")
-        
-        embeddings = self.article_encoder.encode_batch(
-            article_texts,
-            batch_size=batch_size,
-            show_progress=True
-        )
-        
-        self.article_content_embeddings = torch.tensor(embeddings, device=self.device)
+    def encode_articles(self, article_texts: List[str] = None, batch_size: int = 32):
+        """Pre-encode all articles using UniversalEncoder"""
+        if self.encoder.encoder_type == 'precomputed':
+            self.article_content_embeddings = self.encoder.get_embeddings().to(self.device)
+            print(f"[HybridRecommender] Using precomputed embeddings: {self.article_content_embeddings.shape}")
+        else:
+            if article_texts is None:
+                raise ValueError("article_texts required for non-precomputed encoders")
+            print(f"\n[HybridRecommender] Encoding {len(article_texts)} articles...")
+            embeddings = self.encoder.encode(article_texts, batch_size=batch_size)
+            self.article_content_embeddings = torch.tensor(embeddings, device=self.device, dtype=torch.float32)
         
     def precompute_user_profiles(self, user_histories: Dict[int, List[int]]):
         """

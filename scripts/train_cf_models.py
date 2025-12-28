@@ -1101,8 +1101,24 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
                         else:
                              hetero_graph_structure = data.get('edge_index_dict')
                              
-                    if hetero_graph_structure is None:
-                         hetero_graph_structure = edge_index
+                    # If still None, construct from bipartite edge_index
+                    if hetero_graph_structure is None and edge_index is not None:
+                         src, dst = edge_index
+                         n_users_limit = data['n_users']
+                         
+                         # Filter user -> item edges (src < n_users, dst >= n_users)
+                         mask = (src < n_users_limit) & (dst >= n_users_limit)
+                         u_i_src = src[mask]
+                         u_i_dst = dst[mask] - n_users_limit  # Remove offset
+                         
+                         u_i_edges = torch.stack([u_i_src, u_i_dst], dim=0)
+                         i_u_edges = torch.stack([u_i_dst, u_i_src], dim=0)
+                         
+                         hetero_graph_structure = {
+                             ('user', 'interacts', 'item'): u_i_edges,
+                             ('item', 'rev_interacts', 'user'): i_u_edges
+                         }
+                    
                     loss, bpr, cl, reg = model.calculate_loss(hetero_graph_structure, users, pos_items, neg_items)
 
                 elif isinstance(model, MAHCL):
