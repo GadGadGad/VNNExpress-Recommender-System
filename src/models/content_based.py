@@ -205,9 +205,21 @@ class ContentBasedRecommender(nn.Module):
             nn.Dropout(0.1),
             nn.Linear(self.embedding_dim, self.embedding_dim)
         )
+        
+        # Item encoder (trainable) - Symmetric Two Tower
+        self.item_encoder = nn.Sequential(
+            nn.Linear(self.embedding_dim, self.embedding_dim),
+            nn.LayerNorm(self.embedding_dim),
+            nn.GELU(),
+            nn.Dropout(0.1),
+            nn.Linear(self.embedding_dim, self.embedding_dim)
+        )
             
         # Cached article embeddings
         self.article_embeddings: Optional[torch.Tensor] = None
+        
+        # Ensure model is on correct device
+        self.to(device)
         
         print(f"\n[ContentBasedRecommender] Initialized")
         print(f"  Encoder: {encoder_type}")
@@ -224,7 +236,7 @@ class ContentBasedRecommender(nn.Module):
         If encoder_type='precomputed', article_texts is ignored.
         """
         if self.encoder_type == 'precomputed':
-            self.article_embeddings = self.encoder.get_embeddings().to(self.device)
+            self.article_embeddings = self.encoder.get_embeddings().to(self.device).float()
             print(f"[ContentBasedRecommender] Using precomputed embeddings: {self.article_embeddings.shape}")
         else:
             if article_texts is None:
@@ -238,7 +250,7 @@ class ContentBasedRecommender(nn.Module):
     def load_precomputed_embeddings(self, path: str):
         """Load pre-computed article embeddings from file"""
         if os.path.exists(path):
-            self.article_embeddings = torch.load(path, map_location=self.device)
+            self.article_embeddings = torch.load(path, map_location=self.device).float()
             self.embedding_dim = self.article_embeddings.shape[1]
             print(f"[ContentBasedRecommender] Loaded embeddings from {path}: {self.article_embeddings.shape}")
         else:
@@ -280,6 +292,16 @@ class ContentBasedRecommender(nn.Module):
         
         return user_embed
     
+    def get_item_embedding(self, item_indices: Union[int, List[int], torch.Tensor] = None) -> torch.Tensor:
+        """Get transformed item embeddings via MLP"""
+        if item_indices is None:
+            # All items
+            raw_embeds = self.article_embeddings
+        else:
+            raw_embeds = self.article_embeddings[item_indices]
+            
+        return self.item_encoder(raw_embeds)
+    
     def forward(
         self,
         user_histories: Dict[int, List[int]],
@@ -294,15 +316,18 @@ class ContentBasedRecommender(nn.Module):
         batch_size = len(users)
         scores = torch.zeros(batch_size, self.n_items, device=self.device)
         
+        # Get all transformed item embeddings once
+        all_item_embeds = self.item_encoder(self.article_embeddings) # [n_items, dim]
+        all_item_embeds = F.normalize(all_item_embeds, dim=-1)
+        
         for i, user_id in enumerate(users.tolist()):
             history = user_histories.get(user_id, [])
             user_embed = self.get_user_preference(history)  # [dim]
             
             # Cosine similarity with all articles
             user_embed = F.normalize(user_embed.unsqueeze(0), dim=-1)  # [1, dim]
-            article_embeds = F.normalize(self.article_embeddings, dim=-1)  # [n_items, dim]
             
-            scores[i] = torch.mm(user_embed, article_embeds.T).squeeze(0)
+            scores[i] = torch.mm(user_embed, all_item_embeds.T).squeeze(0)
             
         return scores
     
@@ -317,7 +342,10 @@ class ContentBasedRecommender(nn.Module):
         """
         user_embed = self.get_user_preference(user_history)
         user_embed = F.normalize(user_embed.unsqueeze(0), dim=-1)
-        article_embeds = F.normalize(self.article_embeddings, dim=-1)
+        
+        # Get all transformed item embeddings
+        article_embeds = self.item_encoder(self.article_embeddings)
+        article_embeds = F.normalize(article_embeds, dim=-1)
         
         scores = torch.mm(user_embed, article_embeds.T).squeeze(0)  # [n_items]
         

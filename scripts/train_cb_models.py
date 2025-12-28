@@ -242,8 +242,14 @@ def train_model(model, train_dict, n_items, epochs=10, batch_size=1024, lr=1e-3,
             u_input = user_means[batch_u] 
             u_vec = model.user_preference_encoder(u_input) # [B, Dim]
             
-            pos_vec = model.article_embeddings[batch_pos]
-            neg_vec = model.article_embeddings[batch_neg]
+            # Use item_encoder (Symmetric Two Tower)
+            # Need to get raw embeddings first, then pass through item_encoder
+            # Note: article_embeddings are on device already
+            pos_raw = model.article_embeddings[batch_pos]
+            neg_raw = model.article_embeddings[batch_neg]
+            
+            pos_vec = model.item_encoder(pos_raw)
+            neg_vec = model.item_encoder(neg_raw)
             
             # Dot product scores
             pos_score = (u_vec * pos_vec).sum(dim=1)
@@ -308,8 +314,8 @@ def main():
         args.data_path, args.articles_path
     )
     
-    if n_items == 0:
-        print("Error: No items found!")
+    if n_users == 0 or n_items == 0:
+        print("Error: No users or items found!")
         return
 
     # TF-IDF Pipeline
@@ -326,6 +332,7 @@ def main():
         print_results(metrics)
         
         if args.save_results:
+            Path(args.save_results).parent.mkdir(parents=True, exist_ok=True)
             with open(args.save_results, 'w') as f:
                 json.dump({'encoder': args.encoder, 'epochs': 0, 'data_path': args.data_path, **metrics}, f, indent=2)
         return
@@ -339,6 +346,9 @@ def main():
         precomputed_path=args.embedding_path,
         device=args.device
     )
+    
+    # Move model to device explicitly
+    model.to(args.device)
     
     # Encode articles
     if args.encoder == 'precomputed':
@@ -354,9 +364,12 @@ def main():
         # Full training
         train_model(model, train_dict, n_items, epochs=args.epochs, lr=args.lr, test_dict=test_dict)
     else:
-        # Zero-shot: Replace MLP with Identity
-        print("[Info] Zero-shot evaluation: Replacing MLP with Identity")
+        # Zero-shot: Replace MLPs with Identity
+        print("[Info] Zero-shot evaluation: Replacing MLPs with Identity")
         model.user_preference_encoder = nn.Identity()
+        model.item_encoder = nn.Identity()
+        model.to(args.device) # Re-move to device just in case
+        
         
     # Final Evaluation
     metrics = evaluate(model, test_dict, train_dict)
