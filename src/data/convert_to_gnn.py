@@ -160,19 +160,19 @@ class GNNDataConverter:
         # LEAKAGE FIX: Deduplicate interactions!
         initial_len = len(self.replies)
         
-        # --- BỔ SUNG FIX LỖI DATE (QUAN TRỌNG) ---
-        # 1. Ép kiểu sang datetime, lỗi sẽ thành NaT
+        # --- BỔ SUNG FIX LỖI DATE ---
         self.replies['date'] = pd.to_datetime(self.replies['date'], errors='coerce')
         
-        # 2. Xóa các dòng không có ngày giờ (bao gồm cả NO_COMMENT)
-        # Nếu không xóa, NaT sẽ bị đẩy xuống cuối khi sort -> chui vào tập Test!
+        # Chỉ xóa triệt để NaT nếu dùng chiến thuật TIME
         missing_count = self.replies['date'].isna().sum()
-        if missing_count > 0:
-            print(f"   [CLEANUP] Dropping {missing_count} rows with missing/invalid dates (including NO_COMMENT)...")
+        if self.split_strategy == 'time' and missing_count > 0:
+            print(f"   [CLEANUP] Dropping {missing_count} rows with missing dates (Required for TIME strategy)...")
             self.replies = self.replies.dropna(subset=['date'])
-        # ----------------------------------------
-
-        self.replies = self.replies.sort_values('date').drop_duplicates(
+        elif missing_count > 0:
+            print(f"   [INFO] Keeping {missing_count} interactions with missing dates (Strategy: {self.split_strategy})...")
+        
+        # Sắp xếp và deduplicate. Với NaT, Pandas sẽ đẩy xuống cuối.
+        self.replies = self.replies.sort_values('date', na_position='last').drop_duplicates(
             subset=['user_id', 'article_url'], keep='first'
         )
         print(f"   → Deduplicated interactions: {initial_len:,} -> {len(self.replies):,} (Removed {initial_len - len(self.replies):,})")
