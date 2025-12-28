@@ -612,7 +612,7 @@ def sample_batch(train_pairs, train_dict, n_items, batch_size, neg_ratio=1, samp
     )
 
 
-def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu', train_item_indices=None, data_path=None):
+def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu', train_item_indices=None, data_path=None, articles_path=None):
     """Load pretrained embeddings and project to target dimension."""
     if embedding_type == 'random':
         return None
@@ -688,9 +688,13 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
                      return None
                      
                  # Load Articles
-                 articles_path = resolve_path('articles.csv', search_dirs)
-                 if (not articles_path) and data_path: articles_path = Path(data_path).parent / 'articles.csv'
-                 if not articles_path: articles_path = Path('data/raw/articles.csv')
+                 # Priority: Explicit Path > Resolved Path > Default Fallback
+                 if articles_path and Path(articles_path).exists():
+                     pass # articles_path is already set and valid
+                 else:
+                     articles_path = resolve_path('articles.csv', search_dirs)
+                     if (not articles_path) and data_path: articles_path = Path(data_path).parent / 'articles.csv'
+                     if not articles_path: articles_path = Path('data/raw/articles.csv')
                  
                  if not articles_path.exists():
                      print(f"  ❌ Articles file not found. Cannot encode. Fallback to Random.")
@@ -1260,6 +1264,7 @@ def main():
     parser.add_argument('--model', '-m', choices=['ngcf', 'simgcl', 'xsimgcl', 'lightgcl', 'ma-hcl', 'ma_hgn', 'bigcf', 'igcl'], 
                         default='ngcf', help='Model to train')
     parser.add_argument('--data-path', default='data/processed', help='Data directory')
+    parser.add_argument('--articles-path', default=None, help='Explicit path to articles.csv')
     parser.add_argument('--epochs', type=int, default=100)
     parser.add_argument('--batch-size', type=int, default=2048)
     parser.add_argument('--lr', type=float, default=0.001)
@@ -1447,7 +1452,8 @@ def main():
         args.hidden_dim, 
         device, 
         train_item_indices=train_item_indices,
-        data_path=args.data_path # <--- Pass data_path here
+        data_path=args.data_path,
+        articles_path=args.articles_path # <--- Pass explicit articles path
     )
     
     # Generate Semantic IDs if requested
