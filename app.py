@@ -173,6 +173,177 @@ def score_to_color(score, base_hue=120, min_lightness=30, max_lightness=70):
     saturation = 50 + score * 30  # 50-80%
     return f"hsl({base_hue}, {saturation:.0f}%, {lightness:.0f}%)"
 
+def plot_embedding_space(model, user_idx, history_urls, recommended_urls, article_map, articles_df, custom_user_vector=None):
+    """
+    Vẽ biểu đồ phân tán 2D (Phiên bản Final - Visual Pro - Fix Legend Color):
+    - Chống đè: Tăng khoảng cách, thêm jitter.
+    - Rõ ràng nguồn gốc User.
+    - Hover Label tương phản cao.
+    - Legend luôn hiển thị rõ (nền trắng, chữ đen).
+    """
+    import plotly.graph_objects as go
+    from sklearn.decomposition import PCA
+    import numpy as np
+    import streamlit as st
+    
+    try:
+        # --- 1. XÁC ĐỊNH VECTOR USER (NGUỒN GỐC) ---
+        user_emb = None
+        user_source_note = ""
+        
+        if custom_user_vector is not None:
+            # Trường hợp 1: User Vector tự tạo (Cold Start / Custom)
+            user_emb = custom_user_vector
+            user_source_note = "User Vector: Tổng hợp từ sở thích bạn vừa nhập"
+            user_display_name = "👤 BẠN (Sở thích mới)"
+        else:
+            # Trường hợp 2: User Vector từ Model (Đã học)
+            if hasattr(model, 'user_embedding'):
+                user_emb = model.user_embedding.weight[user_idx].detach().cpu().numpy()
+            elif hasattr(model, 'E_u_0'): 
+                user_emb = model.E_u_0[user_idx].detach().cpu().numpy()
+            elif hasattr(model, 'gu'):
+                user_emb = model.gu.weight[user_idx].detach().cpu().numpy()
+            
+            user_source_note = f"User Vector: Đã học từ lịch sử đọc (ID: {user_idx})"
+            user_display_name = "👤 BẠN (User đã học)"
+
+        if user_emb is None: return None
+
+        # --- 2. LẤY VECTOR ITEM ---
+        item_matrix = None
+        if hasattr(model, 'item_embedding'):
+            item_matrix = model.item_embedding.weight.detach().cpu().numpy()
+        elif hasattr(model, 'E_i_0'):
+             item_matrix = model.E_i_0.detach().cpu().numpy()
+        elif hasattr(model, 'gi'):
+             item_matrix = model.gi.weight.detach().cpu().numpy()
+        
+        if item_matrix is None: return None
+
+        # --- 3. CHUẨN BỊ DỮ LIỆU ---
+        url_to_idx = {u: i for u, i in article_map.items()}
+        meta_map = articles_df.set_index('url')[['title', 'source_category', 'short_description']].fillna("").to_dict('index')
+        
+        vectors = [user_emb]
+        names = [f"<b>{user_display_name}</b>"]
+        types = ["User"]
+        colors = ["#FF4757"] # Đỏ rực rỡ
+        sizes = [40]         # Rất to
+        texts = [user_source_note]
+        
+        # Thêm History
+        valid_hist = [u for u in history_urls if u in url_to_idx][-20:] # Lấy 20 bài
+        for u in valid_hist:
+            idx = url_to_idx[u]
+            info = meta_map.get(u, {})
+            title = str(info.get('title', 'Unknown'))
+            cat = CATEGORY_MAP.get(info.get('source_category', ''), 'Khác')
+            
+            vectors.append(item_matrix[idx])
+            names.append(f"<b>Đã đọc:</b> {title[:40]}...")
+            types.append("History")
+            colors.append("#2ED573") # Xanh lá neon
+            sizes.append(15)         
+            texts.append(f"Chuyên mục: {cat}")
+            
+        # Thêm Recommendations
+        valid_rec = [u for u in recommended_urls if u in url_to_idx]
+        for u in valid_rec:
+            idx = url_to_idx[u]
+            info = meta_map.get(u, {})
+            title = str(info.get('title', 'Unknown'))
+            cat = CATEGORY_MAP.get(info.get('source_category', ''), 'Khác')
+            
+            vectors.append(item_matrix[idx])
+            names.append(f"<b>✨ Gợi ý:</b> {title[:40]}...")
+            types.append("Recommendation")
+            colors.append("#FFA502") # Vàng cam đậm
+            sizes.append(20)         
+            texts.append(f"Chuyên mục: {cat}")
+            
+        if len(vectors) < 2: return None
+
+        # --- 4. PCA & JITTER (CHỐNG ĐÈ) ---
+        n_comp = 2 if len(vectors) > 2 else 1
+        pca = PCA(n_components=n_comp)
+        vectors_2d = pca.fit_transform(np.array(vectors))
+        
+        if vectors_2d.shape[1] == 1:
+            vectors_2d = np.hstack((vectors_2d, np.zeros((vectors_2d.shape[0], 1))))
+            
+        # Thêm Jitter (Nhiễu ngẫu nhiên nhỏ) để tách các điểm trùng nhau
+        # Chỉ thêm vào các điểm không phải User (để User đứng yên chuẩn xác)
+        jitter_strength = 0.02 # Điều chỉnh độ mạnh của nhiễu
+        noise = np.random.normal(0, jitter_strength, vectors_2d.shape)
+        noise[0] = 0 # Giữ nguyên vị trí User
+        vectors_2d = vectors_2d + noise
+
+        # --- 5. VẼ BIỂU ĐỒ ---
+        fig = go.Figure()
+        
+        groups = [
+            ("User", "#FF4757", user_display_name), 
+            ("History", "#2ED573", "📚 Đã đọc"), 
+            ("Recommendation", "#FFA502", "✨ Gợi ý")
+        ]
+        
+        for g_type, g_color, g_label in groups:
+            mask = [t == g_type for t in types]
+            if not any(mask): continue
+            
+            fig.add_trace(go.Scatter(
+                x=vectors_2d[mask, 0],
+                y=vectors_2d[mask, 1],
+                mode='markers', # Bỏ text mặc định để đỡ rối, chỉ hiện khi hover
+                name=g_label,
+                marker=dict(
+                    size=[s for s, m in zip(sizes, mask) if m], 
+                    color=g_color,
+                    line=dict(width=2, color='white'), # Viền trắng cho nổi trên nền màu
+                    opacity=0.9 if g_type == 'User' else 0.7 # Item trong suốt hơn để thấy điểm chồng
+                ),
+                text=[n for n, m in zip(names, mask) if m], # Text dùng cho hover
+                # Tùy chỉnh Hover Label (Tooltip)
+                hoverlabel=dict(
+                    bgcolor="white",          # Nền trắng hoàn toàn
+                    font_size=14,             # Chữ to vừa phải
+                    font_family="Arial",
+                    font_color="#333333",     # Chữ đen đậm
+                    bordercolor=g_color       # Viền tooltip theo màu nhóm
+                ),
+                hovertemplate="<b>%{text}</b><br><br>%{customdata}<extra></extra>",
+                customdata=[t for t, m in zip(texts, mask) if m]
+            ))
+
+        # Cấu hình Layout Thoáng đãng
+        fig.update_layout(
+            title=dict(
+                text=f"🗺️ BẢN ĐỒ SỞ THÍCH & GỢI Ý<br><sup style='color:#555; font-size:12px'>Vị trí User được tính toán từ: {user_source_note}</sup>",
+                y=0.95, x=0.0, xanchor='left', yanchor='top', # Đưa title sang trái
+                font=dict(size=22, color='#1E272E')
+            ),
+            xaxis=dict(showgrid=True, gridcolor='#F1F2F6', zeroline=False, showticklabels=False),
+            yaxis=dict(showgrid=True, gridcolor='#F1F2F6', zeroline=False, showticklabels=False),
+            plot_bgcolor='white',
+            height=600, # Tăng chiều cao để tách điểm
+            margin=dict(l=20, r=20, t=80, b=20),
+            
+            # --- SỬA CHỖ NÀY: CẤU HÌNH LEGEND CỐ ĐỊNH MÀU ---
+            legend=dict(
+                yanchor="top", y=1, xanchor="right", x=1.1, # Đưa Legend ra ngoài bên phải
+                bgcolor="#FFFFFF",                  # Nền Trắng tuyệt đối (Không trong suốt)
+                bordercolor="#E0E0E0",              # Viền xám nhạt
+                borderwidth=1,
+                font=dict(size=14, color="#000000") # Chữ Đen tuyệt đối (Bất chấp Dark Mode)
+            )
+        )
+        
+        return fig
+
+    except Exception as e:
+        st.error(f"Lỗi vẽ biểu đồ: {str(e)}")
+        return None
 
 class PhoBERTWrapper:
     """Wrapper for pre-computed PhoBERT/SimCSE embeddings for recommendation."""
@@ -1178,6 +1349,38 @@ def main():
                                 </div>
                             </div>
                             """, unsafe_allow_html=True)
+                        
+                        # Trực quan hóa nếu đang dùng mô hình CF (Social) hoặc Hybrid
+                        if cf_model and selected_user in user_map_cf and actual_alpha > 0:
+                            st.markdown("---")
+                            with st.expander("🗺️ Giải thích bằng Không gian Vector (Beta)", expanded=True):
+                                st.caption("Biểu đồ thể hiện sự tương đồng giữa User (Đỏ), Lịch sử đọc (Xanh dương) và Bài được gợi ý (Xanh lá). Khoảng cách càng gần nghĩa là mô hình đánh giá chúng càng liên quan.")
+                                
+                                # Lấy danh sách URL gợi ý (chỉ lấy top 10 để vẽ cho đẹp)
+                                rec_urls_for_viz = [r[0] for r in top_recs[:15]]
+                                
+                                fig_viz = plot_embedding_space(
+                                    model=cf_model,
+                                    user_idx=user_map_cf[selected_user],
+                                    history_urls=history,
+                                    recommended_urls=rec_urls_for_viz,
+                                    article_map=article_map_cf,
+                                    articles_df=articles_df
+                                )
+                                
+                                if fig_viz:
+                                    # Cấu hình config tại đây để ẩn bớt nút và tự động ẩn thanh công cụ
+                                    st.plotly_chart(
+                                        fig_viz, 
+                                        use_container_width=True,
+                                        config={
+                                            'displayModeBar': 'hover',  # Chỉ hiện khi rê chuột vào (giải quyết vấn đề che nút)
+                                            'displaylogo': False,       # Ẩn logo Plotly
+                                            'modeBarButtonsToRemove': ['lasso2d', 'select2d'] # Bỏ nút thừa
+                                        }
+                                    )
+                                else:
+                                    st.info("Mô hình hiện tại không hỗ trợ trích xuất Vector User/Item để vẽ biểu đồ.")
             else:
                 st.info("👈 Select a user to generate recommendations")
 
