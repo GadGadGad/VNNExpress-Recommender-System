@@ -7,8 +7,8 @@ def main():
     
     # 1. Load Data
     try:
-        art_path = 'data/processed/articles.csv' # File đã clean
-        rep_path = 'data/raw/replies.csv'        # File replies gốc
+        art_path = 'data/raw/articles.csv' # File đã clean
+        rep_path = 'data/r/new_replies.csv'        # File replies gốc
         
         # Đọc articles và ép kiểu string cho published_at để tránh lỗi
         articles = pd.read_csv(art_path, dtype={'published_at': str})
@@ -53,7 +53,7 @@ def main():
     replies_sorted = replies.sort_values(by=['sort_time'], ascending=True)
 
     # 5. Lưu kết quả
-    out_dir = 'data/processed'
+    out_dir = 'data/r'
     if not os.path.exists(out_dir): os.makedirs(out_dir)
     
     output_path = f'{out_dir}/replies.csv'
