@@ -526,8 +526,16 @@ def load_data(data_path, min_interactions=2, split_strategy='random'):
     
     # Create edge index from TRAIN PAIRS ONLY (no data leakage)
     train_users = torch.tensor([u for u, i in train_pairs], dtype=torch.long)
+    train_items = torch.tensor([i for u, i in train_pairs], dtype=torch.long)
+    
+    # Bipartite graph edge index with offset
+    edge_index = torch.stack([
+        torch.cat([train_users, train_items + n_users]),
+        torch.cat([train_items + n_users, train_users])
+    ], dim=0)
 
     data = {
+
         'n_users': n_users,
         'n_items': n_items,
         'user_map': user_map,
