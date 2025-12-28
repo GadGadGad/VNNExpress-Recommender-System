@@ -695,8 +695,9 @@
             vn-sbert                                 & CB            & 0.0406          & 0.0215          & Cold              \\
             tfidf                                    & CB            & 0.0286          & 0.0147          & Cold              \\
             \midrule
-            \rowcolor{blue!10} \textbf{xsimgcl (G2)} & \textbf{CF}   & \textbf{0.2504} & \textbf{0.1620} & \textbf{LOO}      \\
-            \textbf{xsimgcl (G3)}                    & CF            & 0.2617          & 0.1649          & LOO               \\
+            \textbf{xsimgcl (G2)}                    & CF            & 0.2504          & 0.1620          & LOO               \\
+            \rowcolor{blue!10} \textbf{xsimgcl (G3)} & \textbf{CF}   & \textbf{0.2617} & \textbf{0.1649} & \textbf{LOO}      \\
+
             \midrule
             HetGNN (G1)                              & Hetero        & 0.0518          & 0.0278          & Cold              \\
             MA-HCL (G2)                              & Hetero        & 0.0469          & 0.0264          & Cold              \\
@@ -771,14 +772,14 @@
             G2' (Simple)   & Binary ($w=1$)       & 0.0523        & 0.0397           \\
             G2 (Complex)   & Dynamic ($w=f$)      & 0.0471        & 0.0362           \\
         \end{tabular}
-        \quad \small{(30 epochs, random init)}
+        \quad \small{(random init)}
     \end{block}
 \end{frame}
 
 \begin{frame}
     \frametitle{Impact of Graph Structure (Ablation Study)}
     \textbf{Question:} Which graph topology yields the best performance?\\
-    Testing \textbf{SimGCL} (30 epochs) on different graph types:
+    Testing \textbf{SimGCL} on different graph types:
 
     \vspace{0.3cm}
     \begin{table}
@@ -842,7 +843,7 @@
 \begin{frame}
     \frametitle{Impact of Embeddings (Ablation Study)}
     \textbf{Question:} Which pretrained Vietnamese embeddings work best?\\
-    Testing \textbf{SimGCL on G2} (30 epochs) with different initializations:
+    Testing \textbf{SimGCL on G2} with different initializations:
 
     \vspace{0.2cm}
     \begin{table}
