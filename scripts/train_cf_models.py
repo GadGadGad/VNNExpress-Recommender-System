@@ -919,11 +919,13 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
     train_dict = data['train_dict']
     test_dict = data['test_dict']
     n_items = data['n_items']
-    
     # --- STRUCTURAL LEAKAGE CHECK ---
     # Check if the graph used for message passing contains more interactions than the training set.
-    # This happens if test edges were not removed from the graph index during data conversion.
-    graph_to_check = edge_index_dict if edge_index_dict is not None else edge_index
+    # NOTE: For bipartite models, we check edge_index (already filtered in load_data).
+    #       For hetero models (ma_hgn, hetgnn), we check edge_index_dict.
+    is_hetero_model = args.model in ['ma_hgn', 'hetgnn', 'sim-mahgn']
+    graph_to_check = edge_index_dict if (is_hetero_model and edge_index_dict is not None) else edge_index
+    
     if graph_to_check is not None:
         if isinstance(graph_to_check, dict):
             # Hetero graph: Look for user->article or user->item edges
@@ -933,35 +935,35 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
                     if 'user' in str(key[0]).lower() and ('article' in str(key[2]).lower() or 'item' in str(key[2]).lower()):
                         ua_edges = val
                         break
+            if ua_edges is not None:
+                n_graph_interactions = ua_edges.size(1)
         else:
-            # Bipartite graph: It's usually symmetric [2, 2*E] or directed [2, E]
-            # Since we offset items, we check src < n_users and dst >= n_users
-            ua_edges = graph_to_check
+            # Bipartite graph: Count edges (might be symmetric 2*N or directed N)
+            n_edges = graph_to_check.size(1)
             
-        if ua_edges is not None and hasattr(ua_edges, 'size'):
-            # For symmetric bipartite graphs in MA-HCL etc, edge_index has 2*E edges.
-            # We only care about unique interactions.
-            n_graph_edges = ua_edges.size(1)
-            # If symmetric [2, 2*E], we divide by 2
-            if not isinstance(graph_to_check, dict):
-                src, dst = ua_edges[0], ua_edges[1]
-                # Filter to only directed user->item edges if it's symmetric
-                is_user_item = (src < data['n_users']) & (dst >= data['n_users'])
-                n_graph_interactions = is_user_item.sum().item()
+            # If edges == 2 * train_pairs, it's symmetric (count half)
+            if n_edges == len(train_pairs) * 2:
+                n_graph_interactions = n_edges // 2
+            elif n_edges == len(train_pairs):
+                n_graph_interactions = n_edges
             else:
-                n_graph_interactions = n_graph_edges
+                # Unknown format: use unique pairs
+                src, dst = graph_to_check[0].cpu(), graph_to_check[1].cpu()
+                pairs = set(zip(src.tolist(), dst.tolist()))
+                n_graph_interactions = len(pairs)
                 
-            n_train_interactions = len(train_pairs)
-            
-            if n_graph_interactions > n_train_interactions:
-                print(f"\n" + "!"*60)
-                print(f"⚠️  CRITICAL LEAKAGE DETECTED!")
-                print(f"   Message Passing Graph has {n_graph_interactions:,} user-item interactions.")
-                print(f"   Training Set has only {n_train_interactions:,} interactions.")
-                print(f"   Leakage: {n_graph_interactions - n_train_interactions:,} test edges are visible to the model!")
-                print(f"   REASON: Graph was likely built with '--min-user-interactions' on ALL data.")
-                print(f"   FIX: Regenerate graph using leakage-fixed converter.")
-                print("!"*60 + "\n")
+        n_train_interactions = len(train_pairs)
+        
+        if n_graph_interactions > n_train_interactions:
+            print(f"\n" + "!"*60)
+            print(f"⚠️  CRITICAL LEAKAGE DETECTED!")
+            print(f"   Message Passing Graph has {n_graph_interactions:,} user-item interactions.")
+            print(f"   Training Set has only {n_train_interactions:,} interactions.")
+            print(f"   Leakage: {n_graph_interactions - n_train_interactions:,} test edges are visible to the model!")
+            print(f"   REASON: Graph was likely built with '--min-user-interactions' on ALL data.")
+            print(f"   FIX: Regenerate graph using leakage-fixed converter.")
+            print("!"*60 + "\n")
+
     
     best_recall = 0
     best_metrics = {}
