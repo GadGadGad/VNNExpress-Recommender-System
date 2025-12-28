@@ -1027,8 +1027,25 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
                 if graph_structure is None and isinstance(data, dict):
                     graph_structure = data.get('edge_index_dict')
                 if graph_structure is None:
-                        # Fallback to bipartite edge_index if no hetero data
-                        graph_structure = edge_index
+                        # Fallback: Construct edge_index_dict from bipartite edge_index
+                        # This happens when loading strict_g3 (GraphWithNegatives) which is homogeneous Data
+                        if 'edge_index' in locals():
+                            src, dst = edge_index
+                            n_users_limit = data['n_users']
+                            mask = (src < n_users_limit) & (dst >= n_users_limit)
+                            u_i_src = src[mask]
+                            u_i_dst = dst[mask] - n_users_limit
+                            
+                            u_i_edges = torch.stack([u_i_src, u_i_dst], dim=0)
+                            i_u_edges = torch.stack([u_i_dst, u_i_src], dim=0)
+                            
+                            graph_structure = {
+                                ('user', 'interacts', 'item'): u_i_edges,
+                                ('item', 'rev_interacts', 'user'): i_u_edges
+                            }
+                        else:
+                            graph_structure = None # Critical error likely
+
                 loss, reg = model.bpr_loss(users, pos_items, neg_items, x_dict=None, edge_index_dict=graph_structure)
                 loss = loss + args.weight_decay * reg
 
@@ -1055,9 +1072,26 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
                     graph_structure = getattr(data, 'edge_index_dict', None)
                     if graph_structure is None and isinstance(data, dict):
                         graph_structure = data.get('edge_index_dict')
+                    
                     if graph_structure is None:
-                         # Fallback to bipartite edge_index if no hetero data
-                         graph_structure = edge_index
+                         # Fallback: Construct edge_index_dict from bipartite edge_index
+                         # This happens when loading strict_g3 (GraphWithNegatives) which is homogeneous Data
+                         src, dst = edge_index
+                         n_users_limit = data['n_users']
+                         
+                         # Filter user -> item edges (src < n_users, dst >= n_users)
+                         # Note: dst in edge_index includes offset
+                         mask = (src < n_users_limit) & (dst >= n_users_limit)
+                         u_i_src = src[mask]
+                         u_i_dst = dst[mask] - n_users_limit # Remove offset
+                         
+                         u_i_edges = torch.stack([u_i_src, u_i_dst], dim=0)
+                         i_u_edges = torch.stack([u_i_dst, u_i_src], dim=0)
+                         
+                         graph_structure = {
+                             ('user', 'interacts', 'item'): u_i_edges,
+                             ('item', 'rev_interacts', 'user'): i_u_edges
+                         }
                 else:
                     graph_structure = edge_index
                 
