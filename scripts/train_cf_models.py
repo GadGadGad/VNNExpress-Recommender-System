@@ -395,18 +395,23 @@ def load_data(data_path, min_interactions=2):
                     torch.tensor([i for u, i in data_dict['train_pairs']], dtype=torch.long)
                 ], dim=0)
                 
-                # Update the HeteroData object's edges to only contain training interactions
-                ua_key = ('user', 'comments', 'article')
-                rev_ua_key = ('article', 'rev_comments', 'user')
+                # Update ALL naming conventions for user-item interaction edges
+                edge_type_pairs = [
+                    (('user', 'comments', 'article'), ('article', 'rev_comments', 'user')),
+                    (('user', 'interacts', 'item'), ('item', 'rev_interacts', 'user')),
+                    (('user', 'interacts', 'article'), ('article', 'rev_interacts', 'user')),
+                ]
                 
-                if ua_key in data.edge_types:
-                    data[ua_key].edge_index = train_edge_index
-                if rev_ua_key in data.edge_types:
-                    data[rev_ua_key].edge_index = torch.stack([train_edge_index[1], train_edge_index[0]], dim=0)
+                for ua_key, rev_ua_key in edge_type_pairs:
+                    if ua_key in data.edge_types:
+                        data[ua_key].edge_index = train_edge_index
+                    if rev_ua_key in data.edge_types:
+                        data[rev_ua_key].edge_index = torch.stack([train_edge_index[1], train_edge_index[0]], dim=0)
                 
                 data_dict['edge_index_dict'] = data.edge_index_dict
                 
             return data_dict
+
 
         return data
     
