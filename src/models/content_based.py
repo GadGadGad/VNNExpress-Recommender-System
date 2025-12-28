@@ -691,7 +691,7 @@ class TFIDFRecommender:
         self.article_vectors = self.vectorizer.fit_transform(texts)
         print(f"  Shape: {self.article_vectors.shape}")
         
-    def recommend(self, history_indices: List[int], k: int = 10):
+    def recommend(self, history_indices: List[int], k: int = 10, exclude_read: bool = True):
         """Recommend items similar to user history (mean profile)"""
         from sklearn.metrics.pairwise import cosine_similarity
         import numpy as np
