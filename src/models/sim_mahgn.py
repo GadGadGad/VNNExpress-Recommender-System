@@ -42,10 +42,18 @@ class SimMAHGN(MAHGN):
         for conv in self.convs:
             # Ensure edge_index_dict is on the same device as embeddings
             device = h_dict['user'].device
-            edge_index_dict_gpu = {
-                key: ei.to(device) if hasattr(ei, 'to') else ei
-                for key, ei in edge_index_dict.items()
-            }
+            
+            # Handle raw tensor input (fallback from bipartite graph)
+            if isinstance(edge_index_dict, torch.Tensor):
+                edge_index_dict_gpu = {
+                    ('user', 'interacts', 'article'): edge_index_dict.to(device),
+                    ('article', 'rev_interacts', 'user'): torch.stack([edge_index_dict[1], edge_index_dict[0]]).to(device)
+                }
+            else:
+                edge_index_dict_gpu = {
+                    key: ei.to(device) if hasattr(ei, 'to') else ei
+                    for key, ei in edge_index_dict.items()
+                }
             # Store original embeddings in case HeteroConv doesn't output all node types
             h_dict_prev = {k: v.clone() for k, v in h_dict.items()}
             

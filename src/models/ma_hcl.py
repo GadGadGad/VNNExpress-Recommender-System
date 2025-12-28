@@ -69,7 +69,19 @@ class MAHCL(nn.Module):
             nn.init.xavier_uniform_(self.category_emb.weight)
     
     def _build_bipartite_graph(self, edge_index_dict):
-        """Build bipartite user-item graph from hetero edge_index_dict."""
+        """Build bipartite user-item graph from hetero edge_index_dict or raw tensor."""
+        # Handle raw tensor input (fallback from bipartite graph)
+        if isinstance(edge_index_dict, torch.Tensor):
+            # Assume it's already a bipartite edge_index [2, E] with user->item edges
+            ua_edges = edge_index_dict
+            src = ua_edges[0]
+            dst = ua_edges[1] + self.n_users  # Offset item indices
+            edge_index = torch.stack([
+                torch.cat([src, dst]),
+                torch.cat([dst, src])
+            ], dim=0)
+            return edge_index
+        
         # Convert to regular dict if needed
         if hasattr(edge_index_dict, 'keys'):
             edge_dict = dict(edge_index_dict)
