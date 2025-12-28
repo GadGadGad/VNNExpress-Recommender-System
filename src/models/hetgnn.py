@@ -75,7 +75,14 @@ class HetGNN(nn.Module):
         all_embs = {k: [v] for k, v in x_dict.items()}
         
         for conv in self.convs:
-            x_dict = conv(x_dict, edge_index_dict)
+            # Store original embeddings to prevent KeyError
+            x_dict_prev = {k: v.clone() for k, v in x_dict.items()}
+            
+            x_dict_new = conv(x_dict, edge_index_dict)
+            
+            # Update: keep previous embedding if no new message received
+            x_dict = {k: x_dict_new.get(k, x_dict_prev[k]) for k in x_dict_prev.keys()}
+            
             x_dict = {k: F.relu(self.dropout(v)) for k, v in x_dict.items()}
             for k, v in x_dict.items():
                 all_embs[k].append(v)

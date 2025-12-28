@@ -320,11 +320,24 @@ def load_data(data_path, min_interactions=2):
                 # If it's a hetero graph, we should also prune its internal edge_index_dict
                 if isinstance(data, HeteroData) or (isinstance(data, dict) and 'graph' in data and isinstance(data['graph'], HeteroData)):
                     target_graph = data if isinstance(data, HeteroData) else data['graph']
-                    # We only update user-article interaction edges, keeping social edges as is 
-                    # (they should already be filtered by convert_to_gnn.py)
-                    if ('user', 'comments', 'article') in target_graph.edge_types:
-                         target_graph['user', 'comments', 'article'].edge_index = new_edge_index
+                    # We update both directions to ensure symmetry and proper message passing
+                    ua_key = ('user', 'comments', 'article')
+                    rev_ua_key = ('article', 'rev_comments', 'user')
                     
+                    if ua_key in target_graph.edge_types:
+                         target_graph[ua_key].edge_index = new_edge_index
+                    
+                    if rev_ua_key in target_graph.edge_types:
+                         target_graph[rev_ua_key].edge_index = torch.stack([new_edge_index[1], new_edge_index[0]], dim=0)
+                    
+                    # Also check for 'interacts' naming convention
+                    i_key = ('user', 'interacts', 'item')
+                    rev_i_key = ('item', 'rev_interacts', 'user')
+                    if i_key in target_graph.edge_types:
+                         target_graph[i_key].edge_index = new_edge_index
+                    if rev_i_key in target_graph.edge_types:
+                         target_graph[rev_i_key].edge_index = torch.stack([new_edge_index[1], new_edge_index[0]], dim=0)
+                         
                     data_dict['edge_index_dict'] = target_graph.edge_index_dict
 
                 return data_dict
