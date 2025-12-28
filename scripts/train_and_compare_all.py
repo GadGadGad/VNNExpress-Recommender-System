@@ -326,7 +326,8 @@ def main():
     parser.add_argument('--skip-vnlp', action='store_true', help='Skip Vietnamese NLP models (TF-IDF, BM25, Word2Vec)')
     parser.add_argument('--force', action='store_true', help='Delete old models first')
     parser.add_argument('--compare-graphs', action='store_true', help='Run ablation study: Hetero vs Bipartite GNN')
-    parser.add_argument('--compare-cb', action='store_true', help='Run ablation study: Content-Based Strategies')
+    parser.add_argument('--skip-cb', action='store_true', help='Run ablation study: Content-Based Strategies')
+    parser.add_argument('--skip-hetero', action='store_true', help='Skip Heterogeneous models (MA-HGN, SimMAHGN, MA-HCL, HetGNN)')
     args = parser.parse_args()
     
     print("=" * 70)
@@ -467,6 +468,17 @@ def main():
             try:
                 metrics = run_vnlp_model(model)
                 add_result(model, 'VNLP', metrics)
+            except Exception as e:
+                print(f"  Error training {model}: {e}")
+
+    # Heterogeneous Models (MA-HGN, SimMAHGN, MA-HCL, HetGNN) - NEW GROUP
+    if not args.skip_hetero:
+        # Note: MA-HCL is our proposed model, others are strong hetero baselines
+        for model in ['ma_hgn', 'sim-mahgn', 'hetgnn', 'ma-hcl']:
+            try:
+                # Reuse run_cf_model since they are implemented there
+                metrics = run_cf_model(model, args.epochs, args.batch_size)
+                add_result(model, 'Hetero', metrics)
             except Exception as e:
                 print(f"  Error training {model}: {e}")
     

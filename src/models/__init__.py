@@ -15,6 +15,7 @@ from .content_based import (
 from .ma_hgn import MAHGN
 from .sim_mahgn import SimMAHGN
 from .ma_hcl import MAHCL
+from .hetgnn import HetGNN
 
 __all__ = [
     'GNNBaseline', 
@@ -29,5 +30,6 @@ __all__ = [
     'PhoBERTEncoder',
     'ContentBasedRecommender',
     'HybridRecommender',
-    'SimCSEVietnameseEncoder'
+    'SimCSEVietnameseEncoder',
+    'HetGNN'
 ]

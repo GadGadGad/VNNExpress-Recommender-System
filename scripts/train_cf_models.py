@@ -23,7 +23,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.models.simplex import SimpleX
 from src.models.directau import DirectAU
 from src.models.sgl import SGL
-from src.models import NGCF, LightGCL, SimGCL, XSimGCL, MAHGN, SimMAHGN
+from src.models import NGCF, LightGCL, SimGCL, XSimGCL, MAHGN, SimMAHGN, HetGNN
 from src.models.ncl import NCL
 from src.models.cgrc import CGRC
 from src.models.bigcf import BIGCF
@@ -823,7 +823,18 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
             optimizer.zero_grad()
             
             # Different models have different loss signatures
-            if hasattr(model, 'calculate_loss'):
+            if isinstance(model, HetGNN):
+                # HetGNN needs x_dict and edge_index_dict
+                graph_structure = getattr(data, 'edge_index_dict', None)
+                if graph_structure is None and isinstance(data, dict):
+                    graph_structure = data.get('edge_index_dict')
+                if graph_structure is None:
+                        # Fallback to bipartite edge_index if no hetero data
+                        graph_structure = edge_index
+                loss, reg = model.bpr_loss(users, pos_items, neg_items, x_dict=None, edge_index_dict=graph_structure)
+                loss = loss + args.weight_decay * reg
+
+            elif hasattr(model, 'calculate_loss'):
                 # Graph-based models need `adj_norm`
                 if args.model in ['simgcl', 'cgrc', 'bigcf', 'igcl', 'xsimgcl', 'sgl', 'ncl', 'sim-mahgn']:
                     graph_structure = data.get('adj_norm')
@@ -851,6 +862,7 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
                          graph_structure = edge_index
                 else:
                     graph_structure = edge_index
+                
                 
                 if isinstance(model, CGRC):
                     loss, bpr, recon, reg = model.calculate_loss(graph_structure, users, pos_items, neg_items, item_content)
@@ -961,7 +973,7 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
 
 def main():
     parser = argparse.ArgumentParser(description='Train CF/CL Models')
-    parser.add_argument('--model', '-m', choices=['ngcf', 'simplex', 'directau', 'sgl', 'simgcl', 'ncl', 'lightgcl', 'cgrc', 'bigcf', 'igcl', 'xsimgcl', 'ma_hgn', 'sim-mahgn', 'ma-hcl', 'ma-hcl-v2'],
+    parser.add_argument('--model', '-m', choices=['ngcf', 'simplex', 'directau', 'sgl', 'simgcl', 'ncl', 'lightgcl', 'cgrc', 'bigcf', 'igcl', 'xsimgcl', 'ma_hgn', 'sim-mahgn', 'ma-hcl', 'ma-hcl-v2', 'hetgnn'],
                         default='ngcf', help='Model to train')
     parser.add_argument('--data-path', default='data/processed', help='Data directory')
     parser.add_argument('--epochs', type=int, default=100)
@@ -1282,6 +1294,19 @@ def main():
              
     elif args.model == 'ma_hgn':
         model = MAHGN(n_users, n_items, args.hidden_dim, args.n_layers, args.dropout).to(device)
+
+    elif args.model == 'hetgnn':
+        model = HetGNN(
+            n_users=n_users,
+            n_items=n_items,
+            n_categories=data.get('n_categories', 15), # Default fallback
+            embedding_dim=args.hidden_dim,
+            n_layers=args.n_layers
+            # Use defaults for others: heads=4, dropout=0.1
+        ).to(device)
+        if pretrained_emb is not None:
+             model.item_embedding.weight.data.copy_(pretrained_emb)
+             print("  Transferred embeddings to HetGNN")
         
     elif args.model == 'xsimgcl':
         model = XSimGCL(n_users, n_items, embedding_dim=args.hidden_dim, n_layers=args.n_layers,
