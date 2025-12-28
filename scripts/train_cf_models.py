@@ -1196,6 +1196,8 @@ def main():
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--weight-decay', type=float, default=1e-4)
     parser.add_argument('--hidden-dim', type=int, default=64)
+    parser.add_argument('--n-layers', type=int, default=3)
+    parser.add_argument('--dropout', type=float, default=0.2, help='Dropout rate (default: 0.2)')
     parser.add_argument('--re-rank', action='store_true', help='Use Semantic Re-ranking')
     parser.add_argument('--gnn-type', choices=['gat', 'sage', 'gcn', 'transformer'], default='gat', help='GNN type for MA-HGN (gat, sage, gcn, transformer)')
     parser.add_argument('--cold-p', type=float, default=0.2, help='Percentage of cold users for evaluation')
