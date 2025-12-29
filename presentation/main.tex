@@ -9,6 +9,7 @@
 \usecolortheme{default} % dolphin
 \usepackage{unicode-math}
 \usepackage{booktabs}
+\usepackage{multirow}
 \usepackage{graphicx}
 \usepackage[table]{xcolor}
 \usepackage{colortbl}
@@ -112,312 +113,7 @@
 \end{frame}
 
 %------------------------------------------------------------
-\section{Exploratory Data Analysis}
-%------------------------------------------------------------
-\begin{frame}
-    \frametitle{Dataset Overview (VnExpress)}
-    \begin{columns}
-        \begin{column}{0.5\textwidth}
-            \textbf{Statistics:}
-            \begin{itemize}
-                \item \textbf{Users:} 13,117
-                \item \textbf{Articles:} 3,645
-                \item \textbf{Interactions:} 38,505 (Comments/Replies) % <--- Clarified
-                \item \textbf{Sparsity:} 99.92\%
-            \end{itemize}
-            \vspace{0.2cm}
-            \small The dataset is highly sparse. \textbf{Note:} We treat users commenting on articles as "implicit interactions".
-        \end{column}
-        \begin{column}{0.5\textwidth}
-            \centering
-            % Assuming image exists at ../plots/eda_00_summary_dashboard.png
-            % Adjust path if necessary. LaTeX root is presentation/
-            \includegraphics[width=\textwidth]{../plots/eda_00_summary_dashboard.png}
-        \end{column}
-    \end{columns}
-\end{frame}
-
-\begin{frame}
-    \frametitle{Experimental Settings: Graph Levels (G1-G3)}
-    We construct three distinct graph topologies to test model robustness across different sparsity and heterogeneity levels:
-
-    \vspace{0.3cm}
-    \begin{columns}[T]
-        \begin{column}{0.32\textwidth}
-            \begin{block}{Level 1 (G1): Baseline}
-                \textbf{User-Article Bipartite}
-                \begin{itemize}
-                    \item \textbf{Type:} Homogeneous/Bipartite.
-                    \item \textbf{Nodes:} Users, Articles.
-                    \item \textbf{Edges:} $U \leftrightarrow A$ (Comment/Interaction).
-                    \item \textbf{Purpose:} Standard Collaborative Filtering (CF/KNN).
-                \end{itemize}
-            \end{block}
-        \end{column}
-
-        \begin{column}{0.32\textwidth}
-            \begin{block}{Level 2 (G2): Social}
-                \textbf{Full Heterogeneous Graph}
-                \begin{itemize}
-                    \item \textbf{Type:} Heterogeneous.
-                    \item \textbf{Edges:} Adds Social Signals:
-                          \begin{itemize}
-                              \item $U \xrightarrow{reply} U$ (Social Trust)
-                              \item $U \leftrightarrow U$ (Latent Similarity)
-                          \end{itemize}
-                    \item \textbf{Purpose:} Advanced GNNs (MA-HGN).
-                \end{itemize}
-            \end{block}
-        \end{column}
-
-        \begin{column}{0.32\textwidth}
-            \begin{block}{Level 3 (G3): Abstract}
-                \textbf{User-Category Graph}
-                \begin{itemize}
-                    \item \textbf{Type:} Bipartite Abstract.
-                    \item \textbf{Nodes:} Users, Categories.
-                    \item \textbf{Edges:} $U \leftrightarrow C$ (Interest in Topic).
-                    \item \textbf{Purpose:} Modeling high-level user preferences (Topic Modeling).
-                \end{itemize}
-            \end{block}
-        \end{column}
-    \end{columns}
-\end{frame}
-
-\begin{frame}
-    \frametitle{Graph vs. Matrix Perspective}
-    \textbf{Mathematical Equivalence:}
-    A User-Item Graph is structurally identical to a Sparse User-Item Interaction Matrix.
-
-    \vspace{0.4cm}
-    \begin{columns}
-        \column{0.45\textwidth}
-        \centering
-        \textbf{Graph View}
-        \begin{tikzpicture}[scale=0.6]
-            % Simple bipartite graph
-            \node[circle,draw,fill=blue!20] (u1) at (0,2) {$u_1$};
-            \node[circle,draw,fill=blue!20] (u2) at (0,0) {$u_2$};
-            \node[rectangle,draw,fill=green!20] (i1) at (3,2) {$i_1$};
-            \node[rectangle,draw,fill=green!20] (i2) at (3,0) {$i_2$};
-            \draw (u1) -- (i1);
-            \draw (u1) -- (i2);
-            \draw (u2) -- (i2);
-        \end{tikzpicture}
-        \vspace{0.2cm}
-        \small "Path-based reasoning"
-
-        \column{0.1\textwidth}
-        \centering
-        \Large $\iff$
-
-        \column{0.45\textwidth}
-        \centering
-        \textbf{Matrix View}
-        \begin{equation*}
-            A =
-            \begin{bmatrix}
-                1 & 1 \\
-                0 & 1
-            \end{bmatrix}
-        \end{equation*}
-        \small "Algebraic operations"
-    \end{columns}
-
-    \vspace{0.4cm}
-    \begin{block}{Why this matters?}
-        \begin{itemize}
-            \item \textbf{High-Order Connectivity:}
-                  Multiplying matrices ($A \times A^T$) simulates "walking" on the graph.
-            \item \textbf{GNNs} generalize Matrix Factorization by performing convolution over this structure.
-        \end{itemize}
-    \end{block}
-\end{frame}
-
-%------------------------------------------------------------
-\section{State-of-the-Art (SOTA) Baselines}
-%------------------------------------------------------------
-
-\begin{frame}
-    \frametitle{Background: Content-Based Filtering (CB)}
-    \begin{columns}
-        \column{0.5\textwidth}
-        \textbf{Core Idea:} "Show me more of what I've read before."
-
-        \vspace{0.2cm}
-        \begin{itemize}
-            \item \textbf{Input:} Article Text (Title, Content, Tags).
-            \item \textbf{Process:}
-                  \begin{enumerate}
-                      \item Convert text to Vectors (TF-IDF / PhoBERT).
-                      \item Build \textbf{User Profile} by averaging history vectors.
-                      \item Recommend items with highest \textbf{Cosine Similarity} to Profile.
-                  \end{enumerate}
-        \end{itemize}
-
-        \column{0.5\textwidth}
-        \textbf{Pros \& Cons:}
-        \begin{itemize}
-            \item[\textcolor{green}{\checkmark}] Solves \textbf{Cold-Start} (works for new items).
-            \item[\textcolor{green}{\checkmark}] Captures Semantic meaning.
-            \item[\textcolor{red}{\times}] \textbf{Overspecialization:} Creates filter bubbles (only suggests same topics).
-        \end{itemize}
-    \end{columns}
-\end{frame}
-
-\begin{frame}
-    \frametitle{Feature Engineering: PCA \& Dimensionality Reduction}
-    \textbf{Problem:} Raw Text Features (TF-IDF) are extremely high-dimensional and sparse (10,000+ dimensions).
-
-    \vspace{0.3cm}
-    \begin{columns}
-        \column{0.5\textwidth}
-        \textbf{Solution: Truncated SVD (PCA)}
-        \begin{itemize}
-            \item Linearly projects data to a lower-dimensional space with max variance.
-            \item \textbf{Implementation:}
-                  \[ X_{dense} = SVD(X_{tfidf}, k=256) \]
-            \item Reduces 10,000 dims $\rightarrow$ 256 dims.
-        \end{itemize}
-
-        \column{0.5\textwidth}
-        \centering
-        % Simple visualization of 2D -> 1D projection
-        \begin{tikzpicture}[scale=0.8]
-            \draw[->] (-0.5,0) -- (4,0) node[right] {$x_1$};
-            \draw[->] (0,-0.5) -- (0,3) node[above] {$x_2$};
-            \draw[red, thick] (0,0) -- (3.5, 2.5) node[right] {PC1 (Variance)};
-            \foreach \x in {0.5, 1.0, 1.5, 2.0, 2.5, 3.0}
-            \filldraw[blue] (\x, {0.7*\x + rand*0.3}) circle (2pt);
-        \end{tikzpicture}
-        \small "Retains core info, removes noise"
-    \end{columns}
-
-    \vspace{0.3cm}
-    \begin{block}{Why use it in our Project?}
-        \begin{itemize}
-            \item Makes \textbf{Content-Based} computation feasible.
-            \item Acts as a baseline comparison against \textbf{Deep Semantic Embeddings} (PhoBERT).
-        \end{itemize}
-    \end{block}
-\end{frame}
-
-\begin{frame}
-    \frametitle{Background: Collaborative Filtering (CF)}
-    \begin{columns}
-        \column{0.5\textwidth}
-        \textbf{Core Idea:} "Users similar to you also liked this."
-
-        \vspace{0.2cm}
-        \begin{itemize}
-            \item \textbf{Memory-Based (KNN) Implementation:}
-                  \begin{itemize}
-                      \item \textbf{User-KNN (Pearson):}
-                            Find similar users $v$ to target user $u$.
-                            \[ sim(u,v) = \text{Pearson}(R_u, R_v) \]
-                            \textit{Why?} Handles user bias (tough/easy raters).
-
-                      \item \textbf{Item-KNN (Cosine):}
-                            Find items $j$ similar to item $i$ based on co-occurrence.
-                            \[ sim(i,j) = \cos(\vec{i}, \vec{j}) \]
-                            \textit{Why?} Efficient for sparse data.
-                  \end{itemize}
-        \end{itemize}
-
-        \column{0.5\textwidth}
-        \textbf{Pros \& Cons:}
-        \begin{itemize}
-            \item[\textcolor{green}{\checkmark}] Serendipity (Discovers new interests).
-            \item[\textcolor{green}{\checkmark}] Domain independent.
-            \item[\textcolor{red}{\times}] \textbf{Sparsity:} Fails when interactions are few (99.9\% sparsity).
-            \item[\textcolor{red}{\times}] \textbf{Cold-Start:} Cannot recommend to new users.
-        \end{itemize}
-    \end{columns}
-\end{frame}
-
-\begin{frame}
-    \frametitle{Current SOTA Approaches}
-    We benchmark against three main categories of modern Recommender Systems:
-    \vspace{0.2cm}
-    \begin{enumerate}
-        \item \textbf{Graph Neural Networks (GNNs):}
-              \begin{itemize}
-                  \item \textbf{LightGCN (2020):} Simplified GCN by removing non-linearities. Current industry standard for efficiency.
-              \end{itemize}
-
-              \vspace{0.2cm}
-        \item \textbf{Contrastive Learning (CL):}
-              \begin{itemize}
-                  \item \textbf{SimGCL (2022):} Augments graph structure with noise to learn robust representations. Handles sparsity better than pure GNNs.
-              \end{itemize}
-
-              \vspace{0.2cm}
-        \item \textbf{Content-Based \& Hybrid:}
-              \begin{itemize}
-                  \item \textbf{PhoBERT:} State-of-the-art BERT model for Vietnamese, capturing deep semantic text features.
-              \end{itemize}
-    \end{enumerate}
-\end{frame}
-
-
-%------------------------------------------------------------
-% Section Methodology merged into Overview
-%------------------------------------------------------------
-
-\begin{frame}
-    \frametitle{System Architecture}
-    \centering
-    \begin{tikzpicture}[node distance=1.2cm, auto,
-            block/.style={rectangle, draw, fill=blue!10, text width=2.2cm, text centered, rounded corners, minimum height=0.8cm, font=\scriptsize},
-            special/.style={rectangle, draw, fill=orange!20, text width=2.2cm, text centered, rounded corners, minimum height=0.8cm, font=\scriptsize\bfseries},
-            arrow/.style={->, >=stealth, thick}]
-
-        \node[block] (crawl) {VnExpress\\Crawler};
-        \node[block, right=0.8cm of crawl] (preprocess) {Preprocessing\\\& Cleaning};
-        \node[special, right=0.8cm of preprocess] (fusion) {Social\\Fusion};
-        \node[block, below=0.6cm of fusion] (embed) {PhoBERT\\Embeddings};
-        \node[block, left=0.8cm of embed] (train) {GCL Model\\Training};
-        \node[block, left=0.8cm of train] (eval) {Hybrid\\Evaluation};
-
-        \draw[arrow] (crawl) -- (preprocess);
-        \draw[arrow] (preprocess) -- (fusion);
-        \draw[arrow] (fusion) -- (embed);
-        \draw[arrow] (embed) -- (train);
-        \draw[arrow] (train) -- (eval);
-    \end{tikzpicture}
-
-    \vspace{0.5cm}
-    \small
-    \textbf{Pipeline:} Crawl → Clean → Build Graph → Generate Embeddings → Train → Evaluate
-\end{frame}
-
-
-\begin{frame}
-    \frametitle{Strategic Why: The Hybrid Synergy}
-    Why combine \textbf{Content-Based} with \textbf{Graph Learning}?
-
-    \vspace{0.4cm}
-    \begin{itemize}
-        \item \textbf{Content-Based (NLP):}
-              \begin{itemize}
-                  \item Solves the \textbf{Cold-Start} problem (recommends new articles with 0 interactions).
-                  \item Captures semantic similarity (PhoBERT).
-              \end{itemize}
-        \item \textbf{Graph Learning (GNN):}
-              \begin{itemize}
-                  \item Captures \textbf{Collaborative Signals} (Users who like X also like Y).
-                  \item Exploits \textbf{Social Signals} (Reply networks).
-              \end{itemize}
-    \end{itemize}
-
-    \vspace{0.4cm}
-    \begin{block}{Hybrid Outcome}
-        Content-Based provides "Freshness" while Graph Learning provides "Depth" and "Discovery".
-    \end{block}
-\end{frame}
-
-%------------------------------------------------------------
-\section{VnExpress Data Science}
+\section{Dataset Construction and EDA}
 %------------------------------------------------------------
 
 \begin{frame}
@@ -529,6 +225,29 @@
 \end{frame}
 
 \begin{frame}
+    \frametitle{Dataset Overview (VnExpress)}
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            \textbf{Statistics:}
+            \begin{itemize}
+                \item \textbf{Users:} 13,117
+                \item \textbf{Articles:} 3,645
+                \item \textbf{Interactions:} 38,505
+                \item \textbf{Sparsity:} 99.92\%
+            \end{itemize}
+            \vspace{0.2cm}
+            \small The dataset is highly sparse, typical of news domains where users read only a tiny fraction of daily content.
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \centering
+            % Assuming image exists at ../plots/eda_00_summary_dashboard.png
+            % Adjust path if necessary. LaTeX root is presentation/
+            \includegraphics[width=\textwidth]{../plots/eda_00_summary_dashboard.png}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}
     \frametitle{Data Sample: Interaction \& Content}
     \textbf{1. Content Sample (Article)} \\
     \textit{"Chinh phục loạt 'ông lớn' công nghệ sau hơn 500 lần bị từ chối"} \\
@@ -552,70 +271,6 @@
         \end{itemize}
     \end{block}
 \end{frame}
-
-\begin{frame}
-    \frametitle{Core Innovation: Social Fusion}
-    \textbf{Idea:} Use the "Reply Network" to bridge gaps between users.
-
-    \vspace{0.3cm}
-    \begin{columns}
-        \column{0.5\textwidth}
-        \centering
-        \begin{tikzpicture}[node distance=1.5cm, every node/.style={scale=0.7}]
-            \node[circle, draw, fill=blue!20] (U1) {User A};
-            \node[circle, draw, fill=blue!20, right of=U1, xshift=1cm] (U2) {User B};
-            \node[rectangle, draw, fill=green!20, below of=U1] (A1) {Article 1};
-            \node[rectangle, draw, fill=green!20, below of=U2] (A2) {Article 2};
-
-            \draw[->, thick] (U1) -- (A1) node[midway, left] {Read};
-            \draw[->, thick, red, dashed] (U1) -- (U2) node[midway, above] {Reply};
-            \draw[->, thick] (U2) -- (A2) node[midway, right] {Read};
-
-            \draw[->, blue, dotted, bend left] (U1) to node[midway, below] {Suggest?} (A2);
-        \end{tikzpicture}
-
-        \column{0.5\textwidth}
-        \textbf{The Logic:}
-        \begin{itemize}
-            \item \textbf{Direct:} User A likes Article 1.
-            \item \textbf{Social:} User A replies to User B $\rightarrow$ \textit{Shared Interest}.
-            \item \textbf{Inference:} User A is likely to enjoy Article 2 (read by B).
-        \end{itemize}
-    \end{columns}
-
-    \vspace{0.4cm}
-    \begin{block}{Impact on Sparsity}
-        By adding User-User edges, the GNN can propagate "interests" even if User A has only read 1 article.
-    \end{block}
-\end{frame}
-
-\begin{frame}
-    \frametitle{The Sparsity Challenge: Mathematical Proof}
-    \textbf{Definition:} \\
-    Sparsity measures the lack of interactions in the potential link space.
-
-    \vspace{0.3cm}
-    \begin{block}{The Formula}
-        \[ \text{Sparsity} = 1 - \frac{|\mathcal{E}_{obs}|}{|\mathcal{V}_u| \times |\mathcal{V}_i|} \]
-    \end{block}
-
-    \vspace{0.2cm}
-    \textbf{VnExpress Graph Calculation:}
-    \begin{itemize}
-        \item Interactions ($|\mathcal{E}_{obs}|$): \textbf{38,505}
-        \item Active Users ($|\mathcal{V}_u|$): \textbf{13,117}
-        \item Active Articles ($|\mathcal{V}_i|$): \textbf{3,645}
-        \item Total Possible Edges: $13,117 \times 3,645 = \mathbf{47,811,465}$
-    \end{itemize}
-
-    \vspace{0.2cm}
-    \centering
-    $\Rightarrow \text{Sparsity} = 1 - \frac{38,505}{47,811,465} = \mathbf{99.919\%}$
-\end{frame}
-
-%------------------------------------------------------------
-% Section EDA merged into Data Science
-%------------------------------------------------------------
 
 \begin{frame}
     \frametitle{Category Distribution (VnExpress)}
@@ -715,12 +370,164 @@
     \end{itemize}
 \end{frame}
 
+\begin{frame}
+    \frametitle{Graph Topology}
+    Visualizing the User-Article-Comment bipartite graph structure.
+    \centering
+    \includegraphics[width=0.7\textwidth]{../plots/graph_network_topology.png}
+\end{frame}
+
+\begin{frame}
+    \frametitle{The Sparsity Challenge: Mathematical Proof}
+    \textbf{Definition:} \\
+    Sparsity measures the lack of interactions in the potential link space.
+
+    \vspace{0.3cm}
+    \begin{block}{The Formula}
+        \[ \text{Sparsity} = 1 - \frac{|\mathcal{E}_{obs}|}{|\mathcal{V}_u| \times |\mathcal{V}_i|} \]
+    \end{block}
+
+    \vspace{0.2cm}
+    \textbf{VnExpress Graph Calculation:}
+    \begin{itemize}
+        \item Interactions ($|\mathcal{E}_{obs}|$): \textbf{38,505}
+        \item Active Users ($|\mathcal{V}_u|$): \textbf{13,117}
+        \item Active Articles ($|\mathcal{V}_i|$): \textbf{3,645}
+        \item Total Possible Edges: $13,117 \times 3,645 = \mathbf{47,811,465}$
+    \end{itemize}
+
+    \vspace{0.2cm}
+    \centering
+    $\Rightarrow \text{Sparsity} = 1 - \frac{38,505}{47,811,465} = \mathbf{99.919\%}$
+\end{frame}
+
+\begin{frame}
+    \frametitle{Core Innovation: Social Fusion}
+    \textbf{Idea:} Use the "Reply Network" to bridge gaps between users.
+
+    \vspace{0.3cm}
+    \begin{columns}
+        \column{0.5\textwidth}
+        \centering
+        \begin{tikzpicture}[node distance=1.5cm, every node/.style={scale=0.7}]
+            \node[circle, draw, fill=blue!20] (U1) {User A};
+            \node[circle, draw, fill=blue!20, right of=U1, xshift=1cm] (U2) {User B};
+            \node[rectangle, draw, fill=green!20, below of=U1] (A1) {Article 1};
+            \node[rectangle, draw, fill=green!20, below of=U2] (A2) {Article 2};
+
+            \draw[->, thick] (U1) -- (A1) node[midway, left] {Read};
+            \draw[->, thick, red, dashed] (U1) -- (U2) node[midway, above] {Reply};
+            \draw[->, thick] (U2) -- (A2) node[midway, right] {Read};
+
+            \draw[->, blue, dotted, bend left] (U1) to node[midway, below] {Suggest?} (A2);
+        \end{tikzpicture}
+
+        \column{0.5\textwidth}
+        \textbf{The Logic:}
+        \begin{itemize}
+            \item \textbf{Direct:} User A likes Article 1.
+            \item \textbf{Social:} User A replies to User B $\rightarrow$ \textit{Shared Interest}.
+            \item \textbf{Inference:} User A is likely to enjoy Article 2 (read by B).
+        \end{itemize}
+    \end{columns}
+
+    \vspace{0.4cm}
+    \begin{block}{Impact on Sparsity}
+        By adding User-User edges, the GNN can propagate "interests" even if User A has only read 1 article.
+    \end{block}
+\end{frame}
+
+
 % \begin{frame}
 %     \frametitle{Feature Distribution}
 %     \centering
 %     \includegraphics[width=0.9\textwidth]{../plots/graph_eda_02_feature_distribution.png}
 % \end{frame}
 
+%------------------------------------------------------------
+\section{State-of-the-Art (SOTA) Baselines}
+%------------------------------------------------------------
+\begin{frame}
+    \frametitle{Current SOTA Approaches}
+    We benchmark against three main categories of modern Recommender Systems:
+    \vspace{0.2cm}
+    \begin{enumerate}
+        \item \textbf{Graph Neural Networks (GNNs):}
+              \begin{itemize}
+                  \item \textbf{NGCF (2019):} First to encode collaborative signal into embeddings via graph propagation. High computational cost.
+                  \item \textbf{LightGCN (2020):} Simplified GCN by removing non-linearities. Current industry standard for efficiency.
+              \end{itemize}
+
+              \vspace{0.2cm}
+        \item \textbf{Contrastive Learning (CL):}
+              \begin{itemize}
+                  \item \textbf{SimGCL (2022):} Augments graph structure with noise to learn robust representations. Handles sparsity better than pure GNNs.
+              \end{itemize}
+
+              \vspace{0.2cm}
+        \item \textbf{Content-Based \& Hybrid:}
+              \begin{itemize}
+                  \item \textbf{PhoBERT:} State-of-the-art BERT model for Vietnamese, capturing deep semantic text features.
+              \end{itemize}
+    \end{enumerate}
+\end{frame}
+
+
+%------------------------------------------------------------
+% Section Methodology merged into Overview
+%------------------------------------------------------------
+
+\begin{frame}
+    \frametitle{System Architecture}
+    \centering
+    \begin{tikzpicture}[node distance=1.2cm, auto,
+            block/.style={rectangle, draw, fill=blue!10, text width=2.2cm, text centered, rounded corners, minimum height=0.8cm, font=\scriptsize},
+            special/.style={rectangle, draw, fill=orange!20, text width=2.2cm, text centered, rounded corners, minimum height=0.8cm, font=\scriptsize\bfseries},
+            arrow/.style={->, >=stealth, thick}]
+
+        \node[block] (crawl) {VnExpress\\Crawler};
+        \node[block, right=0.8cm of crawl] (preprocess) {Preprocessing\\\& Cleaning};
+        \node[special, right=0.8cm of preprocess] (fusion) {Social \& Temporal\\Fusion};
+        \node[block, below=0.6cm of fusion] (embed) {PhoBERT\\Embeddings};
+        \node[block, left=0.8cm of embed] (train) {GCL Model\\Training};
+        \node[block, left=0.8cm of train] (eval) {Hybrid\\Evaluation};
+
+        \draw[arrow] (crawl) -- (preprocess);
+        \draw[arrow] (preprocess) -- (fusion);
+        \draw[arrow] (fusion) -- (embed);
+        \draw[arrow] (embed) -- (train);
+        \draw[arrow] (train) -- (eval);
+    \end{tikzpicture}
+
+    \vspace{0.5cm}
+    \small
+    \textbf{Pipeline:} Crawl → Clean → Build Graph → Generate Embeddings → Train → Evaluate
+\end{frame}
+
+
+\begin{frame}
+    \frametitle{Strategic Why: The Hybrid Synergy}
+    Why combine \textbf{Content-Based} with \textbf{Graph Learning}?
+
+    \vspace{0.4cm}
+    \begin{itemize}
+        \item \textbf{Content-Based (NLP):}
+              \begin{itemize}
+                  \item Solves the \textbf{Cold-Start} problem (recommends new articles with 0 interactions).
+                  \item Captures semantic similarity (PhoBERT).
+              \end{itemize}
+        \item \textbf{Graph Learning (GNN):}
+              \begin{itemize}
+                  \item Captures \textbf{Collaborative Signals} (Users who like X also like Y).
+                  \item Exploits \textbf{Social Signals} (Reply networks).
+              \end{itemize}
+    \end{itemize}
+
+    \vspace{0.4cm}
+    \begin{block}{Hybrid Outcome}
+        Content-Based provides "Freshness" while Graph Learning provides "Depth" and "Discovery".
+    \end{block}
+\end{frame}
 
 %------------------------------------------------------------
 %------------------------------------------------------------
@@ -733,9 +540,9 @@
     Our architecture is an adaptation of the \textbf{HGNR} framework, optimized with LightGCN mechanics.
 
     \vspace{0.3cm}
-    \begin{columns}[T]
-        \begin{column}{0.48\textwidth}
-            \begin{block}{1. HGNR (arXiv:2009.00799)}
+    \begin{columns}[T,onlytextwidth]
+        \begin{column}{0.46\textwidth}
+            \begin{block}{1. HGNR (arXiv:\allowbreak 2009.00799)}
                 \textbf{Heterogeneous GNN for Recommendation}
                 \begin{itemize}
                     \item \textbf{Key Idea:} Users and items have multiple types of relationships (e.g., Comment vs Reply).
@@ -744,11 +551,12 @@
             \end{block}
         \end{column}
 
-        \begin{column}{0.48\textwidth}
+        \begin{column}{0.46\textwidth}
             \begin{block}{2. LightGCN (He et al., SIGIR'20)}
                 \textbf{Simplified GCN for Recommendation}
                 \begin{itemize}
-                    \item \textbf{Key Idea:} Non-linearities (ReLU) are effectively redundant for collaborative filtering.
+                    \item \textbf{Key Idea:} Non-linearities (ReLU) are effectively redundant \\
+                    for collaborative filtering.
                     \item \textbf{Mechanism:} Linear propagation + Layer averaging.
                 \end{itemize}
             \end{block}
@@ -759,6 +567,7 @@
     \centering
     $\Rightarrow$ \textbf{MA-HGN = HGNR's Multi-Relation logic + LightGCN's Efficiency}
 \end{frame}
+
 
 \begin{frame}
     \frametitle{Motivation: Why a Heterogeneous GNN?}
@@ -932,9 +741,12 @@
     \textbf{Protocol:} 80/20 Split (Random). \\
     \textbf{Focus:} Retrieving relevant content based strictly on content similarity (Handling new users/items).
 
+    \vspace{-0.15cm}
     \begin{table}
         \centering
-        \scriptsize
+        \tiny
+        \setlength{\tabcolsep}{3.5pt}
+        \renewcommand{\arraystretch}{0.95}
         \begin{tabular}{l|c|cc|l}
             \toprule
             \textbf{Model}                       & \textbf{Type} & \textbf{R@10}   & \textbf{N@10}   & \textbf{Note}       \\
