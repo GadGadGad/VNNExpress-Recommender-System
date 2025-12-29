@@ -1,4 +1,4 @@
-This is LuaHBTeX, Version 1.22.0 (TeX Live 2025)  (format=lualatex 2025.11.28)  29 DEC 2025 19:41
+This is LuaHBTeX, Version 1.22.0 (TeX Live 2025)  (format=lualatex 2025.11.28)  29 DEC 2025 19:44
  restricted system commands enabled.
 **main.tex
 (./main.tex
@@ -2342,51 +2342,48 @@ Package luatex.def Info: assets/images/uit-logo.png  used on input line 1100.
  [47
 
 ]
-Overfull \vbox (40.5133pt too high) detected at line 1135
- []
-
 File: assets/images/uit-logo.png Graphic file (type png)
 <use assets/images/uit-logo.png>
-Package luatex.def Info: assets/images/uit-logo.png  used on input line 1135.
+Package luatex.def Info: assets/images/uit-logo.png  used on input line 1128.
 (luatex.def)             Requested size: 35.19609pt x 28.45274pt.
-[48
+ [48
 
 ] (./main.toc)
 File: assets/images/uit-logo.png Graphic file (type png)
 <use assets/images/uit-logo.png>
-Package luatex.def Info: assets/images/uit-logo.png  used on input line 1141.
+Package luatex.def Info: assets/images/uit-logo.png  used on input line 1134.
 (luatex.def)             Requested size: 35.19609pt x 28.45274pt.
  [49
 
 ]
 File: assets/images/uit-logo.png Graphic file (type png)
 <use assets/images/uit-logo.png>
-Package luatex.def Info: assets/images/uit-logo.png  used on input line 1163.
+Package luatex.def Info: assets/images/uit-logo.png  used on input line 1156.
 (luatex.def)             Requested size: 35.19609pt x 28.45274pt.
  [50
 
 ]
 File: assets/images/uit-logo.png Graphic file (type png)
 <use assets/images/uit-logo.png>
-Package luatex.def Info: assets/images/uit-logo.png  used on input line 1174.
+Package luatex.def Info: assets/images/uit-logo.png  used on input line 1167.
 (luatex.def)             Requested size: 35.19609pt x 28.45274pt.
  [51
 
 ]
 File: assets/images/uit-logo.png Graphic file (type png)
 <use assets/images/uit-logo.png>
-Package luatex.def Info: assets/images/uit-logo.png  used on input line 1184.
+Package luatex.def Info: assets/images/uit-logo.png  used on input line 1177.
 (luatex.def)             Requested size: 35.19609pt x 28.45274pt.
  [52
 
 ]
 
 LaTeX Font Warning: Font shape `TU/lmss/m/sc' in size <10.95> not available
-(Font)              Font shape `TU/lmr/m/sc' tried instead on input line 1192.
+(Font)              Font shape `TU/lmr/m/sc' tried instead on input line 1185.
 
 File: assets/images/uit-logo.png Graphic file (type png)
 <use assets/images/uit-logo.png>
-Package luatex.def Info: assets/images/uit-logo.png  used on input line 1192.
+Package luatex.def Info: assets/images/uit-logo.png  used on input line 1185.
 (luatex.def)             Requested size: 35.19609pt x 28.45274pt.
 [53
 
@@ -2420,10 +2417,10 @@ Here is how much of LuaTeX's memory you used:
 4 penalty, 520 glyph, 429 attribute, 92 glue_spec, 145 attribute_list, 8 write, 
 1 pdf_start_link, 1 pdf_end_link, 3 pdf_dest, 1 pdf_action, 38 pdf_colorstack no
 des
-   avail lists: 1:2,2:3851,3:1135,4:350,5:544,6:83,7:4653,8:53,9:1413,10:19,11:1
+   avail lists: 1:2,2:3851,3:1135,4:350,5:543,6:83,7:4653,8:53,9:1413,10:19,11:1
 94
  65291 multiletter control sequences out of 65536+600000
- 104 fonts using 29676887 bytes
+ 104 fonts using 29677111 bytes
  128i,15n,116p,692b,2431s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </opt/texlive/2025/texmf-dist/fonts/opentype/public/lm/lmromancaps10-regular.otf
 ></opt/texlive/2025/texmf-dist/fonts/opentype/public/lm/lmsans10-boldoblique.otf
@@ -2437,7 +2434,7 @@ e/2025/texmf-dist/fonts/opentype/public/lm/lmsans10-oblique.otf></opt/texlive/20
 xmf-dist/fonts/opentype/public/lm/lmsans10-bold.otf></opt/texlive/2025/texmf-dis
 t/fonts/opentype/public/lm/lmsans10-regular.otf></opt/texlive/2025/texmf-dist/fo
 nts/opentype/public/lm/lmsans12-regular.otf>
-Output written on main.pdf (53 pages, 2029228 bytes).
+Output written on main.pdf (53 pages, 2028538 bytes).
 
 PDF statistics: 2064 PDF objects out of 2073 (max. 8388607)
  1732 compressed objects within 18 object streams
