@@ -832,33 +832,33 @@
     \renewcommand{\arraystretch}{0.95}
     \begin{tabular}{l|c|cccc}
       \toprule
-      \textbf{Model}                       & \textbf{Type} & \textbf{R@10}   & \textbf{N@10}   & \textbf{H@10}   & \textbf{MRR}    \\
+      \textbf{Model}                        & \textbf{Type} & \textbf{R@10}   & \textbf{N@10}   & \textbf{H@10}   & \textbf{MRR}    \\
       \midrule
-      \multicolumn{6}{l}{\textit{\textbf{Content-Based / Baselines}}}                                                              \\
-      \rowcolor{yellow!20} \textbf{BGE-M3} & \textbf{CB}   & \textbf{0.0535} & \textbf{0.0315} & \textbf{0.0929} & \textbf{0.0416} \\
-      TF-IDF                               & CB            & 0.0508          & 0.0301          & 0.0951          & 0.0394          \\
-      User-KNN (Pearson)                   & Memory CF     & 0.0412          & 0.0235          & 0.0762          & 0.0251          \\
+      \multicolumn{6}{l}{\textit{\textbf{Content-Based / Baselines}}}                                                               \\
+      \rowcolor{yellow!20} \textbf{PhoBERT} & \textbf{CB}   & \textbf{0.0535} & \textbf{0.0315} & \textbf{0.0929} & \textbf{0.0416} \\
+      TF-IDF                                & CB            & 0.0508          & 0.0301          & 0.0951          & 0.0394          \\
+      User-KNN (Pearson)                    & Memory CF     & 0.0412          & 0.0235          & 0.0762          & 0.0251          \\
       \midrule
-      \multicolumn{6}{l}{\textit{\textbf{Graph G1 (Bipartite)}}}                                                                   \\
-      LightGCL                             & Graph CL      & 0.0398          & 0.0249          & 0.0685          & 0.0313          \\
-      XSimGCL                              & Graph CL      & \textbf{0.0439} & \textbf{0.0253} & \textbf{0.0694} & \textbf{0.0289} \\
-      HGN                                  & Hetero GNN    & 0.0262          & 0.0147          & 0.0451          & 0.0182          \\
-      HCL                                  & Hetero CL     & 0.0259          & 0.0164          & 0.0471          & 0.0214          \\
-      SimGCL                               & Graph CL      & 0.0191          & 0.0115          & 0.0275          & 0.0135          \\
+      \multicolumn{6}{l}{\textit{\textbf{Graph G1 (Bipartite)}}}                                                                    \\
+      LightGCL                              & Graph CL      & 0.0398          & 0.0249          & 0.0685          & 0.0313          \\
+      XSimGCL                               & Graph CL      & \textbf{0.0439} & \textbf{0.0253} & \textbf{0.0694} & \textbf{0.0289} \\
+      HGN                                   & Hetero GNN    & 0.0262          & 0.0147          & 0.0451          & 0.0182          \\
+      HCL                                   & Hetero CL     & 0.0259          & 0.0164          & 0.0471          & 0.0214          \\
+      SimGCL                                & Graph CL      & 0.0191          & 0.0115          & 0.0275          & 0.0135          \\
       \midrule
-      \multicolumn{6}{l}{\textit{\textbf{Graph G2 (Hetero - User-User)}}}                                                          \\
-      LightGCL                             & Graph CL      & \textbf{0.0436} & \textbf{0.0261} & \textbf{0.0739} & \textbf{0.0313} \\
-      XSimGCL                              & Graph CL      & 0.0432          & 0.0260          & 0.0688          & 0.0303          \\
-      HGN                                  & Hetero GNN    & 0.0369          & 0.0201          & 0.0596          & 0.0250          \\
-      HCL                                  & Hetero CL     & 0.0320          & 0.0192          & 0.0520          & 0.0233          \\
-      SimGCL                               & Graph CL      & 0.0228          & 0.0131          & 0.0312          & 0.0144          \\
+      \multicolumn{6}{l}{\textit{\textbf{Graph G2 (Hetero - User-User)}}}                                                           \\
+      LightGCL                              & Graph CL      & \textbf{0.0436} & \textbf{0.0261} & \textbf{0.0739} & \textbf{0.0313} \\
+      XSimGCL                               & Graph CL      & 0.0432          & 0.0260          & 0.0688          & 0.0303          \\
+      HGN                                   & Hetero GNN    & 0.0369          & 0.0201          & 0.0596          & 0.0250          \\
+      HCL                                   & Hetero CL     & 0.0320          & 0.0192          & 0.0520          & 0.0233          \\
+      SimGCL                                & Graph CL      & 0.0228          & 0.0131          & 0.0312          & 0.0144          \\
       \midrule
-      \multicolumn{6}{l}{\textit{\textbf{Graph G3 (Category Hubs)}}}                                                               \\
-      LightGCL                             & Graph CL      & \textbf{0.0413} & \textbf{0.0256} & \textbf{0.0710} & \textbf{0.0311} \\
-      XSimGCL                              & Graph CL      & 0.0379          & 0.0232          & 0.0643          & 0.0289          \\
-      HGN                                  & Hetero GNN    & 0.0299          & 0.0167          & 0.0464          & 0.0198          \\
-      HCL                                  & Hetero CL     & 0.0250          & 0.0152          & 0.0471          & 0.0205          \\
-      SimGCL                               & Graph CL      & 0.0222          & 0.0122          & 0.0322          & 0.0137          \\
+      \multicolumn{6}{l}{\textit{\textbf{Graph G3 (Category Hubs)}}}                                                                \\
+      LightGCL                              & Graph CL      & \textbf{0.0413} & \textbf{0.0256} & \textbf{0.0710} & \textbf{0.0311} \\
+      XSimGCL                               & Graph CL      & 0.0379          & 0.0232          & 0.0643          & 0.0289          \\
+      HGN                                   & Hetero GNN    & 0.0299          & 0.0167          & 0.0464          & 0.0198          \\
+      HCL                                   & Hetero CL     & 0.0250          & 0.0152          & 0.0471          & 0.0205          \\
+      SimGCL                                & Graph CL      & 0.0222          & 0.0122          & 0.0322          & 0.0137          \\
       \bottomrule
     \end{tabular}
   \end{table}
