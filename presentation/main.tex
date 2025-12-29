@@ -801,7 +801,7 @@
 \end{frame}
 
 \begin{frame}
-  \frametitle{Benchmark Results: Cold-Start / Full Protocol}
+  \frametitle{Benchmark Results: Full Ranking}
   \textbf{Protocol:} 80/20 Split (Random). \\
   \textbf{Focus:} Retrieving relevant content based strictly on content similarity (Handling new users/items).
 
@@ -844,7 +844,7 @@
     \end{tabular}
   \end{table}
   \vspace{0.1cm}
-  \textbf{Result:} In "Full" evaluation (Cold-Start proxy), \textbf{Semantic Models (CB)} consistently outperform Graph models. However, advanced CL methods (LightGCL, XSimGCL) are closing the gap.
+  \textbf{Result:} In Full Ranking evaluation, \textbf{Semantic Models (CB)} consistently outperform Graph models. However, advanced CL methods (LightGCL, XSimGCL) are closing the gap.
 \end{frame}
 
 \begin{frame}
@@ -1052,13 +1052,18 @@
   \begin{itemize}
     \item \textbf{Metric Choice:}
           \begin{itemize}
-            \item \textit{Recall@10}: Measures system coverage.
-            \item \textit{NDCG@10}: Rewards models that rank true items higher.
+            \item \textbf{Recall@10}: Measures system coverage.
+            \item \textbf{NDCG@10}: Rewards models that rank true items higher.
             \item \textbf{MRR}: Standard for single-target news retrieval.
+          \end{itemize}
+    \item \textbf{Implicit Feedback Validation:}
+          \begin{itemize}
+            \item These metrics are standard for \textbf{Binary (Implicit)} interactions.
+            \item NDCG compensates for varying test set sizes across users.
           \end{itemize}
     \item \textbf{Evaluation Strategy:}
           \begin{itemize}
-            \item \textbf{Cold-Start (80/20):} Random user split. Train on 80\% of users, test on 20\% unseen users to measure zero-shot capability.
+            \item \textbf{Full ranking (80/20):} Random user split. Train on 80\% of users, test on 20\% unseen users to measure zero-shot capability.
           \end{itemize}
   \end{itemize}
 \end{frame}
@@ -1067,7 +1072,7 @@
 \begin{frame}
   \frametitle{Ablation Study: Impact of GNN Depth ($L$)}
   \textbf{Question:} Does deeper graph propagation help?
-  \textbf{Metric:} Recall@10 on Cold-Start (Full).
+  \textbf{Metric:} Recall@10 on Full Ranking.
 
   \begin{table}
     \centering
