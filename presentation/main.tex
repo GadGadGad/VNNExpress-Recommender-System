@@ -556,7 +556,7 @@
                 \textbf{Simplified GCN for Recommendation}
                 \begin{itemize}
                     \item \textbf{Key Idea:} Non-linearities (ReLU) are effectively redundant \\
-                    for collaborative filtering.
+                          for collaborative filtering.
                     \item \textbf{Mechanism:} Linear propagation + Layer averaging.
                 \end{itemize}
             \end{block}
@@ -715,26 +715,29 @@
         \scriptsize
         \begin{tabular}{l|c|cc|c}
             \toprule
-            \textbf{Model}                      & \textbf{Type}   & \textbf{R@10}   & \textbf{N@10}   & \textbf{Gain} \\
+            \textbf{Model}                      & \textbf{Type}   & \textbf{R@10}   & \textbf{N@10}   & \textbf{Gain}    \\
             \midrule
-            \multicolumn{5}{l}{\textit{\textbf{Graph G1 (Bipartite)}}}                                                \\
-
-            LightGCL                            & Graph CL        & 0.3081          & 0.2021          & -29.4\%       \\
-            XSimGCL                             & Graph CL        & 0.3009          & 0.1972          & -31.0\%       \\
-            LightGCN                            & GNN             & 0.2812          & 0.1739          & -35.6\%       \\
-            SimGCL                              & Graph CL        & 0.2129          & 0.1324          & -51.2\%       \\
+            \multicolumn{5}{l}{\textit{\textbf{Graph G1 (Bipartite)}}}                                                   \\
+            LightGCL                            & Graph CL        & 0.3081          & 0.2021          & -29.4\%          \\
+            MA-HGN                              & Hetero          & 0.2740          & 0.1668          & -37.2\%          \\
+            MA-HCL                              & Hetero CL       & 0.2047          & 0.1324          & -53.1\%          \\
+            XSimGCL                             & Graph CL        & 0.3009          & 0.1972          & -31.0\%          \\
+            LightGCN                            & GNN             & 0.2812          & 0.1739          & -35.6\%          \\
+            SimGCL                              & Graph CL        & 0.2129          & 0.1324          & -51.2\%          \\
             \midrule
-            \multicolumn{5}{l}{\textit{\textbf{Graph G2 (Hetero - User-User)}}}                                       \\
-            \rowcolor{green!15} \textbf{MA-HGN} & \textbf{Hetero} & \textbf{0.4364} & \textbf{0.2636} & \textbf{Best} \\
-            XSimGCL                             & Graph CL        & 0.3036          & 0.2002          & -30.4\%       \\
-            LightGCL                            & Graph CL        & 0.3017          & 0.1986          & -30.9\%       \\
-            SimGCL                              & Graph CL        & 0.2132          & 0.1322          & -51.1\%       \\
+            \multicolumn{5}{l}{\textit{\textbf{Graph G2 (Hetero - User-User)}}}                                          \\
+            \rowcolor{green!15} \textbf{MA-HGN} & \textbf{Hetero} & \textbf{0.4364} & \textbf{0.2636} & \textbf{Best}    \\
+            XSimGCL                             & Graph CL        & 0.3036          & 0.2002          & -30.4\%          \\
+            LightGCL                            & Graph CL        & 0.3017          & 0.1986          & -30.9\%          \\
+            MA-HCL                              & Hetero CL       & 0.2074          & 0.1355          & -52.5\%          \\
+            SimGCL                              & Graph CL        & 0.2132          & 0.1322          & -51.1\%          \\
             \midrule
-            \multicolumn{5}{l}{\textit{\textbf{Graph G3 (Full Hetero)}}}                                              \\
-            LightGCL                            & Graph CL        & 0.3024          & 0.1988          & -30.7\%       \\
-            XSimGCL                             & Graph CL        & 0.2969          & 0.1957          & -32.0\%       \\
-            MA-HCL                              & Hetero CL       & 0.2260          & 0.1491          & -48.2\%       \\
-            SimGCL                              & Graph CL        & 0.2181          & 0.1333          & -50.0\%       \\
+            \multicolumn{5}{l}{\textit{\textbf{Graph G3 (Category Hubs)}}}                                               \\
+            \textbf{MA-HGN}                     & \textbf{Hetero} & \textbf{0.3127} & \textbf{0.1957} & \textbf{-28.4\%} \\
+            LightGCL                            & Graph CL        & 0.3024          & 0.1988          & -30.7\%          \\
+            XSimGCL                             & Graph CL        & 0.2969          & 0.1957          & -32.0\%          \\
+            MA-HCL                              & Hetero CL       & 0.2260          & 0.1491          & -48.2\%          \\
+            SimGCL                              & Graph CL        & 0.2181          & 0.1333          & -50.0\%          \\
             \bottomrule
         \end{tabular}
     \end{table}
@@ -765,6 +768,8 @@
             \multicolumn{5}{l}{\textit{\textbf{Graph G1 (Bipartite)}}}                                                     \\
             LightGCL                             & Graph CL      & 0.0398          & 0.0249          & Best Graph CL       \\
             XSimGCL                              & Graph CL      & 0.0439          & 0.0253          & Cross-layer         \\
+            MA-HGN                               & Hetero        & 0.0262          & 0.0147          & Relation-focused    \\
+            MA-HCL                               & Hetero CL     & 0.0259          & 0.0164          & Hetero CL           \\
             LightGCN                             & GNN           & 0.0266          & 0.0151          & Simple GNN          \\
             SimGCL                               & Graph CL      & 0.0191          & 0.0115          & Baseline CL         \\
             \midrule
@@ -772,11 +777,13 @@
             LightGCL                             & Graph CL      & 0.0436          & 0.0261          & Best Graph CL       \\
             XSimGCL                              & Graph CL      & 0.0432          & 0.0260          & Cross-layer         \\
             MA-HGN                               & Hetero        & 0.0369          & 0.0201          & Relation-focused    \\
+            MA-HCL                               & Hetero CL     & 0.0320          & 0.0192          & Hetero CL           \\
             SimGCL                               & Graph CL      & 0.0228          & 0.0131          & Baseline CL         \\
             \midrule
-            \multicolumn{5}{l}{\textit{\textbf{Graph G3 (Full Hetero)}}}                                                   \\
+            \multicolumn{5}{l}{\textit{\textbf{Graph G3 (Category Hubs)}}}                                                 \\
             LightGCL                             & Graph CL      & 0.0413          & 0.0256          & Graph CL            \\
             XSimGCL                              & Graph CL      & 0.0379          & 0.0232          & Cross-layer         \\
+            MA-HGN                               & Hetero        & 0.0299          & 0.0166          & Relation-focused    \\
             MA-HCL                               & Hetero CL     & 0.0250          & 0.0152          & Hetero CL           \\
             SimGCL                               & Graph CL      & 0.0222          & 0.0122          & Baseline CL         \\
             \bottomrule
@@ -1003,35 +1010,12 @@
                   \item \textit{NDCG@10}: Rewards models that rank true items higher.
                   \item \textbf{MRR}: Standard for single-target news retrieval.
               \end{itemize}
-        \item \textbf{Split Strategy:} Time-aware 80/10/10 split to prevent leakage.
-        \item \textbf{Data Integrity:} \textbf{Temporal Leave-One-Out} strategy. We test on the latest interaction per user, ensuring \textbf{zero data leakage} from the future.
+        \item \textbf{Dual Protocol Strategy:}
+              \begin{itemize}
+                  \item \textbf{Mainstream (LOO):} Temporal Leave-One-Out. Test on the \textit{latest} interaction to prevent future leakage.
+                  \item \textbf{Cold-Start (80/20):} Random user split. Train on 80\% of users, test on 20\% unseen users to measure zero-shot capability.
+              \end{itemize}
     \end{itemize}
-\end{frame}
-
-\begin{frame}
-    \frametitle{Investigation: The "Projection Trap"}
-    \textbf{Observed Paradox:} Standalone PhoBERT performed 10x worse than expected.
-
-    \vspace{0.3cm}
-    \begin{columns}
-        \begin{column}{0.48\textwidth}
-            \begin{block}{The Problem}
-                \begin{itemize}
-                    \item \textbf{Random Projection:} PhoBERT embeddings (768-dim) were compressed via untrained random linear layers.
-                    \item \textbf{Noise Injection:} High-quality semantics were destroyed by "random noise" before retrieval.
-                \end{itemize}
-            \end{block}
-        \end{column}
-
-        \begin{column}{0.48\textwidth}
-            \begin{block}{The Solution (Rescued)}
-                \begin{itemize}
-                    \item \textbf{Raw Embedding Retrieval:} Skipping untrained layers and using direct cosine similarity.
-                    \item \textbf{Result:} Recall@10 jumped from \textbf{0.3\%} to \textbf{3.5\%} (\textbf{+1066\%} improvement).
-                \end{itemize}
-            \end{block}
-        \end{column}
-    \end{columns}
 \end{frame}
 
 \begin{frame}
@@ -1050,6 +1034,45 @@
         Behavioral signals (who-reads-what) are significantly more informative than semantic signals for Vietnamese news.
     \end{block}
 \end{frame}
+
+\begin{frame}
+\frametitle{Ablation Study: Impact of GNN Depth ($L$)}
+\textbf{Question:} Does deeper graph propagation help?
+\textbf{Metric:} Recall@10 on Mainstream (LOO) vs Cold-Start (Full).
+
+\begin{table}
+    \centering
+    \tiny
+    \setlength{\tabcolsep}{3pt}
+    \begin{tabular}{l|c|cccc|l}
+        \toprule
+        \textbf{Model} & \textbf{Protocol} & \textbf{L=1}   & \textbf{L=2}   & \textbf{L=3}   & \textbf{L=4}   & \textbf{Trend}                         \\
+        \midrule
+        LightGCL       & LOO               & 0.281          & 0.268          & \textbf{0.303} & 0.285          & Peak at L=3                            \\
+                       & Full              & 0.032          & 0.040          & \textbf{0.043} & 0.042          & Robust                                 \\
+        \midrule
+        XSimGCL        & LOO               & 0.252          & 0.279          & 0.290          & \textbf{0.299} & \textcolor{green}{Benefits from Depth} \\
+                       & Full              & 0.028          & 0.035          & 0.039          & \textbf{0.041} & Cross-layer helps                      \\
+        \midrule
+        LightGCN       & LOO               & \textbf{0.318} & 0.286          & 0.281          & 0.283          & \textcolor{red}{Over-smoothing}        \\
+                       & Full              & \textbf{0.033} & 0.026          & 0.026          & 0.028          & Drops instantly                        \\
+        \midrule
+        MA-HCL         & LOO               & \textbf{0.234} & 0.224          & 0.200          & 0.197          & Performance drop                       \\
+                       & Full              & \textbf{0.031} & 0.026          & 0.025          & 0.024          & Hard to train deep                     \\
+        \midrule
+        SimGCL         & LOO               & \textbf{0.234} & 0.229          & 0.216          & 0.228          & Unstable                               \\
+                       & Full              & 0.024          & \textbf{0.027} & 0.021          & 0.023          & Noisy                                  \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\vspace{0.1cm}
+\small
+\textbf{Insight:}
+\begin{itemize}
+    \item \textbf{LightGCN} suffers from \textit{over-smoothing} (Performance drops after L=1).
+    \item \textbf{XSimGCL} & \textbf{LightGCL} maintain robustness at deeper layers, capturing long-range dependencies effectively.
+\end{itemize}
 
 
 
