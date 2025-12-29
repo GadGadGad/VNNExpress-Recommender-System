@@ -15,7 +15,10 @@
 \usepackage{colortbl}
 \usepackage{multirow}
 \usepackage{tikz}
-\usetikzlibrary{positioning, arrows.meta, shapes.geometric}
+\usetikzlibrary{shapes.geometric, shapes.symbols, arrows.meta, positioning, shadows, calc, fit}
+\usepackage{tabularx}
+\definecolor{dfhead}{HTML}{F2F2F2}
+\definecolor{dfgrid}{HTML}{DDDDDD}
 \usepackage{animate}
 \usepackage{ragged2e} % For better text alignment
 \usepackage[backend=biber, style=ieee]{biblatex}
@@ -85,44 +88,11 @@
         \end{itemize}
     \end{block}
 
-    \begin{block}{Overall Goal}
+    \vspace{0.3cm}
+    \begin{alertblock}{Overall Goal}
         Develop a state-of-the-art recommendation engine for \textbf{Vietnamese news}.
-    \end{block}
-    % \vspace{0.3cm}
-    % \begin{alertblock}{Our Goal}
-    %     Build a system that understands both \textit{Content Semantics} and \textit{User Behavior}.
-    % \end{alertblock}
+    \end{alertblock}
 \end{frame}
-
-
-% \begin{frame}
-%     \frametitle{Research Objectives}
-
-%     \begin{block}{Overall Goal}
-%         Develop a state-of-the-art recommendation engine for \textbf{Vietnamese news}.
-%     \end{block}
-
-%     \vspace{0.3cm}
-%     \begin{columns}[T,onlytextwidth]
-%         \begin{column}{0.48\textwidth}
-%             \begin{block}{Modeling Perspective}
-%                 \begin{itemize}
-%                     \item \textbf{Hybrid Logic:} Combine Collaborative Filtering (CF) with Content-Based (CB).
-%                     \item \textbf{Graph Learning:} Model complex user–article interactions using GNNs.
-%                 \end{itemize}
-%             \end{block}
-%         \end{column}
-
-%         \begin{column}{0.48\textwidth}
-%             \begin{block}{Representation Perspective}
-%                 \begin{itemize}
-%                     \item \textbf{Multimodal Fusion:} Incorporate Social (reply) signals.
-%                     \item \textbf{Vietnamese NLP:} Optimize embeddings for news semantics.
-%                 \end{itemize}
-%             \end{block}
-%         \end{column}
-%     \end{columns}
-% \end{frame}
 
 
 \begin{frame}
@@ -137,15 +107,10 @@
         \begin{enumerate}
             \item \textbf{Cold Start:} New users and articles have no interaction history.
             \item \textbf{Sparse Data:} Most users read very few articles (99.9\% sparsity).
-            \item \textbf{Vietnamese Language:} Limited NLP resources for Vietnamese text.
-            \item \textbf{Dynamic Content:} News articles are time-sensitive and short-lived.
+            \item \textbf{Vietnamese Content Processing:} Limited resources and challenges in processing Vietnamese textual content.
+            \item \textbf{Temporal Nature of News:} News articles are highly time-sensitive with a short lifespan.
         \end{enumerate}
     \end{block}
-
-    % \vspace{0.3cm}
-    % \begin{alertblock}{Our Direction}
-    %     Graph-based Contrastive Learning with PhoBERT embeddings.
-    % \end{alertblock}
 \end{frame}
 
 
@@ -167,16 +132,16 @@
                 \begin{columns}[T,onlytextwidth]
                     \begin{column}{0.5\textwidth}
                         \begin{itemize}
-                            \item Thế giới
-                            \item Giáo dục
-                            \item Thể thao
+                            \item "Thế giới"
+                            \item "Giáo dục"
+                            \item "Thể thao"
                         \end{itemize}
                     \end{column}
                     \begin{column}{0.5\textwidth}
                         \begin{itemize}
-                            \item Thời sự
-                            \item Kinh doanh
-                            \item Khoa học công nghệ
+                            \item "Thời sự"
+                            \item "Kinh doanh"
+                            \item "Khoa học công nghệ"
                         \end{itemize}
                     \end{column}
                 \end{columns}
@@ -193,148 +158,204 @@
                 \end{itemize}
             \end{block}
 
-            \vspace{0.15cm}
-            \begin{alertblock}{Outcome}
-                A structured dataset enabling both \textit{content understanding} and \textit{behavior modeling}.
-            \end{alertblock}
         \end{column}
     \end{columns}
+    \vspace{0.15cm}
+    \begin{alertblock}{Outcome}
+        A structured dataset enabling both \textit{content understanding} and \textit{behavior modeling}.
+    \end{alertblock}
 \end{frame}
-
 
 \begin{frame}
-    \frametitle{Data Collection Pipeline: 3-Step Workflow}
-    Our crawler implements a resilient 3-stage architecture to handle high-volume news data:
+  \frametitle{VnExpress Crawler: Data Flow Pipeline}
+  \centering
 
-    \vspace{0.25cm}
-    \centering
-    \begin{tikzpicture}[
-        font=\scriptsize,
-        x=1cm,y=1cm,
-        stage/.style={rectangle, draw, fill=blue!10, rounded corners, minimum height=0.9cm, minimum width=4.2cm, align=center},
-        data/.style={cylinder, draw, shape border rotate=90, fill=green!10, aspect=0.25,
-                     minimum height=0.9cm, minimum width=2.4cm, align=center},
-        note/.style={rectangle, draw=none, align=left, text width=5.1cm},
-        arrow/.style={->, >=Stealth, thick, rounded corners}
-    ]
+  \begin{tikzpicture}[
+    % Scale nhỏ lại 0.8 để vừa vặn slide, transform shape để font co giãn theo
+    scale=0.8, transform shape, 
+    node distance=0.6cm and 0.8cm, % Giảm khoảng cách giữa các node
+    % Style cho các khối xử lý
+    process/.style={
+        rectangle, 
+        rounded corners=4pt, 
+        minimum width=3.0cm, 
+        minimum height=1.0cm, 
+        align=center, 
+        text=white,
+        font=\scriptsize\bfseries,
+        drop shadow
+    }, 
+    step1/.style={process, fill=blue!60!cyan},
+    step2/.style={process, fill=red!60!orange},
+    step3/.style={process, fill=purple!60!violet},
+    step4/.style={process, fill=teal!60!green},
+    % Style cho file dữ liệu (Hình trụ)
+    data/.style={
+        cylinder, 
+        shape border rotate=90, 
+        draw=gray!80, 
+        fill=yellow!10, 
+        aspect=0.25, 
+        minimum height=0.7cm, 
+        minimum width=1.4cm, 
+        align=center, 
+        font=\tiny\ttfamily,
+        drop shadow={opacity=0.2}
+    },
+    % Style cho Nguồn Web (Hình đám mây)
+    source/.style={
+        cloud,
+        cloud puffs=11, 
+        draw=blue!50, 
+        fill=blue!5, 
+        aspect=2,
+        minimum width=1.8cm, 
+        minimum height=1.2cm, 
+        align=center, 
+        font=\scriptsize\itshape\color{blue!80!black}
+    },
+    % Style mũi tên
+    arrow/.style={-Stealth, thick, draw=gray!60, rounded corners}
+]
 
-        % Row 1
-        \node[stage] (s1) at (0, 1.6) {\textbf{Step 1: Discovery}\\(requests)};
-        \node[data]  (d1) at (5.0, 1.6) {articles.csv};
-        \node[note]  (n1) at (9.3, 1.6) {Parallel scanning of category pages\\to find new URLs.};
+  % --- Start: Web Source ---
+  \node[source] (web) {VnExpress\\Website};
 
-        % Row 2
-        \node[stage] (s2) at (0, 0.0) {\textbf{Step 2: Deep Crawl}\\(Selenium)};
-        \node[data]  (d2) at (5.0, 0.0) {replies.csv};
-        \node[note]  (n2) at (9.3, 0.0) {Parallel browser workers to extract\\deep comment threads \& nested replies.};
+  % --- Step 1: Discovery ---
+  \node[step1, right=0.8cm of web] (s1) {Step 1: Discovery\\(Scanning)};
+  \node[data, right=0.6cm of s1] (d1) {articles.csv};
 
-        % Row 3
-        \node[stage] (s3) at (0, -1.6) {\textbf{Step 3: Enrichment}\\(Playwright)};
-        \node[data]  (d3) at (5.0, -1.6) {user\_profiles.csv};
-        \node[note]  (n3) at (9.3, -1.6) {Scraping full history for all unique\\active commenters.};
+  % --- Branching ---
+  
+  % Step 4: Metadata (Branch lên trên)
+  \node[step4, above right=0.3cm and 1.2cm of d1] (s4) {Step 4: Metadata\\(Tags/Category)};
+  \node[data, right=0.6cm of s4] (d4) {metadata.csv};
 
-        % Horizontal arrows: stage -> data (straight, clean)
-        \draw[arrow] (s1.east) -- (d1.west);
-        \draw[arrow] (s2.east) -- (d2.west);
-        \draw[arrow] (s3.east) -- (d3.west);
+  % Step 2: Deep Crawl (Branch xuống dưới)
+  \node[step2, below right=0.3cm and 1.2cm of d1] (s2) {Step 2: Deep Crawl\\(Comments)};
+  \node[data, right=0.6cm of s2] (d2) {replies.csv};
 
-        % Vertical flow arrows: data1 -> stage2 -> data2 -> stage3 (outside corridor)
-        % Create a "corridor" x = 2.5 to route arrows so they never overlap boxes.
-        \coordinate (c1) at (2.5, 1.6);
-        \coordinate (c2) at (2.5, 0.0);
-        \coordinate (c3) at (2.5,-1.6);
+  % --- Step 3: Enrichment (Tiếp nối Step 2) ---
+  % Đặt bên dưới d2 và lệch sang trái một chút để tạo vòng cung gọn gàng hoặc thẳng hàng
+  \node[step3, below=0.8cm of d2] (s3) {Step 3: Enrichment\\(User Profiles)};
+  \node[data, left=0.8cm of s3] (d3) {user\_profiles.csv};
 
-        \draw[arrow] (d1.west) -- (c1) -- (c2) -- (s2.west);
-        \draw[arrow] (d2.west) -- (c2) -- (c3) -- (s3.west);
+  % --- Connections (Mũi tên) ---
+  
+  % Web -> Step 1 -> Articles
+  \draw[arrow] (web) -- (s1);
+  \draw[arrow] (s1) -- (d1);
 
-    \end{tikzpicture}
+  % Articles -> Split (Step 4 & Step 2)
+  \draw[arrow] (d1.east) -- ++(0.3,0) |- (s4.west);
+  \draw[arrow] (d1.east) -- ++(0.3,0) |- (s2.west);
+
+  % Outputs của Step 4 & 2
+  \draw[arrow] (s4) -- (d4);
+  \draw[arrow] (s2) -- (d2);
+
+  % Replies -> Step 3 -> User Profiles
+  \draw[arrow] (d2.south) -- (s3.north);
+  \draw[arrow] (s3) -- (d3);
+
+  % --- Annotations (Ghi chú nhỏ) ---
+  \node[text=gray, font=\tiny, align=center, below=0.1cm of s1] {Input: Categories};
+  \node[text=gray, font=\tiny, align=center, below=0.05cm of s4] {Selenium (Stealth)};
+  \node[text=gray, font=\tiny, align=center, below=0.05cm of s2] {Selenium (Single)};
+  \node[text=gray, font=\tiny, align=center, below=0.1cm of s3] {Playwright};
+
+  \end{tikzpicture}
 \end{frame}
-
 
 \begin{frame}
-    \frametitle{Pipeline Orchestration \& Efficiency}
-
-    \begin{columns}[T,onlytextwidth]
-        %------------------------------------------------
-        \begin{column}{0.33\textwidth}
-            \begin{block}{Parallelism}
-                \begin{itemize}
-                    \item \texttt{Step 2} (Selenium) is resource-intensive.
-                    \item Workload is split across $N$ parallel browser instances.
-                    \item Implemented via \texttt{multiprocessing}.
-                \end{itemize}
-            \end{block}
-        \end{column}
-
-        %------------------------------------------------
-        \begin{column}{0.34\textwidth}
-            \begin{block}{Resiliency}
-                \begin{itemize}
-                    \item \textbf{Caching:} avoids redundant HTTP requests.
-                    \item \textbf{Checkpointing:} atomic CSV writes enable safe resume.
-                    \item \textbf{Headless Execution:} minimizes runtime overhead.
-                \end{itemize}
-            \end{block}
-        \end{column}
-
-        %------------------------------------------------
-        \begin{column}{0.33\textwidth}
-            \begin{block}{Tool Stack}
-                \begin{itemize}
-                    \item \textbf{Requests:} fast metadata extraction.
-                    \item \textbf{Selenium:} handles dynamic JS (Load More).
-                    \item \textbf{Playwright:} efficient user history scraping.
-                \end{itemize}
-            \end{block}
-        \end{column}
-    \end{columns}
-
-    \vspace{0.3cm}
-\end{frame}
+  \frametitle{Dataset Schema Overview}
+  
+  \scriptsize
+  \ttfamily
+  \setlength{\tabcolsep}{4pt}
+  \renewcommand{\arraystretch}{1.2}
+  
+  % ===================== Articles =====================
+  \textbf{Articles}
+  \vspace{0.3em}
+  
+  \begin{tabularx}{\linewidth}{l l X X l l X l}
+  \rowcolor{dfhead}
+  article\_id & url & title & short\_description & author & published\_at & content \\
+  56b.. & http:... & Đề ... & Dự thảo... & Sơn Hà & Thứ hai,... & Chiều ... \\ 
+  \end{tabularx}
+  
+  \vspace{0.8em}
+  
+  % ===================== Metadata =====================
+  \textbf{Metadata}
+  \vspace{0.3em}
+  
+  \begin{tabularx}{\linewidth}{X l X l}
+  \rowcolor{dfhead}
+  article\_url & category & tags \\
+  http:... & Khoa học công nghệ & \texttt{["công nghệ", ...]}\\
+  \end{tabularx}
+  
+  \vspace{0.8em}
+  
+  % ===================== Replies =====================
+  \textbf{Replies}
+  \vspace{0.3em}
+  
+  \begin{tabularx}{\linewidth}{X l X X l X}
+  \rowcolor{dfhead}
+  article\_url & parent\_user\_id & parent\_text & \dots & reply\_user\_id & reply\_text \\
+  http:... & 10... & Cũng ... & & 23... & Đúng... \\
+  \end{tabularx}
+  
+  \vspace{0.8em}
+  
+  % ===================== User Profiles =====================
+  \textbf{User Profiles}
+  \vspace{0.3em}
+  
+  \begin{tabularx}{\linewidth}{l X l l}
+  \rowcolor{dfhead}
+  user\_id & username & join\_date \\
+  25... & Mèo đi hia & texttt{11/2014} 
+  \end{tabularx}
+  
+  \end{frame}
 
 \begin{frame}
   \frametitle{Dataset Overview (VnExpress)}
 
-  %---------------- Top: two blocks side by side ----------------
-  \begin{columns}[T,onlytextwidth]
+  \begin{block}{Dataset Scale \& Sparsity Summary}
+      \begin{columns}[T,onlytextwidth]
 
-      \begin{column}{0.5\textwidth}
-          \begin{block}{Raw Behavioral Data}
+          %------------ Left column ------------
+          \begin{column}{0.5\textwidth}
               \begin{itemize}
-                  \item \textbf{3,685} Articles
-                  \item \textbf{42,050} Comments
-                  \item \textbf{6} News Categories
-                  \item \textbf{19,842} User Profiles
+                  \item \textbf{3,645 Articles} across \textbf{6 categories}
+                  \item \textbf{40,045 Comments} from \textbf{15,693 users}
               \end{itemize}
-          \end{block}
-      \end{column}
+          \end{column}
 
-      \begin{column}{0.5\textwidth}
-          \begin{block}{Graph Interaction Set (G1--G3)}
+          %------------ Right column ------------
+          \begin{column}{0.5\textwidth}
               \begin{itemize}
-                  \item \textbf{13,117} Unique Users
-                  \item \textbf{3,645} Active Articles
-                  \item \textbf{38,505} Total Interactions
-                  \item \textbf{Sparsity: 99.919\%}
+                  \item Avg Interactions/User:  2.55
+                  \item Avg Interactions/Item:  10.99
+                  \item $< 3$ interactions: 12489 users (79.6\%)
               \end{itemize}
-          \end{block}
-      \end{column}
+          \end{column}
 
-  \end{columns}
+      \end{columns}
+  \end{block}
 
-  \vspace{0.2cm}
+  \vspace{0.25cm}
 
-  %---------------- Bottom: image ----------------
   \centering
-  \includegraphics[width=0.9\textwidth]{../plots/eda_00_summary_dashboard.png}
-
-  \vspace{0.1cm}
-  \begin{alertblock}{Key Takeaway}
-      \scriptsize
-      The dataset is highly sparse, typical of news domains where users read only a tiny fraction of daily content.
-  \end{alertblock}
+  \includegraphics[width=0.75\textwidth]{../plots/eda_00_summary_dashboard.png}
 
 \end{frame}
+
 
 
 

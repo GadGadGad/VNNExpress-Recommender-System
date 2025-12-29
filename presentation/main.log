@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023/Debian) (preloaded format=xelatex 2025.6.18)  29 DEC 2025 20:09
+This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023/Debian) (preloaded format=xelatex 2025.6.18)  29 DEC 2025 21:47
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -908,9 +908,21 @@ zlibrarytopaths.code.tex
 File: tikzlibrarytopaths.code.tex 2023-01-15 v3.1.10 (3.1.10)
 )))
 (/usr/share/texlive/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tik
-zlibrarypositioning.code.tex
-File: tikzlibrarypositioning.code.tex 2023-01-15 v3.1.10 (3.1.10)
-)
+zlibraryshapes.geometric.code.tex
+File: tikzlibraryshapes.geometric.code.tex 2023-01-15 v3.1.10 (3.1.10)
+
+(/usr/share/texlive/texmf-dist/tex/generic/pgf/libraries/shapes/pgflibraryshape
+s.geometric.code.tex
+File: pgflibraryshapes.geometric.code.tex 2023-01-15 v3.1.10 (3.1.10)
+))
+(/usr/share/texlive/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tik
+zlibraryshapes.symbols.code.tex
+File: tikzlibraryshapes.symbols.code.tex 2023-01-15 v3.1.10 (3.1.10)
+
+(/usr/share/texlive/texmf-dist/tex/generic/pgf/libraries/shapes/pgflibraryshape
+s.symbols.code.tex
+File: pgflibraryshapes.symbols.code.tex 2023-01-15 v3.1.10 (3.1.10)
+))
 (/usr/share/texlive/texmf-dist/tex/generic/pgf/libraries/pgflibraryarrows.meta.
 code.tex
 File: pgflibraryarrows.meta.code.tex 2023-01-15 v3.1.10 (3.1.10)
@@ -920,13 +932,39 @@ File: pgflibraryarrows.meta.code.tex 2023-01-15 v3.1.10 (3.1.10)
 \pgfarrowlinewidth=\dimen330
 )
 (/usr/share/texlive/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tik
-zlibraryshapes.geometric.code.tex
-File: tikzlibraryshapes.geometric.code.tex 2023-01-15 v3.1.10 (3.1.10)
+zlibrarypositioning.code.tex
+File: tikzlibrarypositioning.code.tex 2023-01-15 v3.1.10 (3.1.10)
+)
+(/usr/share/texlive/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tik
+zlibraryshadows.code.tex
+File: tikzlibraryshadows.code.tex 2023-01-15 v3.1.10 (3.1.10)
 
-(/usr/share/texlive/texmf-dist/tex/generic/pgf/libraries/shapes/pgflibraryshape
-s.geometric.code.tex
-File: pgflibraryshapes.geometric.code.tex 2023-01-15 v3.1.10 (3.1.10)
-))
+(/usr/share/texlive/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tik
+zlibraryfadings.code.tex
+File: tikzlibraryfadings.code.tex 2023-01-15 v3.1.10 (3.1.10)
+
+(/usr/share/texlive/texmf-dist/tex/generic/pgf/libraries/pgflibraryfadings.code
+.tex
+File: pgflibraryfadings.code.tex 2023-01-15 v3.1.10 (3.1.10)
+)))
+(/usr/share/texlive/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tik
+zlibrarycalc.code.tex
+File: tikzlibrarycalc.code.tex 2023-01-15 v3.1.10 (3.1.10)
+)
+(/usr/share/texlive/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tik
+zlibraryfit.code.tex
+File: tikzlibraryfit.code.tex 2023-01-15 v3.1.10 (3.1.10)
+)
+(/usr/share/texlive/texmf-dist/tex/latex/tools/tabularx.sty
+Package: tabularx 2023/07/08 v2.11c `tabularx' package (DPC)
+\TX@col@width=\dimen331
+\TX@old@table=\dimen332
+\TX@old@col=\dimen333
+\TX@target=\dimen334
+\TX@delta=\dimen335
+\TX@cols=\count370
+\TX@ftn=\toks51
+)
 (/usr/share/texlive/texmf-dist/tex/latex/animate/animate.sty
 Package: animate 2023/06/18 PDF & SVG animations from files and inline graphics
 
@@ -939,23 +977,23 @@ Package: ifdraft 2016/05/16 v1.4 Detect class options draft and final (HO)
 )
 (/usr/share/texlive/texmf-dist/tex/latex/tools/calc.sty
 Package: calc 2023/07/08 v4.3 Infix arithmetic (KKT,FJ)
-\calc@Acount=\count370
-\calc@Bcount=\count371
-\calc@Adimen=\dimen331
-\calc@Bdimen=\dimen332
+\calc@Acount=\count371
+\calc@Bcount=\count372
+\calc@Adimen=\dimen336
+\calc@Bdimen=\dimen337
 \calc@Askip=\skip70
 \calc@Bskip=\skip71
 LaTeX Info: Redefining \setlength on input line 80.
 LaTeX Info: Redefining \addtolength on input line 81.
-\calc@Ccount=\count372
+\calc@Ccount=\count373
 \calc@Cskip=\skip72
 )
 (/usr/share/texlive/texmf-dist/tex/latex/media9/pdfbase.sty
 Package: pdfbase 2022/08/04 v0.55 driver independent access to low-level PDF fe
 atures
-\g_pbs_page_int=\count373
-\g_pbs_obj_int=\count374
-\g_pbs_oc_int=\count375
+\g_pbs_page_int=\count374
+\g_pbs_obj_int=\count375
+\g_pbs_oc_int=\count376
 )
 (/usr/share/texlive/texmf-dist/tex/latex/zref/zref-abspage.sty
 Package: zref-abspage 2023-09-14 v2.35 Module abspage for zref (HO)
@@ -970,30 +1008,30 @@ Package zref Info: New property list: main on input line 767.
 Package zref Info: New property: default on input line 768.
 Package zref Info: New property: page on input line 769.
 )
-\c@abspage=\count376
+\c@abspage=\count377
 Package zref Info: New property: abspage on input line 67.
 )
 (/usr/share/texlive/texmf-dist/tex/latex/ocgx2/ocgbase.sty
 Package: ocgbase 2022/08/04 v0.22 support package for ocgx2.sty
-\g_ocgbase_nd_int=\count377
+\g_ocgbase_nd_int=\count378
 )
 \@anim@box=\box85
 \@anim@measbox=\box86
-\@anim@tmpdima=\dimen333
-\@anim@tmpdimb=\dimen334
-\@anim@num=\count378
-\@anim@curframe=\count379
-\@anim@curframe@zb=\count380
-\@anim@resizeflags=\count381
-\@anim@skipfram=\count382
-\@anim@mulframecnt=\count383
+\@anim@tmpdima=\dimen338
+\@anim@tmpdimb=\dimen339
+\@anim@num=\count379
+\@anim@curframe=\count380
+\@anim@curframe@zb=\count381
+\@anim@resizeflags=\count382
+\@anim@skipfram=\count383
+\@anim@mulframecnt=\count384
 \@anim@@tmlnfile=\read4
-\@anim@tmpcnt=\count384
-\c@@anim@ltxcnt=\count385
-\@anim@curlayer=\count386
-\@anim@lineno=\count387
-\@anim@curfield=\count388
-\@anim@@resizeflags=\count389
+\@anim@tmpcnt=\count385
+\c@@anim@ltxcnt=\count386
+\@anim@curlayer=\count387
+\@anim@lineno=\count388
+\@anim@curfield=\count389
+\@anim@@resizeflags=\count390
 )
 (/usr/share/texlive/texmf-dist/tex/latex/ragged2e/ragged2e.sty
 Package: ragged2e 2023/06/22 v3.6 ragged2e Package
@@ -1017,54 +1055,54 @@ Package: biblatex 2023/03/05 v3.19 programmable bibliographies (PK/MW)
 
 (/usr/share/texlive/texmf-dist/tex/latex/logreq/logreq.sty
 Package: logreq 2010/08/04 v1.0 xml request logger
-\lrq@indent=\count390
+\lrq@indent=\count391
 
 (/usr/share/texlive/texmf-dist/tex/latex/logreq/logreq.def
 File: logreq.def 2010/08/04 v1.0 logreq spec v1.0
 ))
-\c@tabx@nest=\count391
-\c@listtotal=\count392
-\c@listcount=\count393
-\c@liststart=\count394
-\c@liststop=\count395
-\c@citecount=\count396
-\c@citetotal=\count397
-\c@multicitecount=\count398
-\c@multicitetotal=\count399
-\c@instcount=\count400
-\c@maxnames=\count401
-\c@minnames=\count402
-\c@maxitems=\count403
-\c@minitems=\count404
-\c@citecounter=\count405
-\c@maxcitecounter=\count406
-\c@savedcitecounter=\count407
-\c@uniquelist=\count408
-\c@uniquename=\count409
-\c@refsection=\count410
-\c@refsegment=\count411
-\c@maxextratitle=\count412
-\c@maxextratitleyear=\count413
-\c@maxextraname=\count414
-\c@maxextradate=\count415
-\c@maxextraalpha=\count416
-\c@abbrvpenalty=\count417
-\c@highnamepenalty=\count418
-\c@lownamepenalty=\count419
-\c@maxparens=\count420
-\c@parenlevel=\count421
-\blx@tempcnta=\count422
-\blx@tempcntb=\count423
-\blx@tempcntc=\count424
-\c@blx@maxsection=\count425
-\blx@maxsegment@0=\count426
-\blx@notetype=\count427
-\blx@parenlevel@text=\count428
-\blx@parenlevel@foot=\count429
-\blx@sectionciteorder@0=\count430
-\blx@sectionciteorderinternal@0=\count431
-\blx@entrysetcounter=\count432
-\blx@biblioinstance=\count433
+\c@tabx@nest=\count392
+\c@listtotal=\count393
+\c@listcount=\count394
+\c@liststart=\count395
+\c@liststop=\count396
+\c@citecount=\count397
+\c@citetotal=\count398
+\c@multicitecount=\count399
+\c@multicitetotal=\count400
+\c@instcount=\count401
+\c@maxnames=\count402
+\c@minnames=\count403
+\c@maxitems=\count404
+\c@minitems=\count405
+\c@citecounter=\count406
+\c@maxcitecounter=\count407
+\c@savedcitecounter=\count408
+\c@uniquelist=\count409
+\c@uniquename=\count410
+\c@refsection=\count411
+\c@refsegment=\count412
+\c@maxextratitle=\count413
+\c@maxextratitleyear=\count414
+\c@maxextraname=\count415
+\c@maxextradate=\count416
+\c@maxextraalpha=\count417
+\c@abbrvpenalty=\count418
+\c@highnamepenalty=\count419
+\c@lownamepenalty=\count420
+\c@maxparens=\count421
+\c@parenlevel=\count422
+\blx@tempcnta=\count423
+\blx@tempcntb=\count424
+\blx@tempcntc=\count425
+\c@blx@maxsection=\count426
+\blx@maxsegment@0=\count427
+\blx@notetype=\count428
+\blx@parenlevel@text=\count429
+\blx@parenlevel@foot=\count430
+\blx@sectionciteorder@0=\count431
+\blx@sectionciteorderinternal@0=\count432
+\blx@entrysetcounter=\count433
+\blx@biblioinstance=\count434
 \labelnumberwidth=\skip87
 \labelalphawidth=\skip88
 \biblabelsep=\skip89
@@ -1076,9 +1114,9 @@ File: logreq.def 2010/08/04 v1.0 logreq spec v1.0
 \blx@bcfin=\read5
 \blx@bcfout=\write5
 \blx@langwohyphens=\language90
-\c@mincomprange=\count434
-\c@maxcomprange=\count435
-\c@mincompwidth=\count436
+\c@mincomprange=\count435
+\c@maxcomprange=\count436
+\c@mincompwidth=\count437
 Package biblatex Info: Trying to load biblatex default data model...
 Package biblatex Info: ... file 'blx-dm.def' found.
 
@@ -1089,74 +1127,74 @@ Package biblatex Info: Trying to load biblatex style data model...
 Package biblatex Info: ... file 'ieee.dbx' not found.
 Package biblatex Info: Trying to load biblatex custom data model...
 Package biblatex Info: ... file 'biblatex-dm.cfg' not found.
-\c@afterword=\count437
-\c@savedafterword=\count438
-\c@annotator=\count439
-\c@savedannotator=\count440
-\c@author=\count441
-\c@savedauthor=\count442
-\c@bookauthor=\count443
-\c@savedbookauthor=\count444
-\c@commentator=\count445
-\c@savedcommentator=\count446
-\c@editor=\count447
-\c@savededitor=\count448
-\c@editora=\count449
-\c@savededitora=\count450
-\c@editorb=\count451
-\c@savededitorb=\count452
-\c@editorc=\count453
-\c@savededitorc=\count454
-\c@foreword=\count455
-\c@savedforeword=\count456
-\c@holder=\count457
-\c@savedholder=\count458
-\c@introduction=\count459
-\c@savedintroduction=\count460
-\c@namea=\count461
-\c@savednamea=\count462
-\c@nameb=\count463
-\c@savednameb=\count464
-\c@namec=\count465
-\c@savednamec=\count466
-\c@translator=\count467
-\c@savedtranslator=\count468
-\c@shortauthor=\count469
-\c@savedshortauthor=\count470
-\c@shorteditor=\count471
-\c@savedshorteditor=\count472
-\c@labelname=\count473
-\c@savedlabelname=\count474
-\c@institution=\count475
-\c@savedinstitution=\count476
-\c@lista=\count477
-\c@savedlista=\count478
-\c@listb=\count479
-\c@savedlistb=\count480
-\c@listc=\count481
-\c@savedlistc=\count482
-\c@listd=\count483
-\c@savedlistd=\count484
-\c@liste=\count485
-\c@savedliste=\count486
-\c@listf=\count487
-\c@savedlistf=\count488
-\c@location=\count489
-\c@savedlocation=\count490
-\c@organization=\count491
-\c@savedorganization=\count492
-\c@origlocation=\count493
-\c@savedoriglocation=\count494
-\c@origpublisher=\count495
-\c@savedorigpublisher=\count496
-\c@publisher=\count497
-\c@savedpublisher=\count498
-\c@language=\count499
-\c@savedlanguage=\count500
-\c@origlanguage=\count501
-\c@savedoriglanguage=\count502
-\c@pageref=\count503
-\c@savedpageref=\count504
+\c@afterword=\count438
+\c@savedafterword=\count439
+\c@annotator=\count440
+\c@savedannotator=\count441
+\c@author=\count442
+\c@savedauthor=\count443
+\c@bookauthor=\count444
+\c@savedbookauthor=\count445
+\c@commentator=\count446
+\c@savedcommentator=\count447
+\c@editor=\count448
+\c@savededitor=\count449
+\c@editora=\count450
+\c@savededitora=\count451
+\c@editorb=\count452
+\c@savededitorb=\count453
+\c@editorc=\count454
+\c@savededitorc=\count455
+\c@foreword=\count456
+\c@savedforeword=\count457
+\c@holder=\count458
+\c@savedholder=\count459
+\c@introduction=\count460
+\c@savedintroduction=\count461
+\c@namea=\count462
+\c@savednamea=\count463
+\c@nameb=\count464
+\c@savednameb=\count465
+\c@namec=\count466
+\c@savednamec=\count467
+\c@translator=\count468
+\c@savedtranslator=\count469
+\c@shortauthor=\count470
+\c@savedshortauthor=\count471
+\c@shorteditor=\count472
+\c@savedshorteditor=\count473
+\c@labelname=\count474
+\c@savedlabelname=\count475
+\c@institution=\count476
+\c@savedinstitution=\count477
+\c@lista=\count478
+\c@savedlista=\count479
+\c@listb=\count480
+\c@savedlistb=\count481
+\c@listc=\count482
+\c@savedlistc=\count483
+\c@listd=\count484
+\c@savedlistd=\count485
+\c@liste=\count486
+\c@savedliste=\count487
+\c@listf=\count488
+\c@savedlistf=\count489
+\c@location=\count490
+\c@savedlocation=\count491
+\c@organization=\count492
+\c@savedorganization=\count493
+\c@origlocation=\count494
+\c@savedoriglocation=\count495
+\c@origpublisher=\count496
+\c@savedorigpublisher=\count497
+\c@publisher=\count498
+\c@savedpublisher=\count499
+\c@language=\count500
+\c@savedlanguage=\count501
+\c@origlanguage=\count502
+\c@savedoriglanguage=\count503
+\c@pageref=\count504
+\c@savedpageref=\count505
 \shorthandwidth=\skip95
 \shortjournalwidth=\skip96
 \shortserieswidth=\skip97
@@ -1186,19 +1224,19 @@ Package biblatex Info: ... file 'biblatex.def' found.
 
 (/usr/share/texlive/texmf-dist/tex/latex/biblatex/biblatex.def
 File: biblatex.def 2023/03/05 v3.19 biblatex compatibility (PK/MW)
-\c@textcitecount=\count505
-\c@textcitetotal=\count506
-\c@textcitemaxnames=\count507
-\c@biburlbigbreakpenalty=\count508
-\c@biburlbreakpenalty=\count509
-\c@biburlnumpenalty=\count510
-\c@biburlucpenalty=\count511
-\c@biburllcpenalty=\count512
+\c@textcitecount=\count506
+\c@textcitetotal=\count507
+\c@textcitemaxnames=\count508
+\c@biburlbigbreakpenalty=\count509
+\c@biburlbreakpenalty=\count510
+\c@biburlnumpenalty=\count511
+\c@biburlucpenalty=\count512
+\c@biburllcpenalty=\count513
 \biburlbigskip=\muskip19
 \biburlnumskip=\muskip20
 \biburlucskip=\muskip21
 \biburllcskip=\muskip22
-\c@smartand=\count513
+\c@smartand=\count514
 )
 Package biblatex Info: Trying to load bibliography style 'ieee'...
 Package biblatex Info: ... file 'ieee.bbx' found.
@@ -1220,8 +1258,8 @@ Package biblatex Info: ... file 'standard.bbx' found.
 
 (/usr/share/texlive/texmf-dist/tex/latex/biblatex/bbx/standard.bbx
 File: standard.bbx 2023/03/05 v3.19 biblatex bibliography style (PK/MW)
-\c@bbx:relatedcount=\count514
-\c@bbx:relatedtotal=\count515
+\c@bbx:relatedcount=\count515
+\c@bbx:relatedtotal=\count516
 ))))
 Package biblatex Info: Trying to load citation style 'ieee'...
 Package biblatex Info: ... file 'ieee.cbx' found.
@@ -1233,10 +1271,10 @@ Package biblatex Info: ... file 'numeric-comp.cbx' found.
 
 (/usr/share/texlive/texmf-dist/tex/latex/biblatex/cbx/numeric-comp.cbx
 File: numeric-comp.cbx 2023/03/05 v3.19 biblatex citation style (PK/MW)
-\c@cbx@tempcnta=\count516
-\c@cbx@tempcntb=\count517
-\c@cbx@tempcntc=\count518
-\c@cbx@tempcntd=\count519
+\c@cbx@tempcnta=\count517
+\c@cbx@tempcntb=\count518
+\c@cbx@tempcntc=\count519
+\c@cbx@tempcntd=\count520
 Package biblatex Info: Redefining '\cite'.
 Package biblatex Info: Redefining '\parencite'.
 Package biblatex Info: Redefining '\footcite'.
@@ -1274,31 +1312,31 @@ Package: blx-case-expl3 2023/03/05 v3.19 expl3 case changing code for biblatex
 Package biblatex Warning: 'babel/polyglossia' detected but 'csquotes' missing.
 (biblatex)                Loading 'csquotes' recommended.
 
-\@quotelevel=\count520
-\@quotereset=\count521
+\@quotelevel=\count521
+\@quotereset=\count522
 No file main.aux.
 \openout1 = `main.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 52.
-LaTeX Font Info:    ... okay on input line 52.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 52.
-LaTeX Font Info:    ... okay on input line 52.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 52.
-LaTeX Font Info:    ... okay on input line 52.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 52.
-LaTeX Font Info:    ... okay on input line 52.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 52.
-LaTeX Font Info:    ... okay on input line 52.
-LaTeX Font Info:    Checking defaults for TU/lmr/m/n on input line 52.
-LaTeX Font Info:    ... okay on input line 52.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 52.
-LaTeX Font Info:    ... okay on input line 52.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 52.
-LaTeX Font Info:    ... okay on input line 52.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 52.
-LaTeX Font Info:    ... okay on input line 52.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 52.
-LaTeX Font Info:    ... okay on input line 52.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 55.
+LaTeX Font Info:    ... okay on input line 55.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 55.
+LaTeX Font Info:    ... okay on input line 55.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 55.
+LaTeX Font Info:    ... okay on input line 55.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 55.
+LaTeX Font Info:    ... okay on input line 55.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 55.
+LaTeX Font Info:    ... okay on input line 55.
+LaTeX Font Info:    Checking defaults for TU/lmr/m/n on input line 55.
+LaTeX Font Info:    ... okay on input line 55.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 55.
+LaTeX Font Info:    ... okay on input line 55.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 55.
+LaTeX Font Info:    ... okay on input line 55.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 55.
+LaTeX Font Info:    ... okay on input line 55.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 55.
+LaTeX Font Info:    ... okay on input line 55.
 *geometry* driver: auto-detecting
 *geometry* detected driver: xetex
 *geometry* verbose mode - [ preamble ] result:
@@ -1333,7 +1371,7 @@ LaTeX Font Info:    ... okay on input line 52.
 * \@reversemarginfalse
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
-Package hyperref Info: Link coloring OFF on input line 52.
+Package hyperref Info: Link coloring OFF on input line 55.
 \@outlinefile=\write6
 \openout6 = `main.out'.
 
@@ -1366,19 +1404,19 @@ ry-English.dict
 Dictionary: translator-theorem-dictionary, Language: English 
 )
 LaTeX Font Info:    Overwriting math alphabet `\mathrm' in version `normal'
-(Font)                  OT1/cmr/m/n --> TU/lmr/m/n on input line 52.
+(Font)                  OT1/cmr/m/n --> TU/lmr/m/n on input line 55.
 LaTeX Font Info:    Overwriting math alphabet `\mathit' in version `normal'
-(Font)                  OT1/cmr/m/it --> TU/lmr/m/it on input line 52.
+(Font)                  OT1/cmr/m/it --> TU/lmr/m/it on input line 55.
 LaTeX Font Info:    Overwriting math alphabet `\mathbf' in version `normal'
-(Font)                  OT1/cmr/bx/n --> TU/lmr/bx/n on input line 52.
+(Font)                  OT1/cmr/bx/n --> TU/lmr/bx/n on input line 55.
 LaTeX Font Info:    Overwriting math alphabet `\mathsf' in version `normal'
-(Font)                  OT1/cmss/m/n --> TU/lmss/m/n on input line 52.
+(Font)                  OT1/cmss/m/n --> TU/lmss/m/n on input line 55.
 LaTeX Font Info:    Overwriting math alphabet `\mathsf' in version `bold'
-(Font)                  OT1/cmss/bx/n --> TU/lmss/bx/n on input line 52.
+(Font)                  OT1/cmss/bx/n --> TU/lmss/bx/n on input line 55.
 LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `normal'
-(Font)                  OT1/cmtt/m/n --> TU/lmtt/m/n on input line 52.
+(Font)                  OT1/cmtt/m/n --> TU/lmtt/m/n on input line 55.
 LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `bold'
-(Font)                  OT1/cmtt/m/n --> TU/lmtt/bx/n on input line 52.
+(Font)                  OT1/cmtt/m/n --> TU/lmtt/bx/n on input line 55.
 
 Package fontspec Info: Font family 'latinmodern-math.otf(0)' created for font
 (fontspec)             'latinmodern-math.otf' with options
@@ -1419,15 +1457,15 @@ Style=MathScript},{Size=-6.57,Font=latinmodern-math.otf,Style=MathScriptScript}
 (fontspec)             - 'bold small caps'  (b/sc) with NFSS spec.: 
 
 LaTeX Font Info:    Encoding `OT1' has changed to `TU' for symbol font
-(Font)              `operators' in the math version `normal' on input line 52.
+(Font)              `operators' in the math version `normal' on input line 55.
 LaTeX Font Info:    Overwriting symbol font `operators' in version `normal'
 (Font)                  OT1/cmr/m/n --> TU/latinmodern-math.otf(1)/m/n on input
- line 52.
+ line 55.
 LaTeX Font Info:    Encoding `OT1' has changed to `TU' for symbol font
-(Font)              `operators' in the math version `bold' on input line 52.
+(Font)              `operators' in the math version `bold' on input line 55.
 LaTeX Font Info:    Overwriting symbol font `operators' in version `bold'
 (Font)                  OT1/cmr/bx/n --> TU/latinmodern-math.otf(1)/b/n on inpu
-t line 52.
+t line 55.
 
 Package fontspec Info: latinmodern-math scale = 1.0001.
 
@@ -1498,15 +1536,15 @@ uage=dflt;"
 (fontspec)             =0pt\relax \fontdimen 21\font =0pt\relax 
 
 LaTeX Font Info:    Encoding `OMS' has changed to `TU' for symbol font
-(Font)              `symbols' in the math version `normal' on input line 52.
+(Font)              `symbols' in the math version `normal' on input line 55.
 LaTeX Font Info:    Overwriting symbol font `symbols' in version `normal'
 (Font)                  OMS/cmsy/m/n --> TU/latinmodern-math.otf(2)/m/n on inpu
-t line 52.
+t line 55.
 LaTeX Font Info:    Encoding `OMS' has changed to `TU' for symbol font
-(Font)              `symbols' in the math version `bold' on input line 52.
+(Font)              `symbols' in the math version `bold' on input line 55.
 LaTeX Font Info:    Overwriting symbol font `symbols' in version `bold'
 (Font)                  OMS/cmsy/b/n --> TU/latinmodern-math.otf(2)/b/n on inpu
-t line 52.
+t line 55.
 
 Package fontspec Info: latinmodern-math scale = 0.9999.
 
@@ -1560,16 +1598,16 @@ uage=dflt;"
 
 LaTeX Font Info:    Encoding `OMX' has changed to `TU' for symbol font
 (Font)              `largesymbols' in the math version `normal' on input line 5
-2.
+5.
 LaTeX Font Info:    Overwriting symbol font `largesymbols' in version `normal'
 (Font)                  OMX/cmex/m/n --> TU/latinmodern-math.otf(3)/m/n on inpu
-t line 52.
+t line 55.
 LaTeX Font Info:    Encoding `OMX' has changed to `TU' for symbol font
-(Font)              `largesymbols' in the math version `bold' on input line 52.
+(Font)              `largesymbols' in the math version `bold' on input line 55.
 
 LaTeX Font Info:    Overwriting symbol font `largesymbols' in version `bold'
 (Font)                  OMX/cmex/m/n --> TU/latinmodern-math.otf(3)/b/n on inpu
-t line 52.
+t line 55.
 Package biblatex Info: Trying to load language 'english'...
 Package biblatex Info: ... file 'english.lbx' found.
 
@@ -1590,45 +1628,45 @@ Package biblatex Warning: File 'main.bbl' is wrong format version - expected 3.
 
 Package biblatex Info: ... file 'main.bbl' found.
 (./main.bbl)
-Package biblatex Info: Reference section=0 on input line 52.
-Package biblatex Info: Reference segment=0 on input line 52.
+Package biblatex Info: Reference section=0 on input line 55.
+Package biblatex Info: Reference segment=0 on input line 55.
  (./main.nav)
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 10.95116pt on input line 54.
+(Font)              scaled to size 10.95116pt on input line 57.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 7.6658pt on input line 54.
+(Font)              scaled to size 7.6658pt on input line 57.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 5.47559pt on input line 54.
+(Font)              scaled to size 5.47559pt on input line 57.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 10.94882pt on input line 54.
+(Font)              scaled to size 10.94882pt on input line 57.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 7.66417pt on input line 54.
+(Font)              scaled to size 7.66417pt on input line 57.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 5.47441pt on input line 54.
-LaTeX Font Info:    Trying to load font information for U+msa on input line 54.
+(Font)              scaled to size 5.47441pt on input line 57.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 57.
 
 
 (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 54.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 57.
 
 
 (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 8.00085pt on input line 54.
+(Font)              scaled to size 8.00085pt on input line 57.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 6.00064pt on input line 54.
+(Font)              scaled to size 6.00064pt on input line 57.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 5.00053pt on input line 54.
+(Font)              scaled to size 5.00053pt on input line 57.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 7.99915pt on input line 54.
+(Font)              scaled to size 7.99915pt on input line 57.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 5.99936pt on input line 54.
+(Font)              scaled to size 5.99936pt on input line 57.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 4.99947pt on input line 54.
+(Font)              scaled to size 4.99947pt on input line 57.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [1
@@ -1663,34 +1701,45 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 
 ]
 LaTeX Font Info:    Font shape `TU/lmss/m/it' in size <10.95> not available
-(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 202.
+(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 167.
+File: assets/images/uit-logo.png Graphic file (type bmp)
+<assets/images/uit-logo.png>
+ [7
 
-Overfull \vbox (0.13857pt too high) detected at line 202
+]
+LaTeX Font Info:    Font shape `TU/lmss/m/it' in size <8> not available
+(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 268.
+File: assets/images/uit-logo.png Graphic file (type bmp)
+<assets/images/uit-logo.png>
+ [8
+
+]
+LaTeX Font Info:    Font shape `TU/lmtt/bx/n' in size <8> not available
+(Font)              Font shape `TU/lmtt/b/n' tried instead on input line 324.
+
+Overfull \hbox (27.76021pt too wide) in paragraph at lines 324--324
+[]|\TU/lmtt/m/n/8 short_description| 
+ []
+
+
+Overfull \hbox (1.82816pt too wide) in paragraph at lines 324--324
+[]|\TU/lmtt/m/n/8 article_url| 
+ []
+
+
+Overfull \hbox (1.82816pt too wide) in paragraph at lines 324--324
+[]|\TU/lmtt/m/n/8 parent_text| 
  []
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
-[7
-
-]
-Overfull \hbox (58.87016pt too wide) in paragraph at lines 251--251
- [][] 
- []
-
-File: assets/images/uit-logo.png Graphic file (type bmp)
-<assets/images/uit-logo.png>
-[8
-
-]
-File: assets/images/uit-logo.png Graphic file (type bmp)
-<assets/images/uit-logo.png>
- [9
+[9
 
 ]
 File: ../plots/eda_00_summary_dashboard.png Graphic file (type bmp)
 <../plots/eda_00_summary_dashboard.png>
 
-Overfull \vbox (91.28024pt too high) detected at line 337
+Overfull \vbox (1.13776pt too high) detected at line 357
  []
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
@@ -1757,9 +1806,9 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 
 ]
 LaTeX Font Info:    Font shape `TU/lmss/m/it' in size <10> not available
-(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 499.
+(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 520.
 LaTeX Font Info:    Font shape `TU/lmss/bx/it' in size <10.95> not available
-(Font)              Font shape `TU/lmss/bx/sl' tried instead on input line 499.
+(Font)              Font shape `TU/lmss/bx/sl' tried instead on input line 520.
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
@@ -1774,7 +1823,7 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 File: ../plots/graph_network_topology.png Graphic file (type bmp)
 <../plots/graph_network_topology.png>
 
-Overfull \vbox (8.21713pt too high) detected at line 548
+Overfull \vbox (8.21713pt too high) detected at line 569
  []
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
@@ -1799,7 +1848,7 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 
 ]
 
-LaTeX Warning: Citation 'shi2020hgrec' on page 26 undefined on input line 631.
+LaTeX Warning: Citation 'shi2020hgrec' on page 26 undefined on input line 652.
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
@@ -1834,14 +1883,14 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 
 ]
 
-LaTeX Warning: Citation 'shi2020hgrec' on page 31 undefined on input line 737.
+LaTeX Warning: Citation 'shi2020hgrec' on page 31 undefined on input line 758.
 
 
-LaTeX Warning: Citation 'he2020lightgcn' on page 31 undefined on input line 737
+LaTeX Warning: Citation 'he2020lightgcn' on page 31 undefined on input line 758
 .
 
 
-Overfull \vbox (16.38152pt too high) detected at line 737
+Overfull \vbox (16.38152pt too high) detected at line 758
  []
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
@@ -1860,13 +1909,13 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 
 ]
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 10.00107pt on input line 857.
+(Font)              scaled to size 10.00107pt on input line 878.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 7.00075pt on input line 857.
+(Font)              scaled to size 7.00075pt on input line 878.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 9.99893pt on input line 857.
+(Font)              scaled to size 9.99893pt on input line 878.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 6.99925pt on input line 857.
+(Font)              scaled to size 6.99925pt on input line 878.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [34
@@ -1889,16 +1938,16 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 
 ]
 LaTeX Font Info:    Font shape `TU/lmss/m/it' in size <6> not available
-(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 966.
+(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 987.
 LaTeX Font Info:    Font shape `TU/lmss/bx/it' in size <6> not available
-(Font)              Font shape `TU/lmss/bx/sl' tried instead on input line 966.
+(Font)              Font shape `TU/lmss/bx/sl' tried instead on input line 987.
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [38
 
 ]
-Overfull \vbox (33.16792pt too high) detected at line 1006
+Overfull \vbox (33.16792pt too high) detected at line 1027
  []
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
@@ -1911,7 +1960,7 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
  [40
 
 ]
-Overfull \vbox (3.00227pt too high) detected at line 1069
+Overfull \vbox (3.00227pt too high) detected at line 1090
  []
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
@@ -1924,7 +1973,7 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
  [42
 
 ]
-Overfull \hbox (4.37463pt too wide) in paragraph at lines 1130--1130
+Overfull \hbox (4.37463pt too wide) in paragraph at lines 1151--1151
  [] 
  []
 
@@ -1939,9 +1988,9 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 
 ]
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 14.40152pt on input line 1202.
+(Font)              scaled to size 14.40152pt on input line 1223.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 14.39845pt on input line 1202.
+(Font)              scaled to size 14.39845pt on input line 1223.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [45
@@ -1974,7 +2023,7 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 
 ]
 
-LaTeX Warning: Empty bibliography on input line 1287.
+LaTeX Warning: Empty bibliography on input line 1308.
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
@@ -2020,12 +2069,12 @@ Package logreq Info: Writing requests to 'main.run.xml'.
 
  ) 
 Here is how much of TeX's memory you used:
- 42422 strings out of 474878
- 882659 string characters out of 5762516
- 1944627 words of memory out of 5000000
- 63726 multiletter control sequences out of 15000+600000
- 566510 words of font info for 124 fonts, out of 8000000 for 9000
+ 43065 strings out of 474878
+ 897931 string characters out of 5762516
+ 1945627 words of memory out of 5000000
+ 64340 multiletter control sequences out of 15000+600000
+ 566534 words of font info for 127 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
- 128i,15n,123p,1056b,3858s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 128i,15n,123p,1129b,3858s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
 Output written on main.pdf (52 pages).
