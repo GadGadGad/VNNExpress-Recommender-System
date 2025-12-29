@@ -1051,6 +1051,38 @@
 \end{frame}
 
 
+\begin{frame}
+  \frametitle{Our Contributions: HGN \& HCL}
+  We propose two distinct architectures to handle the "VnExpress Heterogeneity":
+
+  \vspace{0.2cm}
+  \begin{columns}
+    \begin{column}{0.48\textwidth}
+      \begin{block}{1. HGN (Best for Structure)}
+        \begin{itemize}
+          \item \textbf{Method:} Meta-path Aggregation + Attention Fusion.
+          \item \textbf{Recall@10 (G2):} \textbf{0.0369} (Highest Graph Model).
+        \end{itemize}
+      \end{block}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \begin{block}{2. HCL (Contrastive)}
+        \begin{itemize}
+          \item \textbf{Method:} Heterogeneity + Contrastive Loss.
+          \item \textbf{Recall@10 (G2):} 0.0320 (Stable).
+        \end{itemize}
+      \end{block}
+    \end{column}
+  \end{columns}
+
+  \vspace{0.3cm}
+  \textbf{Key Takeaway:}
+  \begin{itemize}
+    \item \textbf{HGN} successfully exploits the Social graph (G2) to achieve the best structural performance (+40\% over G1).
+    \item \textbf{HCL} offers a lightweight alternative, though attention mechanisms (HGN) prove superior for this specific heterogeneous dataset.
+  \end{itemize}
+\end{frame}
+
 
 \begin{frame}
   \frametitle{GNN Architecture}
@@ -1108,39 +1140,6 @@
   \begin{itemize}
     \item \textbf{Synergy:} Combining all edge types (Social + Category + Behavior) yields the highest Recall.
     \item \textbf{Category Impact:} Removing categories hurts performance the most, indicating they are essential for semantic alignment in cold-start scenarios.
-  \end{itemize}
-\end{frame}
-
-
-\begin{frame}
-  \frametitle{Our Contributions: HGN \& HCL}
-  We propose two distinct architectures to handle the "VnExpress Heterogeneity":
-
-  \vspace{0.2cm}
-  \begin{columns}
-    \begin{column}{0.48\textwidth}
-      \begin{block}{1. HGN (Best for Structure)}
-        \begin{itemize}
-          \item \textbf{Method:} Meta-path Aggregation + Attention Fusion.
-          \item \textbf{Recall@10 (G2):} \textbf{0.0369} (Highest Graph Model).
-        \end{itemize}
-      \end{block}
-    \end{column}
-    \begin{column}{0.48\textwidth}
-      \begin{block}{2. HCL (Contrastive)}
-        \begin{itemize}
-          \item \textbf{Method:} Heterogeneity + Contrastive Loss.
-          \item \textbf{Recall@10 (G2):} 0.0320 (Stable).
-        \end{itemize}
-      \end{block}
-    \end{column}
-  \end{columns}
-
-  \vspace{0.3cm}
-  \textbf{Key Takeaway:}
-  \begin{itemize}
-    \item \textbf{HGN} successfully exploits the Social graph (G2) to achieve the best structural performance (+40\% over G1).
-    \item \textbf{HCL} offers a lightweight alternative, though attention mechanisms (HGN) prove superior for this specific heterogeneous dataset.
   \end{itemize}
 \end{frame}
 
