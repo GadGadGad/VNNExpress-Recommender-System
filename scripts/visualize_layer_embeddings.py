@@ -234,7 +234,7 @@ def visualize_layer1(embeddings_dict, title="Layer 1 Embeddings", n_samples=1000
         
         # 2. t-SNE (Visual Structure)
         # Init t-SNE (perplexity=30 is standard)
-        tsne = TSNE(n_components=2, perplexity=30, n_iter=1000, random_state=42)
+        tsne = TSNE(n_components=2, perplexity=30, max_iter=1000, random_state=42)
         u_tsne = tsne.fit_transform(u_sample)
         
         # Plot
@@ -263,14 +263,9 @@ except Exception as e:
     print(f"Could not load real data: {e}")
     print("Using dummy data for demonstration...")
     n_users, n_items = 1000, 500
-    # Dummy Bipartite Adjacency (Sparse)
-    # Generate ~1% density or fixed number of edges to be fast
-    n_nodes = n_users + n_items
-    n_edges = n_nodes * 10 # ~10 edges per node average
-    
-    indices = torch.randint(0, n_nodes, (2, n_edges))
-    values = torch.rand(n_edges)
-    adj = torch.sparse_coo_tensor(indices, values, (n_nodes, n_nodes)).to(device)
+    # Dummy Bipartite Adjacency
+    adj = torch.rand(n_users + n_items, n_users + n_items).to_sparse().coalesce().to(device)
+    edge_index = adj.indices()
     
     # For MA-HGN, split indices roughly for demo
     # Note: This is random structure, purely for checking code flow

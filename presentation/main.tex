@@ -706,47 +706,7 @@
 %------------------------------------------------------------
 
 \begin{frame}
-    \frametitle{Benchmark 1: Mainstream Recommendation (LOO)}
-    \textbf{Protocol:} Leave-One-Out (Test on latest interaction). \\
-    \textbf{Focus:} Accuracy on warm-start users.
-
-    \begin{table}
-        \centering
-        \scriptsize
-        \begin{tabular}{l|c|cc|c}
-            \toprule
-            \textbf{Model}                      & \textbf{Type}   & \textbf{R@10}   & \textbf{N@10}   & \textbf{Gain}    \\
-            \midrule
-            \multicolumn{5}{l}{\textit{\textbf{Graph G1 (Bipartite)}}}                                                   \\
-            LightGCL                            & Graph CL        & 0.3081          & 0.2021          & -29.4\%          \\
-            MA-HGN                              & Hetero          & 0.2740          & 0.1668          & -37.2\%          \\
-            MA-HCL                              & Hetero CL       & 0.2047          & 0.1324          & -53.1\%          \\
-            XSimGCL                             & Graph CL        & 0.3009          & 0.1972          & -31.0\%          \\
-            LightGCN                            & GNN             & 0.2812          & 0.1739          & -35.6\%          \\
-            SimGCL                              & Graph CL        & 0.2129          & 0.1324          & -51.2\%          \\
-            \midrule
-            \multicolumn{5}{l}{\textit{\textbf{Graph G2 (Hetero - User-User)}}}                                          \\
-            \rowcolor{green!15} \textbf{MA-HGN} & \textbf{Hetero} & \textbf{0.4364} & \textbf{0.2636} & \textbf{Best}    \\
-            XSimGCL                             & Graph CL        & 0.3036          & 0.2002          & -30.4\%          \\
-            LightGCL                            & Graph CL        & 0.3017          & 0.1986          & -30.9\%          \\
-            MA-HCL                              & Hetero CL       & 0.2074          & 0.1355          & -52.5\%          \\
-            SimGCL                              & Graph CL        & 0.2132          & 0.1322          & -51.1\%          \\
-            \midrule
-            \multicolumn{5}{l}{\textit{\textbf{Graph G3 (Category Hubs)}}}                                               \\
-            \textbf{MA-HGN}                     & \textbf{Hetero} & \textbf{0.3127} & \textbf{0.1957} & \textbf{-28.4\%} \\
-            LightGCL                            & Graph CL        & 0.3024          & 0.1988          & -30.7\%          \\
-            XSimGCL                             & Graph CL        & 0.2969          & 0.1957          & -32.0\%          \\
-            MA-HCL                              & Hetero CL       & 0.2260          & 0.1491          & -48.2\%          \\
-            SimGCL                              & Graph CL        & 0.2181          & 0.1333          & -50.0\%          \\
-            \bottomrule
-        \end{tabular}
-    \end{table}
-    \vspace{0.1cm}
-    \textbf{Result:} \textbf{MA-HGN} outperforms standard GNNs by leveraging heterogeneous graph signals (User-User + User-Article), proving the value of social fusion.
-\end{frame}
-
-\begin{frame}
-    \frametitle{Benchmark 2: Cold-Start / Zero-Shot (Full)}
+    \frametitle{Benchmark Results: Cold-Start / Full Protocol}
     \textbf{Protocol:} 80/20 Split (Random). \\
     \textbf{Focus:} Retrieving relevant content based strictly on content similarity (Handling new users/items).
 
@@ -804,14 +764,14 @@
     \begin{table}
         \centering
         \scriptsize
-        \begin{tabular}{l|cc|cc|c}
+        \begin{tabular}{l|cc|c}
             \toprule
-            \multirow{2}{*}{\textbf{Backbone}} & \multicolumn{2}{c|}{\textbf{LOO Protocol (Warm)}} & \multicolumn{2}{c|}{\textbf{Full Protocol (Cold)}} & \multirow{2}{*}{\textbf{Trend}}                                           \\
-                                               & R@10                                              & N@10                                               & R@10                            & N@10            &                       \\
+            \textbf{Backbone}                  & \multicolumn{2}{c|}{\textbf{Full Protocol (Cold)}} & \textbf{Trend}                          \\
+                                               & R@10                                               & N@10            &                       \\
             \midrule
-            GAT                                & 0.3436                                            & 0.2074                                             & 0.0262                          & 0.0163          & Baseline              \\
-            SAGE                               & 0.3876                                            & 0.2322                                             & 0.0303                          & 0.0182          & Better (+12\%)        \\
-            \rowcolor{green!15} \textbf{TRANS} & \textbf{0.4492}                                   & \textbf{0.2700}                                    & \textbf{0.0504}                 & \textbf{0.0266} & \textbf{Best (+30\%)} \\
+            GAT                                & 0.0262                                             & 0.0163          & Baseline              \\
+            SAGE                               & 0.0303                                             & 0.0182          & Better (+12\%)        \\
+            \rowcolor{green!15} \textbf{TRANS} & \textbf{0.0504}                                    & \textbf{0.0266} & \textbf{Best (+30\%)} \\
             \bottomrule
         \end{tabular}
     \end{table}
@@ -821,7 +781,7 @@
     \begin{itemize}
         \item \textbf{Transformer Superiority:} The multi-head attention mechanism in TransformerConv captures complex dependencies better than GAT's simple attention or SAGE's mean pooling.
         \item \textbf{GAT Underperformance:} Standard GAT struggles, possibly due to the "static" nature of its attention mechanism compared to Transformer's dynamic query-key value pairs.
-        \item \textbf{Consistent Ranking:} The hierarchy (Transformer $>$ SAGE $>$ GAT) holds true for both Warm and Cold start scenarios.
+        \item \textbf{Consistent Ranking:} TransformerConv dominates in Cold Start scenarios.
     \end{itemize}
 \end{frame}
 
@@ -838,11 +798,11 @@
             \toprule
             \textbf{Graph} & \textbf{Structure Stats}                  & \textbf{R@10} & \textbf{Impact} \\
             \midrule
-            G1 (Base)      & \parbox{3.5cm}{13k Users, 30k Edges                                         \\ Density: 0.06\%}               & 0.4015          & \textbf{Baseline}. Sparse, cold-start prone.        \\
+            G1 (Base)      & \parbox{3.5cm}{13k Users, 30k Edges                                         \\ Density: 0.06\%}               & 0.0262          & \textbf{Baseline}. Sparse, cold-start prone.        \\
             \midrule
-            \textbf{G2}    & \parbox{3.5cm}{\textbf{+61k Social Edges}                                   \\ Density: \textbf{0.064\%}} & \textbf{0.4364} & \textbf{+8.7\%}. Social wisdom (Homophily) helps.   \\
+            \textbf{G2}    & \parbox{3.5cm}{\textbf{+61k Social Edges}                                   \\ Density: \textbf{0.064\%}} & \textbf{0.0369} & \textbf{+40.8\%}. Social wisdom (Homophily) helps.   \\
             \midrule
-            G3             & \parbox{3.5cm}{+6 Categories                                                \\ 16k User-Cat Edges}                   & 0.2617          & \textbf{-35\%}. Categories are too broad (Noise).   \\
+            G3             & \parbox{3.5cm}{+6 Categories                                                \\ 16k User-Cat Edges}                   & 0.0299          & \textbf{+14\%}. Categories help but less than Social.   \\
             \bottomrule
         \end{tabular}
     \end{table}
@@ -854,77 +814,6 @@
 
 
 \end{frame}
-
-\begin{frame}
-    \frametitle{Ablation Study: GNN Depth ($n$-layers)}
-    \textbf{Question:} Does going deeper help capture long-range dependencies?
-
-    \vspace{0.2cm}
-    \begin{table}
-        \centering
-        \small
-        \begin{tabular}{c|cc|c}
-            \toprule
-            \textbf{Layers}                & \textbf{R@10 (LOO)} & \textbf{NDCG@10} & \textbf{Trend}           \\
-            \midrule
-            \rowcolor{green!15} \textbf{1} & \textbf{0.4376}     & \textbf{0.2611}  & \textbf{Optimal}         \\
-            2                              & 0.4244              & 0.2578           & Slight drop (-3\%)       \\
-            3                              & 0.3423              & 0.1999           & Significant drop (-21\%) \\
-            4                              & 0.3852              & 0.2207           & Unstable                 \\
-            \bottomrule
-        \end{tabular}
-    \end{table}
-
-    \vspace{0.2cm}
-    \textbf{Analysis:}
-    \begin{itemize}
-        \item \textbf{Shallow is Better:} Performance peaks at \textbf{1 layer}. Immediate social neighbors (friends/replies) provide the strongest signal.
-        \item \textbf{Over-smoothing:} Deeper GNNs (3-4 layers) likely cause user representations to become indistinguishable (Laplacian smoothing), hurting ranking.
-        \item \textbf{Noise Propagation:} In social graphs, distant connections ($>$2 hops) are often irrelevant, adding noise rather than signal.
-    \end{itemize}
-\end{frame}
-
-\begin{frame}
-    \frametitle{The Power of Density: Effect of k-core Filtering}
-    \textbf{Insight:} Recommendation difficulty scales with graph sparsity.
-
-    \vspace{0.3cm}
-    \begin{columns}[T]
-        \begin{column}{0.48\textwidth}
-            \begin{block}{Regular Filtering (k=1)}
-                \footnotesize
-                \begin{itemize}
-                    \item 13,117 Users
-                    \item 3,645 Articles
-                    \item many "cold" one-off users
-                \end{itemize}
-                \centering
-                \textbf{G2 R@10: 0.2938} \color{green!70!black}{$\uparrow$ Best Model}
-            \end{block}
-        \end{column}
-        \begin{column}{0.48\textwidth}
-            \begin{block}{Strict Filtering (k=2)}
-                \footnotesize
-                \begin{itemize}
-                    \item 6,221 Users
-                    \item 2,583 Articles
-                    \item only recurring users
-                \end{itemize}
-                \centering
-                \textbf{G2 R@10: 0.1917}
-            \end{block}
-        \end{column}
-    \end{columns}
-
-    \vspace{0.4cm}
-    \begin{itemize}
-        \item \textbf{Surprise Finding:} "Simple" Regular filtering outperforms "Complex" Strict filtering ($0.29$ vs $0.19$).
-        \item \textbf{Reason:} The "long tail" of one-off users acts as a bridge in the reply network. Removing them destroys valuable connectivity.
-    \end{itemize}
-\end{frame}
-
-
-
 
 
 \begin{frame}
@@ -1018,65 +907,103 @@
     \end{itemize}
 \end{frame}
 
+
 \begin{frame}
-    \frametitle{Ablation: Embedding Initialization Impact}
-    \textbf{Hypothesis:} Initializing GNN with PhoBERT should beat Random Init.
-    \textbf{Result:} \textbf{Random Init (12.40\%) > PhoBERT Init (4.96\%)}.
+    \frametitle{Experimental Setup}
+    \begin{columns}
+        \begin{column}{0.48\textwidth}
+            \textbf{Models ($N=6$):}
+            \begin{itemize}
+                \item \textbf{Baselines:} LightGCN, MA-HGN
+                \item \textbf{Contrastive:} LightGCL, SimGCL, XSimGCL (SOTA), MA-HCL (Ours)
+            \end{itemize}
+
+            \vspace{0.2cm}
+            \textbf{Training config:}
+            \begin{itemize}
+                \item \textbf{Epochs:} 100
+                \item \textbf{Batch Size:} 2048
+                \item \textbf{Loss:} BPR + InfoNCE (for CL models)
+            \end{itemize}
+        \end{column}
+
+        \begin{column}{0.48\textwidth}
+            \textbf{Data Protocols:}
+            \begin{itemize}
+                \item \textbf{Full (Cold-Start):} 80/20 random user split.
+                \item \textbf{LOO (Mainstream):} Temporal Leave-One-Out.
+            \end{itemize}
+
+            \vspace{0.2cm}
+            \textbf{Graph Tiers:}
+            \begin{itemize}
+                \item \textbf{Strict G1:} Bipartite (User-Art)
+                \item \textbf{Strict G2:} Hetero (+ Social)
+                \item \textbf{Strict G3:} Hetero (+ Category)
+            \end{itemize}
+        \end{column}
+    \end{columns}
 
     \vspace{0.3cm}
-    \begin{itemize}
-        \item \textbf{Semantic vs. Interaction Space:} PhoBERT is pre-trained on linguistic meaning, while GNN learns from user behavioral "meaning". These spaces are often misaligned.
-        \item \textbf{Geometric Bias:} Initializing in a fixed semantic space "anchors" nodes, making it harder for the GNN to cluster users based on collaborative signals alone.
-        \item \textbf{Discovery Power:} Randomly initialized embeddings have the freedom to map latent interests that text alone cannot describe.
-    \end{itemize}
+    \centering
+    \fcolorbox{black!10}{white}{
+        \small \textbf{Total Experiments:} $6 \text{ models} \times 3 \text{ graphs} \times 2 \text{ protocols} = \textbf{36 Rigorous Runs}$
+    }
+\end{frame}
 
-    \begin{block}{Verdict}
-        Behavioral signals (who-reads-what) are significantly more informative than semantic signals for Vietnamese news.
-    \end{block}
+
+\begin{frame}
+    \frametitle{Qualitative Analysis: Embedding Space Visualization}
+    \textbf{Objective:} Verify if the model learns distinct user interest clusters (vs. random noise).
+
+    \vspace{0.2cm}
+    \centering
+    \includegraphics[width=\textwidth]{../layer1_comparison.png}
+
+    \vspace{0.2cm}
+    \begin{itemize}
+        \item \textbf{Cluster Separation:} Distinct groups indicate successful learning of latent user categories (e.g., "Sports Fans" vs. "Politics Readers").
+        \item \textbf{MAD Score (Mean Average Distance):} Higher values imply less \textit{over-smoothing} (better representation diversity).
+    \end{itemize}
 \end{frame}
 
 \begin{frame}
-\frametitle{Ablation Study: Impact of GNN Depth ($L$)}
-\textbf{Question:} Does deeper graph propagation help?
-\textbf{Metric:} Recall@10 on Mainstream (LOO) vs Cold-Start (Full).
+    \frametitle{Ablation Study: Impact of GNN Depth ($L$)}
+    \textbf{Question:} Does deeper graph propagation help?
+    \textbf{Metric:} Recall@10 on Cold-Start (Full).
 
-\begin{table}
-    \centering
-    \tiny
-    \setlength{\tabcolsep}{3pt}
-    \begin{tabular}{l|c|cccc|l}
-        \toprule
-        \textbf{Model} & \textbf{Protocol} & \textbf{L=1}   & \textbf{L=2}   & \textbf{L=3}   & \textbf{L=4}   & \textbf{Trend}                         \\
-        \midrule
-        LightGCL       & LOO               & 0.281          & 0.268          & \textbf{0.303} & 0.285          & Peak at L=3                            \\
-                       & Full              & 0.032          & 0.040          & \textbf{0.043} & 0.042          & Robust                                 \\
-        \midrule
-        XSimGCL        & LOO               & 0.252          & 0.279          & 0.290          & \textbf{0.299} & \textcolor{green}{Benefits from Depth} \\
-                       & Full              & 0.028          & 0.035          & 0.039          & \textbf{0.041} & Cross-layer helps                      \\
-        \midrule
-        LightGCN       & LOO               & \textbf{0.318} & 0.286          & 0.281          & 0.283          & \textcolor{red}{Over-smoothing}        \\
-                       & Full              & \textbf{0.033} & 0.026          & 0.026          & 0.028          & Drops instantly                        \\
-        \midrule
-        MA-HCL         & LOO               & \textbf{0.234} & 0.224          & 0.200          & 0.197          & Performance drop                       \\
-                       & Full              & \textbf{0.031} & 0.026          & 0.025          & 0.024          & Hard to train deep                     \\
-        \midrule
-        MA-HGN         & LOO               & \textbf{0.217} & 0.177          & 0.151          & 0.143          & Rapid Decay                            \\
-                       & Full              & \textbf{0.020} & 0.010          & 0.007          & 0.009          & Over-smoothing++                       \\
-        \midrule
-        SimGCL         & LOO               & \textbf{0.234} & 0.229          & 0.216          & 0.228          & Unstable                               \\
-                       & Full              & 0.024          & \textbf{0.027} & 0.021          & 0.023          & Noisy                                  \\
-        \bottomrule
-    \end{tabular}
-\end{table}
+    \begin{table}
+        \centering
+        \tiny
+        \setlength{\tabcolsep}{3pt}
+        \begin{tabular}{l|cccc|l}
+            \toprule
+            \textbf{Model} & \textbf{L=1}   & \textbf{L=2}   & \textbf{L=3}   & \textbf{L=4}   & \textbf{Trend}     \\
+            \midrule
+            LightGCL       & 0.032          & 0.040          & \textbf{0.043} & 0.042          & Robust             \\
+            \midrule
+            XSimGCL        & 0.028          & 0.035          & 0.039          & \textbf{0.041} & Cross-layer helps  \\
+            \midrule
+            LightGCN       & \textbf{0.033} & 0.026          & 0.026          & 0.028          & Drops instantly    \\
+            \midrule
+            MA-HCL         & \textbf{0.031} & 0.026          & 0.025          & 0.024          & Hard to train deep \\
+            \midrule
+            MA-HGN         & \textbf{0.020} & 0.010          & 0.007          & 0.009          & Over-smoothing++   \\
+            \midrule
+            SimGCL         & 0.024          & \textbf{0.027} & 0.021          & 0.023          & Noisy              \\
+            \bottomrule
+        \end{tabular}
+    \end{table}
 
-\vspace{0.1cm}
-\small
-\textbf{Insight:}
-\begin{itemize}
-    \item \textbf{LightGCN} suffers from \textit{over-smoothing} (Performance drops after L=1).
-    \item \textbf{XSimGCL} & \textbf{LightGCL} maintain robustness at deeper layers, capturing long-range dependencies effectively.
-\end{itemize}
+    \vspace{0.1cm}
+    \small
+    \textbf{Insight:}
+    \begin{itemize}
+        \item \textbf{LightGCN} suffers from \textit{over-smoothing} (Performance drops after L=1).
+        \item \textbf{XSimGCL} and \textbf{LightGCL} maintain robustness at deeper layers, capturing long-range dependencies effectively.
+    \end{itemize}
 
+\end{frame}
 
 
 \begin{frame}
