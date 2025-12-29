@@ -1130,7 +1130,7 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
             
             # Different models have different loss signatures
             if hasattr(model, 'calculate_loss'):
-                if args.model in ['simgcl', 'bigcf', 'igcl', 'xsimgcl']:
+                if args.model in ['simgcl', 'bigcf', 'igcl', 'xsimgcl', 'lightgcn']:
                     graph_structure = data.get('adj_norm')
                     if graph_structure is None:
                         # Fallback if not computed (shouldn't happen if setup is correct)
@@ -1422,7 +1422,7 @@ def main():
 
     # Precompute adj_norm for SimGCL / CGRC / BIGCF / IGCL / XSimGCL
     # Precompute adj_norm for graph-based models
-    graph_models = ['simgcl', 'bigcf', 'igcl', 'xsimgcl', 'lightgcl', 'ma-hcl', 'ma_hgn']
+    graph_models = ['simgcl', 'bigcf', 'igcl', 'xsimgcl', 'lightgcl', 'ma-hcl', 'ma_hgn', 'lightgcn']
     if args.model in graph_models:
         print(f"\nPrecomputing normalized adjacency for {args.model.upper()}...")
         
