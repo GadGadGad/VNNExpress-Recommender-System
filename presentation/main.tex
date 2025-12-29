@@ -377,32 +377,50 @@
     \includegraphics[width=0.7\textwidth]{../plots/graph_network_topology.png}
 \end{frame}
 
+%------------------------------------------------------------
+\section{Motivation: Graph Expansion Strategy}
+%------------------------------------------------------------
+
 \begin{frame}
-    \frametitle{The Sparsity Challenge: Mathematical Proof}
-    \textbf{Definition:} \\
-    Sparsity measures the lack of interactions in the potential link space.
+    \frametitle{The Sparsity Challenge}
+    \textbf{Problem:} Interactions are extremely sparse (99.919\%), making it hard for models to learn.
 
     \vspace{0.3cm}
-    \begin{block}{The Formula}
-        \[ \text{Sparsity} = 1 - \frac{|\mathcal{E}_{obs}|}{|\mathcal{V}_u| \times |\mathcal{V}_i|} \]
+    \begin{block}{Sparsity Calculation}
+        \[ \text{Sparsity} = 1 - \frac{38,505 \text{ (Interactions)}}{13,117 \text{ (Users)} \times 3,645 \text{ (Articles)}} = \mathbf{99.919\%} \]
     \end{block}
-
-    \vspace{0.2cm}
-    \textbf{VnExpress Graph Calculation:}
-    \begin{itemize}
-        \item Interactions ($|\mathcal{E}_{obs}|$): \textbf{38,505}
-        \item Active Users ($|\mathcal{V}_u|$): \textbf{13,117}
-        \item Active Articles ($|\mathcal{V}_i|$): \textbf{3,645}
-        \item Total Possible Edges: $13,117 \times 3,645 = \mathbf{47,811,465}$
-    \end{itemize}
-
-    \vspace{0.2cm}
-    \centering
-    $\Rightarrow \text{Sparsity} = 1 - \frac{38,505}{47,811,465} = \mathbf{99.919\%}$
 \end{frame}
 
 \begin{frame}
-    \frametitle{Core Innovation: Social Fusion}
+    \frametitle{Solution: Expanding the Graph Structure}
+    We progressively enrich the graph to alleviate sparsity. We define \textbf{3 Graph Tiers} for experimentation:
+
+    \vspace{0.3cm}
+    \begin{itemize}
+        \setlength\itemsep{1em}
+        \item \textbf{Graph G1 (Bipartite Baseline):}
+              \begin{itemize}
+                  \item Nodes: Users, Articles.
+                  \item Edges: \textit{Comment}.
+                  \item \textit{Standard CF setting.}
+              \end{itemize}
+
+        \item \textbf{Graph G2 (Social Expansion - "The Increase"):}
+              \begin{itemize}
+                  \item \textbf{+ User-User Edges:} Created via "Reply" interactions.
+                  \item \textit{Hypothesis: Users who converse share interests.}
+              \end{itemize}
+
+        \item \textbf{Graph G3 (Semantic Expansion):}
+              \begin{itemize}
+                  \item \textbf{+ Category Nodes:} Users connect to Categories they read.
+                  \item \textit{Hypothesis: High-level hubs reduce path length.}
+              \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Core Innovation: Social Fusion (Graph G2)}
     \textbf{Idea:} Use the "Reply Network" to bridge gaps between users.
 
     \vspace{0.3cm}
@@ -433,16 +451,9 @@
 
     \vspace{0.4cm}
     \begin{block}{Impact on Sparsity}
-        By adding User-User edges, the GNN can propagate "interests" even if User A has only read 1 article.
+        By adding User-User edges (G2), the GNN can propagate "interests" even if User A has only read 1 article.
     \end{block}
 \end{frame}
-
-
-% \begin{frame}
-%     \frametitle{Feature Distribution}
-%     \centering
-%     \includegraphics[width=0.9\textwidth]{../plots/graph_eda_02_feature_distribution.png}
-% \end{frame}
 
 %------------------------------------------------------------
 \section{State-of-the-Art (SOTA) Baselines}
@@ -454,7 +465,8 @@
     \begin{enumerate}
         \item \textbf{Graph Neural Networks (GNNs):}
               \begin{itemize}
-                  \item \textbf{NGCF (2019):} First to encode collaborative signal into embeddings via graph propagation. High computational cost.
+                  \item \textbf{LightGCL (2023):} Efficient Global Context Learning via SVD for better structural alignment.
+                  \item \textbf{XSimGCL (2023):} Extreme Simple Graph Contrastive Learning using noise perturbation instead of graph augmentation.
                   \item \textbf{LightGCN (2020):} Simplified GCN by removing non-linearities. Current industry standard for efficiency.
               \end{itemize}
 
@@ -472,10 +484,91 @@
     \end{enumerate}
 \end{frame}
 
+\begin{frame}
+    \frametitle{LightGCL: Global Context Learning}
+    \textbf{Core Idea:} Standard GNNs (GCN/LightGCN) only capture \textit{local} neighbors. LightGCL explicitly learns \textbf{Global Context} using SVD \footcite{cai2023lightgcl}.
+
+    \vspace{0.3cm}
+    \begin{columns}
+        \begin{column}{0.48\textwidth}
+            \begin{block}{Mechanism}
+                \begin{itemize}
+                    \item \textbf{Local View:} Standard Adjacency Matrix ($A$).
+                    \item \textbf{Global View:} Low-rank approximation via SVD:
+                          \[ G = U_k \Sigma_k V_k^T \]
+                    \item \textbf{Contrastive Goal:} Maximize agreement between Local representation ($Z_l$) and Global representation ($Z_g$).
+                \end{itemize}
+            \end{block}
+        \end{column}
+        \begin{column}{0.48\textwidth}
+            \textbf{Why for News?}
+            \begin{itemize}
+                \item Breaking "Information Cocoons": Global structures help recommend distinct but related topics, not just local neighbors.
+                \item \textbf{Efficiency:} SVD is computed once; training is fast.
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+
+\begin{frame}
+    \frametitle{XSimGCL: Extreme Simple Graph Contrastive}
+    \textbf{Core Idea:} Graph augmentation (dropping edges/nodes) is slow and breaks structure. Instead, just add \textbf{Noise} \footcite{yu2023xsimgcl}.
+
+    \vspace{0.3cm}
+    \begin{block}{The "No-Augmentation" Approach}
+        Instead of creating view 1 ($G_1$) and view 2 ($G_2$), XSimGCL adds random noise distribution to embeddings for every layer:
+        \[ e_i^{(l)'} = e_i^{(l)} + \Delta, \quad \Delta \sim U(-\epsilon, \epsilon) \]
+    \end{block}
+
+    \vspace{0.3cm}
+    \textbf{Advantages:}
+    \begin{itemize}
+        \item \textbf{Robustness:} Acts as strong regularization, forcing the model to learn uniform representations.
+        \item \textbf{Speed:} No graph recreation overhead. Fastest training time in our benchmarks (34s/epoch).
+    \end{itemize}
+\end{frame}
+
+\begin{frame}
+    \frametitle{HGNR: Heterogeneous Graph Neural Network}
+    \textbf{Core Idea:} Real-world graphs have multiple node/edge types (e.g., User-Reply-User vs. User-Comment-Article). Standard GNNs ignore this distinction \footcite{fu2020hgnr}.
+
+    \vspace{0.1cm}
+    \begin{columns}
+        \begin{column}{0.48\textwidth}
+            \begin{block}{1. Meta-path Aggregation}
+                Separately aggregates neighbors for each relation type:
+                \[ h_u^{\Phi} = \text{AGG}\{h_v | v \in \mathcal{N}_u^{\Phi}\} \]
+                \textit{Example:} Captures "Social" signals separately from "Interest" signals.
+            \end{block}
+        \end{column}
+
+        \begin{column}{0.48\textwidth}
+            \begin{block}{2. Semantic Fusion}
+                Combines type-specific embeddings using Attention:
+                \[ h_u^{Final} = \sum_{\Phi} \beta_{\Phi} \cdot h_u^{\Phi} \]
+                \textit{Benefit:} Learns which relation is more important (e.g., Social > Interest for inactive users).
+            \end{block}
+        \end{column}
+    \end{columns}
+
+    \vspace{0.2cm}
+    \textbf{Significance:} This mechanism forms the backbone of our \textbf{HGN} and \textbf{HCL} models.
+\end{frame}
 
 %------------------------------------------------------------
-% Section Methodology merged into Overview
+\section{Proposed Method: HGN}
 %------------------------------------------------------------
+
+
+
+% \begin{frame}
+%     \frametitle{Feature Distribution}
+%     \centering
+%     \includegraphics[width=0.9\textwidth]{../plots/graph_eda_02_feature_distribution.png}
+% \end{frame}
+
+% SOTA moved to before Motivation
 
 \begin{frame}
     \frametitle{System Architecture}
@@ -490,7 +583,7 @@
         \node[special, right=0.8cm of preprocess] (fusion) {Social \& Temporal\\Fusion};
         \node[block, below=0.6cm of fusion] (embed) {PhoBERT\\Embeddings};
         \node[block, left=0.8cm of embed] (train) {GCL Model\\Training};
-        \node[block, left=0.8cm of train] (eval) {Hybrid\\Evaluation};
+        \node[block, left=0.8cm of train] (eval) {Offline\\Evaluation};
 
         \draw[arrow] (crawl) -- (preprocess);
         \draw[arrow] (preprocess) -- (fusion);
@@ -505,33 +598,11 @@
 \end{frame}
 
 
-\begin{frame}
-    \frametitle{Strategic Why: The Hybrid Synergy}
-    Why combine \textbf{Content-Based} with \textbf{Graph Learning}?
 
-    \vspace{0.4cm}
-    \begin{itemize}
-        \item \textbf{Content-Based (NLP):}
-              \begin{itemize}
-                  \item Solves the \textbf{Cold-Start} problem (recommends new articles with 0 interactions).
-                  \item Captures semantic similarity (PhoBERT).
-              \end{itemize}
-        \item \textbf{Graph Learning (GNN):}
-              \begin{itemize}
-                  \item Captures \textbf{Collaborative Signals} (Users who like X also like Y).
-                  \item Exploits \textbf{Social Signals} (Reply networks).
-              \end{itemize}
-    \end{itemize}
-
-    \vspace{0.4cm}
-    \begin{block}{Hybrid Outcome}
-        Content-Based provides "Freshness" while Graph Learning provides "Depth" and "Discovery".
-    \end{block}
-\end{frame}
 
 %------------------------------------------------------------
 %------------------------------------------------------------
-\section{Proposed Method: MA-HGN}
+\section{Proposed Method: HGN}
 %------------------------------------------------------------
 
 \begin{frame}
@@ -556,7 +627,7 @@
                 \textbf{Simplified GCN for Recommendation}
                 \begin{itemize}
                     \item \textbf{Key Idea:} Non-linearities (ReLU) are effectively redundant \\
-                    for collaborative filtering.
+                          for collaborative filtering.
                     \item \textbf{Mechanism:} Linear propagation + Layer averaging.
                 \end{itemize}
             \end{block}
@@ -565,7 +636,7 @@
 
     \vspace{0.2cm}
     \centering
-    $\Rightarrow$ \textbf{MA-HGN = HGNR's Multi-Relation logic + LightGCN's Efficiency}
+    $\Rightarrow$ \textbf{HGN = HGNR's Multi-Relation logic + LightGCN's Efficiency}
 \end{frame}
 
 
@@ -589,13 +660,13 @@
     \end{itemize}
 
     \vspace{0.2cm}
-    \begin{block}{The MA-HGN Solution}
+    \begin{block}{The HGN Solution}
         We need an architecture that aggregates \textbf{Social Signals} separately from \textbf{Content Signals} before fusing them.
     \end{block}
 \end{frame}
 
 \begin{frame}
-    \frametitle{MA-HGN: Multi-Aspect Heterogeneous GNN}
+    \frametitle{HGN: Multi-Aspect Heterogeneous GNN}
     \begin{columns}
         \begin{column}{0.55\textwidth}
             \centering
@@ -641,10 +712,9 @@
 \end{frame}
 
 \begin{frame}
-    \frametitle{Alternative Component: MA-HCL (Failed Experiment)}
+    \frametitle{Alternative Component: HCL (Failed Experiment)}
     \small
-    \textbf{Idea:} Combine Heterogeneity (Social + Interest) with Contrastive Learning + LightGCN. \\
-    \textbf{Result:} Performance dropped (-48\%), proving that \textbf{Graph Attention (GAT)} is crucial for this dataset, while simple LightGCN over-smooths the distinct social signals.
+    \textbf{Idea:} Combine Heterogeneity (Social + Interest) with Contrastive Learning + LightGCN.
 
     \vspace{0.3cm}
     \centering
@@ -705,40 +775,51 @@
 \section{Experimental Results \& Innovations}
 
 %------------------------------------------------------------
-
 \begin{frame}
-    \frametitle{Benchmark 1: Mainstream Recommendation (LOO)}
-    \textbf{Protocol:} Leave-One-Out (Test on latest interaction). \\
-    \textbf{Focus:} Accuracy on warm-start users.
+    \frametitle{Experimental Setup}
+    \begin{columns}
+        \begin{column}{0.48\textwidth}
+            \textbf{Models ($N=6$):}
+            \begin{itemize}
+                \item \textbf{Baselines:} LightGCN, HGN
+                \item \textbf{Contrastive:} LightGCL, SimGCL, XSimGCL (SOTA), HCL (Ours)
+            \end{itemize}
 
-    \begin{table}
-        \centering
-        \scriptsize
-        \begin{tabular}{l|c|cc|c}
-            \toprule
-            \textbf{Model}                      & \textbf{Type}   & \textbf{R@10}   & \textbf{N@10}   & \textbf{Gain} \\
-            \midrule
-            \multicolumn{5}{l}{\textit{\textbf{Graph G1 (Bipartite)}}}                                                \\
+            \vspace{0.2cm}
+            \textbf{Training config:}
+            \begin{itemize}
+                \item \textbf{Epochs:} 100
+                \item \textbf{Batch Size:} 2048
+                \item \textbf{Loss:} BPR + InfoNCE (for CL models)
+            \end{itemize}
+        \end{column}
 
-            LightGCL                            & Graph CL        & 0.3081          & 0.2021          & -29.4\%       \\
-            LightGCN                            & GNN             & 0.2812          & 0.1739          & -35.6\%       \\
-            \midrule
-            \multicolumn{5}{l}{\textit{\textbf{Graph G2 (Hetero - User-User)}}}                                       \\
-            \rowcolor{green!15} \textbf{MA-HGN} & \textbf{Hetero} & \textbf{0.4364} & \textbf{0.2636} & \textbf{Best} \\
-            XSimGCL                             & Graph CL        & 0.3036          & 0.2002          & -30.4\%       \\
-            \midrule
-            \multicolumn{5}{l}{\textit{\textbf{Graph G3 (Full Hetero)}}}                                              \\
-            MA-HCL                              & Hetero CL       & 0.2260          & 0.1491          & -48.2\%       \\
-            SimGCL                              & Graph CL        & 0.2181          & 0.1333          & -50.0\%       \\
-            \bottomrule
-        \end{tabular}
-    \end{table}
-    \vspace{0.1cm}
-    \textbf{Result:} \textbf{MA-HGN} outperforms standard GNNs by leveraging heterogeneous graph signals (User-User + User-Article), proving the value of social fusion.
+        \begin{column}{0.48\textwidth}
+            \textbf{Data Protocols:}
+            \begin{itemize}
+                \item \textbf{Full (Cold-Start):} 80/20 random user split.
+                \item \textbf{LOO (Mainstream):} Temporal Leave-One-Out.
+            \end{itemize}
+
+            \vspace{0.2cm}
+            \textbf{Graph Tiers:}
+            \begin{itemize}
+                \item \textbf{Strict G1:} Bipartite (User-Art)
+                \item \textbf{Strict G2:} Hetero (+ Social)
+                \item \textbf{Strict G3:} Hetero (+ Category)
+            \end{itemize}
+        \end{column}
+    \end{columns}
+
+    \vspace{0.3cm}
+    \centering
+    \fcolorbox{black!10}{white}{
+        \small \textbf{Total Experiments:} $6 \text{ models} \times 3 \text{ graphs} \times 2 \text{ protocols} = \textbf{36 Rigorous Runs}$
+    }
 \end{frame}
 
 \begin{frame}
-    \frametitle{Benchmark 2: Cold-Start / Zero-Shot (Full)}
+    \frametitle{Benchmark Results: Cold-Start / Full Protocol}
     \textbf{Protocol:} 80/20 Split (Random). \\
     \textbf{Focus:} Retrieving relevant content based strictly on content similarity (Handling new users/items).
 
@@ -746,56 +827,95 @@
     \begin{table}
         \centering
         \tiny
-        \setlength{\tabcolsep}{3.5pt}
+        \setlength{\tabcolsep}{2.5pt}
         \renewcommand{\arraystretch}{0.95}
-        \begin{tabular}{l|c|cc|l}
+        \begin{tabular}{l|c|cccc}
             \toprule
-            \textbf{Model}                       & \textbf{Type} & \textbf{R@10}   & \textbf{N@10}   & \textbf{Note}       \\
+            \textbf{Model}                       & \textbf{Type} & \textbf{R@10}   & \textbf{N@10}   & \textbf{H@10}   & \textbf{MRR}    \\
             \midrule
-            \multicolumn{5}{l}{\textit{\textbf{Content-Based / Baselines}}}                                                \\
-            \rowcolor{yellow!20} \textbf{BGE-M3} & \textbf{CB}   & \textbf{0.0535} & \textbf{0.0315} & \textbf{Best Dense} \\
-            TF-IDF                               & CB            & 0.0508          & 0.0301          & Best Sparse         \\
-            User-KNN (Pearson)                   & Memory CF     & 0.0412          & 0.0235          & Baseline            \\
+            \multicolumn{6}{l}{\textit{\textbf{Content-Based / Baselines}}}                                                              \\
+            \rowcolor{yellow!20} \textbf{BGE-M3} & \textbf{CB}   & \textbf{0.0535} & \textbf{0.0315} & \textbf{0.0929} & \textbf{0.0416} \\
+            TF-IDF                               & CB            & 0.0508          & 0.0301          & 0.0951          & 0.0394          \\
+            User-KNN (Pearson)                   & Memory CF     & 0.0412          & 0.0235          & 0.0762          & 0.0251          \\
             \midrule
-            \multicolumn{5}{l}{\textit{\textbf{Graph G1 (Bipartite)}}}                                                     \\
-            LightGCL                             & Graph CL      & 0.0436          & 0.0261          & Best Graph CL       \\
-
-
-            LightGCN                             & GNN           & 0.0266          & 0.0151          & Simple GNN          \\
-            SimGCL                               & Graph CL      & 0.0228          & 0.0122          & Baseline CL         \\
+            \multicolumn{6}{l}{\textit{\textbf{Graph G1 (Bipartite)}}}                                                                   \\
+            LightGCL                             & Graph CL      & 0.0398          & 0.0249          & 0.0685          & 0.0313          \\
+            XSimGCL                              & Graph CL      & 0.0439          & 0.0253          & 0.0694          & 0.0289          \\
+            HGN                                  & Hetero GNN    & 0.0262          & 0.0147          & 0.0451          & 0.0182          \\
+            HCL                                  & Hetero CL     & 0.0259          & 0.0164          & 0.0471          & 0.0214          \\
+            SimGCL                               & Graph CL      & 0.0191          & 0.0115          & 0.0275          & 0.0135          \\
             \midrule
-            \multicolumn{5}{l}{\textit{\textbf{Graph G2 (Hetero - User-User)}}}                                            \\
-            XSimGCL                              & Graph CL      & 0.0432          & 0.0248          & Cross-layer         \\
-            MA-HGN                               & Hetero        & 0.0369          & 0.0201          & Relation-focused    \\
+            \multicolumn{6}{l}{\textit{\textbf{Graph G2 (Hetero - User-User)}}}                                                          \\
+            LightGCL                             & Graph CL      & 0.0436          & 0.0261          & 0.0739          & 0.0313          \\
+            XSimGCL                              & Graph CL      & 0.0432          & 0.0260          & 0.0688          & 0.0303          \\
+            HGN                                  & Hetero GNN    & 0.0369          & 0.0201          & 0.0596          & 0.0250          \\
+            HCL                                  & Hetero CL     & 0.0320          & 0.0192          & 0.0520          & 0.0233          \\
+            SimGCL                               & Graph CL      & 0.0228          & 0.0131          & 0.0312          & 0.0144          \\
             \midrule
-            \multicolumn{5}{l}{\textit{\textbf{Graph G3 (Full Hetero)}}}                                                   \\
-            MA-HCL                               & Hetero CL     & 0.0320          & 0.0192          & Hetero CL           \\
+            \multicolumn{6}{l}{\textit{\textbf{Graph G3 (Category Hubs)}}}                                                               \\
+            LightGCL                             & Graph CL      & 0.0413          & 0.0256          & 0.0710          & 0.0311          \\
+            XSimGCL                              & Graph CL      & 0.0379          & 0.0232          & 0.0643          & 0.0289          \\
+            HGN                                  & Hetero GNN    & 0.0299          & 0.0167          & 0.0464          & 0.0198          \\
+            HCL                                  & Hetero CL     & 0.0250          & 0.0152          & 0.0471          & 0.0205          \\
+            SimGCL                               & Graph CL      & 0.0222          & 0.0122          & 0.0322          & 0.0137          \\
             \bottomrule
         \end{tabular}
     \end{table}
     \vspace{0.1cm}
-    \textbf{Result:} In "Full" evaluation (Cold-Start proxy), \textbf{Semantic Models (CB)} consistently outperform Graph models. However, advanced CL methods (LightGCL, XSimGCL) are closing the gap, while traditional GNNs (e.g., MA-HGN) struggle without interaction history.
+    \textbf{Result:} In "Full" evaluation (Cold-Start proxy), \textbf{Semantic Models (CB)} consistently outperform Graph models. However, advanced CL methods (LightGCL, XSimGCL) are closing the gap.
+\end{frame}
+
+\begin{frame}
+    \frametitle{Efficiency Analysis: Model Complexity and Training Time}
+    \textbf{Comparison:} Training time per epoch (minutes:seconds) and parameter count.
+
+    \begin{table}
+        \centering
+        \small
+        \setlength{\tabcolsep}{4pt}
+        \renewcommand{\arraystretch}{1.1}
+        \begin{tabular}{l|c|ccc}
+            \toprule
+            \textbf{Model} & \textbf{Params} & \textbf{Time (G1)} & \textbf{Time (G2)} & \textbf{Time (G3)} \\
+            \midrule
+
+            SimGCL         & 1,072,768       & 00:47              & 00:46              & 00:45              \\
+            XSimGCL        & 1,072,770       & \textbf{00:35}     & \textbf{00:33}     & \textbf{00:34}     \\
+            LightGCL       & 1,072,768       & 00:46              & 00:45              & 00:45              \\
+            \midrule
+            MA-HCL         & 1,072,770       & 00:47              & 01:10              & 00:37              \\
+            MA-HGN         & 1,273,986       & 01:29              & 02:23              & 00:35              \\
+            \bottomrule
+        \end{tabular}
+    \end{table}
+
+    \vspace{0.2cm}
+    \textbf{Observations:}
+    \begin{itemize}
+        \item \textbf{XSimGCL} is the most efficient method (fastest training time).
+        \item \textbf{MA-HCL} maintains comparable efficiency to SimGCL/LightGCL on bipartite graphs (G1, G3) while handling heterogeneity.
+        \item \textbf{MA-HGN} incurs significant computational cost on dense heterogeneous graphs (G2), taking \textbf{2-3x longer} than Contrastive Learning methods.
+    \end{itemize}
 \end{frame}
 
 
 
 \begin{frame}
     \frametitle{Ablation Study: GNN Architecture}
-    \textbf{Question:} Does the choice of aggregator matter?
     Comparing \textbf{GAT} (default), \textbf{GraphSAGE}, and \textbf{TransformerConv}.
-
     \vspace{0.2cm}
     \begin{table}
         \centering
         \scriptsize
-        \begin{tabular}{l|cc|cc|c}
+        \setlength{\tabcolsep}{3pt}
+        \begin{tabular}{l|cc|ccc}
             \toprule
-            \multirow{2}{*}{\textbf{Backbone}} & \multicolumn{2}{c|}{\textbf{LOO Protocol (Warm)}} & \multicolumn{2}{c|}{\textbf{Full Protocol (Cold)}} & \multirow{2}{*}{\textbf{Trend}}                                           \\
-                                               & R@10                                              & N@10                                               & R@10                            & N@10            &                       \\
+            \textbf{Backbone}                  & \multicolumn{2}{c|}{\textbf{Full Protocol}} & \multicolumn{3}{c}{\textbf{Efficiency}}                                              \\
+                                               & R@10                                        & N@10                                    & Inf. (s)      & Params         & Train (s) \\
             \midrule
-            GAT                                & 0.3436                                            & 0.2074                                             & 0.0262                          & 0.0163          & Baseline              \\
-            SAGE                               & 0.3876                                            & 0.2322                                             & 0.0303                          & 0.0182          & Better (+12\%)        \\
-            \rowcolor{green!15} \textbf{TRANS} & \textbf{0.4492}                                   & \textbf{0.2700}                                    & \textbf{0.0504}                 & \textbf{0.0266} & \textbf{Best (+30\%)} \\
+            GAT                                & 0.0262                                      & 0.0163                                  & $\sim$1.38    & 1.27M          & 20.23     \\
+            SAGE                               & 0.0303                                      & 0.0182                                  & $\sim$0.88    & 1.27M          & 19.77     \\
+            \rowcolor{green!15} \textbf{TRANS} & \textbf{0.0504}                             & \textbf{0.0266}                         & \textbf{1.71} & \textbf{1.47M} & 19.76     \\
             \bottomrule
         \end{tabular}
     \end{table}
@@ -805,28 +925,28 @@
     \begin{itemize}
         \item \textbf{Transformer Superiority:} The multi-head attention mechanism in TransformerConv captures complex dependencies better than GAT's simple attention or SAGE's mean pooling.
         \item \textbf{GAT Underperformance:} Standard GAT struggles, possibly due to the "static" nature of its attention mechanism compared to Transformer's dynamic query-key value pairs.
-        \item \textbf{Consistent Ranking:} The hierarchy (Transformer $>$ SAGE $>$ GAT) holds true for both Warm and Cold start scenarios.
+        \item \textbf{Consistent Ranking:} TransformerConv dominates in Cold Start scenarios.
     \end{itemize}
 \end{frame}
 
 \begin{frame}
     \frametitle{Impact of Graph Structure (Ablation Study)}
     \textbf{Question:} Which graph topology yields the best performance?\\
-    Testing \textbf{MA-HGN} on different graph types:
+    Testing \textbf{HGN} on different graph types:
 
     \vspace{0.3cm}
     \begin{table}
         \centering
         \scriptsize
-        \begin{tabular}{l|l|c|l}
+        \begin{tabular}{l|l|c}
             \toprule
-            \textbf{Graph} & \textbf{Structure Stats}                  & \textbf{R@10} & \textbf{Impact} \\
+            \textbf{Graph} & \textbf{Structure Stats}                  & \textbf{R@10} \\
             \midrule
-            G1 (Base)      & \parbox{3.5cm}{13k Users, 30k Edges                                         \\ Density: 0.06\%}               & 0.4015          & \textbf{Baseline}. Sparse, cold-start prone.        \\
+            G1 (Base)      & \parbox{3.5cm}{13k Users, 30k Edges                       \\ Density: 0.06\%}               & 0.0262          \\
             \midrule
-            \textbf{G2}    & \parbox{3.5cm}{\textbf{+61k Social Edges}                                   \\ Density: \textbf{0.064\%}} & \textbf{0.4364} & \textbf{+8.7\%}. Social wisdom (Homophily) helps.   \\
+            \textbf{G2}    & \parbox{3.5cm}{\textbf{+61k Social Edges}                 \\ Density: \textbf{0.064\%}} & \textbf{0.0369} \\
             \midrule
-            G3             & \parbox{3.5cm}{+6 Categories                                                \\ 16k User-Cat Edges}                   & 0.2617          & \textbf{-35\%}. Categories are too broad (Noise).   \\
+            G3             & \parbox{3.5cm}{+6 Categories                              \\ 16k User-Cat Edges}                   & 0.0299          \\
             \bottomrule
         \end{tabular}
     \end{table}
@@ -838,77 +958,6 @@
 
 
 \end{frame}
-
-\begin{frame}
-    \frametitle{Ablation Study: GNN Depth ($n$-layers)}
-    \textbf{Question:} Does going deeper help capture long-range dependencies?
-
-    \vspace{0.2cm}
-    \begin{table}
-        \centering
-        \small
-        \begin{tabular}{c|cc|c}
-            \toprule
-            \textbf{Layers}                & \textbf{R@10 (LOO)} & \textbf{NDCG@10} & \textbf{Trend}           \\
-            \midrule
-            \rowcolor{green!15} \textbf{1} & \textbf{0.4376}     & \textbf{0.2611}  & \textbf{Optimal}         \\
-            2                              & 0.4244              & 0.2578           & Slight drop (-3\%)       \\
-            3                              & 0.3423              & 0.1999           & Significant drop (-21\%) \\
-            4                              & 0.3852              & 0.2207           & Unstable                 \\
-            \bottomrule
-        \end{tabular}
-    \end{table}
-
-    \vspace{0.2cm}
-    \textbf{Analysis:}
-    \begin{itemize}
-        \item \textbf{Shallow is Better:} Performance peaks at \textbf{1 layer}. Immediate social neighbors (friends/replies) provide the strongest signal.
-        \item \textbf{Over-smoothing:} Deeper GNNs (3-4 layers) likely cause user representations to become indistinguishable (Laplacian smoothing), hurting ranking.
-        \item \textbf{Noise Propagation:} In social graphs, distant connections ($>$2 hops) are often irrelevant, adding noise rather than signal.
-    \end{itemize}
-\end{frame}
-
-\begin{frame}
-    \frametitle{The Power of Density: Effect of k-core Filtering}
-    \textbf{Insight:} Recommendation difficulty scales with graph sparsity.
-
-    \vspace{0.3cm}
-    \begin{columns}[T]
-        \begin{column}{0.48\textwidth}
-            \begin{block}{Regular Filtering (k=1)}
-                \footnotesize
-                \begin{itemize}
-                    \item 13,117 Users
-                    \item 3,645 Articles
-                    \item many "cold" one-off users
-                \end{itemize}
-                \centering
-                \textbf{G2 R@10: 0.2938} \color{green!70!black}{$\uparrow$ Best Model}
-            \end{block}
-        \end{column}
-        \begin{column}{0.48\textwidth}
-            \begin{block}{Strict Filtering (k=2)}
-                \footnotesize
-                \begin{itemize}
-                    \item 6,221 Users
-                    \item 2,583 Articles
-                    \item only recurring users
-                \end{itemize}
-                \centering
-                \textbf{G2 R@10: 0.1917}
-            \end{block}
-        \end{column}
-    \end{columns}
-
-    \vspace{0.4cm}
-    \begin{itemize}
-        \item \textbf{Surprise Finding:} "Simple" Regular filtering outperforms "Complex" Strict filtering ($0.29$ vs $0.19$).
-        \item \textbf{Reason:} The "long tail" of one-off users acts as a bridge in the reply network. Removing them destroys valuable connectivity.
-    \end{itemize}
-\end{frame}
-
-
-
 
 
 \begin{frame}
@@ -922,7 +971,7 @@
                 \begin{itemize}
                     \item \textbf{Compact:} Only 6 Category nodes.
                     \item \textbf{Efficient:} Adds $\sim$12k edges.
-                    \item \textbf{Dual Paths:}
+                    \item \textbf{Structure:} Dual-hop paths.
                           \begin{itemize}
                               \item \scriptsize $User \leftrightarrow Category \leftrightarrow Article$
                           \end{itemize}
@@ -931,52 +980,53 @@
         \end{column}
 
         \begin{column}{0.48\textwidth}
-            \begin{block}{Best Result: SimGCL on G3}
+            \begin{block}{Role of Semantic Hubs}
                 \begin{itemize}
-                    \item \textbf{Recall@10:} \textbf{0.2127}
-                    \item \textbf{NDCG@10:} \textbf{0.1391}
-                    \item \textbf{Impact:} Category node augmentation enables long-range collaborative signals without the noise of dense item-to-item edges.
+                    \item \textbf{Connectivity:} Creates paths between users and articles even without direct history.
+                    \item \textbf{Signal Quality:} Captures thematic interest (e.g., "Sports") without the noise of random co-clicks.
+                    \item \textbf{Scalability:} Avoids the exploded edge count of item-item graphs.
                 \end{itemize}
             \end{block}
         \end{column}
     \end{columns}
 
     \vspace{0.4cm}
-    \textbf{Verdict:} Category Hubs provide a scalable semantic alternative, capturing thematic interests without the ``Density Trap''.
+    \textbf{Verdict:} Category Hubs provide a scalable semantic alternative, effectively capturing thematic interests relative to the baseline.
 \end{frame}
 
 
 
 \begin{frame}
-    \frametitle{Our Contribution: MA-HCL Model}
-    \textbf{MA-HCL} = Multi-Aspect Heterogeneous Contrastive Learning
+    \frametitle{Our Contributions: HGN \& HCL}
+    We propose two distinct architectures to handle the "VnExpress Heterogeneity":
 
     \vspace{0.2cm}
     \begin{columns}
         \begin{column}{0.48\textwidth}
-            \begin{block}{Architecture}
+            \begin{block}{1. HGN (Best for Structure)}
                 \begin{itemize}
-                    \item \textbf{Backbone:} LightGCN-style propagation
-                    \item \textbf{Loss:} BPR + SimCL contrastive
-                    \item \textbf{Fusion:} Multi-aspect (interest + social)
+                    \item \textbf{Method:} Meta-path Aggregation + Attention Fusion.
+                    \item \textbf{Why:} Explicitly weighs "Social" vs "Interest".
+                    \item \textbf{Recall@10 (G2):} \textbf{0.0369} (Highest Graph Model).
                 \end{itemize}
             \end{block}
         \end{column}
         \begin{column}{0.48\textwidth}
-            \begin{block}{Results (G2)}
+            \begin{block}{2. HCL (Contrastive)}
                 \begin{itemize}
-                    \item \textbf{Recall@10:} 0.1502
-                    \item \textbf{NDCG@10:} 0.1024
-                    \item \textbf{MRR:} 0.1165
+                    \item \textbf{Method:} Heterogeneity + LightGCL-style Contrastive Loss.
+                    \item \textbf{Why:} Regularization against noise.
+                    \item \textbf{Recall@10 (G2):} 0.0320 (Stable).
                 \end{itemize}
             \end{block}
         \end{column}
     \end{columns}
 
     \vspace{0.3cm}
+    \textbf{Key Takeaway:}
     \begin{itemize}
-        \item \textbf{+21\%} better than SimMAHGN (attention-based)
-        \item \textbf{Simpler architecture} = faster training, better generalization
+        \item \textbf{HGN} successfully exploits the Social graph (G2) to achieve the best structural performance (+40\% over G1).
+        \item \textbf{HCL} offers a lightweight alternative, though attention mechanisms (HGN) prove superior for this specific heterogeneous dataset.
     \end{itemize}
 \end{frame}
 
@@ -994,54 +1044,52 @@
                   \item \textit{NDCG@10}: Rewards models that rank true items higher.
                   \item \textbf{MRR}: Standard for single-target news retrieval.
               \end{itemize}
-        \item \textbf{Split Strategy:} Time-aware 80/10/10 split to prevent leakage.
-        \item \textbf{Data Integrity:} \textbf{Temporal Leave-One-Out} strategy. We test on the latest interaction per user, ensuring \textbf{zero data leakage} from the future.
+        \item \textbf{Dual Protocol Strategy:}
+              \begin{itemize}
+                  \item \textbf{Mainstream (LOO):} Temporal Leave-One-Out. Test on the \textit{latest} interaction to prevent future leakage.
+                  \item \textbf{Cold-Start (80/20):} Random user split. Train on 80\% of users, test on 20\% unseen users to measure zero-shot capability.
+              \end{itemize}
     \end{itemize}
 \end{frame}
 
-\begin{frame}
-    \frametitle{Investigation: The "Projection Trap"}
-    \textbf{Observed Paradox:} Standalone PhoBERT performed 10x worse than expected.
-
-    \vspace{0.3cm}
-    \begin{columns}
-        \begin{column}{0.48\textwidth}
-            \begin{block}{The Problem}
-                \begin{itemize}
-                    \item \textbf{Random Projection:} PhoBERT embeddings (768-dim) were compressed via untrained random linear layers.
-                    \item \textbf{Noise Injection:} High-quality semantics were destroyed by "random noise" before retrieval.
-                \end{itemize}
-            \end{block}
-        \end{column}
-
-        \begin{column}{0.48\textwidth}
-            \begin{block}{The Solution (Rescued)}
-                \begin{itemize}
-                    \item \textbf{Raw Embedding Retrieval:} Skipping untrained layers and using direct cosine similarity.
-                    \item \textbf{Result:} Recall@10 jumped from \textbf{0.3\%} to \textbf{3.5\%} (\textbf{+1066\%} improvement).
-                \end{itemize}
-            \end{block}
-        \end{column}
-    \end{columns}
-\end{frame}
 
 \begin{frame}
-    \frametitle{Ablation: Embedding Initialization Impact}
-    \textbf{Hypothesis:} Initializing GNN with PhoBERT should beat Random Init.
-    \textbf{Result:} \textbf{Random Init (12.40\%) > PhoBERT Init (4.96\%)}.
+    \frametitle{Ablation Study: Impact of GNN Depth ($L$)}
+    \textbf{Question:} Does deeper graph propagation help?
+    \textbf{Metric:} Recall@10 on Cold-Start (Full).
 
-    \vspace{0.3cm}
+    \begin{table}
+        \centering
+        \tiny
+        \setlength{\tabcolsep}{3pt}
+        \begin{tabular}{l|cccc|l}
+            \toprule
+            \textbf{Model} & \textbf{L=1}   & \textbf{L=2}   & \textbf{L=3}   & \textbf{L=4}   & \textbf{Trend}     \\
+            \midrule
+            LightGCL       & 0.032          & 0.040          & \textbf{0.043} & 0.042          & Robust             \\
+            \midrule
+            XSimGCL        & 0.028          & 0.035          & 0.039          & \textbf{0.041} & Cross-layer helps  \\
+            \midrule
+            LightGCN       & \textbf{0.033} & 0.026          & 0.026          & 0.028          & Drops instantly    \\
+            \midrule
+            HGN            & \textbf{0.031} & 0.026          & 0.025          & 0.024          & Hard to train deep \\
+            \midrule
+            HCL            & \textbf{0.020} & 0.010          & 0.007          & 0.009          & Over-smoothing++   \\
+            \midrule
+            SimGCL         & 0.024          & \textbf{0.027} & 0.021          & 0.023          & Noisy              \\
+            \bottomrule
+        \end{tabular}
+    \end{table}
+
+    \vspace{0.1cm}
+    \small
+    \textbf{Insight:}
     \begin{itemize}
-        \item \textbf{Semantic vs. Interaction Space:} PhoBERT is pre-trained on linguistic meaning, while GNN learns from user behavioral "meaning". These spaces are often misaligned.
-        \item \textbf{Geometric Bias:} Initializing in a fixed semantic space "anchors" nodes, making it harder for the GNN to cluster users based on collaborative signals alone.
-        \item \textbf{Discovery Power:} Randomly initialized embeddings have the freedom to map latent interests that text alone cannot describe.
+        \item \textbf{LightGCN} suffers from \textit{over-smoothing} (Performance drops after L=1).
+        \item \textbf{XSimGCL} and \textbf{LightGCL} maintain robustness at deeper layers, capturing long-range dependencies effectively.
     \end{itemize}
 
-    \begin{block}{Verdict}
-        Behavioral signals (who-reads-what) are significantly more informative than semantic signals for Vietnamese news.
-    \end{block}
 \end{frame}
-
 
 
 \begin{frame}
@@ -1080,36 +1128,8 @@
 
 
 %------------------------------------------------------------
-\section{Live Demo \& Conclusion}
+\section{Conclusion \& Future Works}
 %------------------------------------------------------------
-
-\begin{frame}
-    \frametitle{Advanced Streamlit Demo Features}
-    \begin{columns}
-        \column{0.5\textwidth}
-        \textbf{A/B Comparison:}
-        \begin{itemize}
-            \item Side-by-side model views.
-            \item Recommendation overlap \%.
-        \end{itemize}
-        \vspace{0.3cm}
-        \textbf{Cold-Start Handler:}
-        \begin{itemize}
-            \item Popularity/Freshness.
-            \item Category preferences.
-        \end{itemize}
-
-        \column{0.5\textwidth}
-        \textbf{Metrics Dashboard:}
-        \begin{itemize}
-            \item Live model leaderboard.
-            \item Multi-metric comparison (Recall, NDCG).
-        \end{itemize}
-    \end{columns}
-    \vspace{0.5cm}
-    \centering
-    \textbf{8/9 CBRS Categories implemented} (Probabilistic, LSA, Session-based, etc.)
-\end{frame}
 
 
 % Section Conclusion merged into Live Demo & Conclusion
@@ -1143,7 +1163,6 @@
     \large Q \& A
 \end{frame}
 %------------------------------------------------------------
-
 
 %------------------------------------------------------------
 

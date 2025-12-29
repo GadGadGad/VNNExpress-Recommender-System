@@ -24,7 +24,17 @@ class LightGCLDataLoader:
         self.raw_path = os.path.join(data_path, 'raw')
         self.processed_path = os.path.join(data_path, 'processed')
         
-        os.makedirs(self.processed_path, exist_ok=True)
+        try:
+            os.makedirs(self.processed_path, exist_ok=True)
+        except OSError:
+            # Handle read-only file system
+            if os.path.exists(self.processed_path):
+                print(f"  [Info] Processed path {self.processed_path} exists and is read-only. Using it for loading.")
+            else:
+                # Fallback to local writable dir if input is read-only and processed folder missing
+                print(f"  [Warning] Path {self.processed_path} is read-only and missing. Fallback to ./processed_cache")
+                self.processed_path = './processed_cache'
+                os.makedirs(self.processed_path, exist_ok=True)
         
         # DataFrames
         self.users_df = None

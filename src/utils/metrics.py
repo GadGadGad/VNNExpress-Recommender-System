@@ -78,6 +78,17 @@ def compute_metrics(predictions: Union[Dict, np.ndarray, torch.Tensor],
             # Precision@K
             precision = hits / k
             results[f'Precision@{k}'].append(precision)
+
+            # MRR (Mean Reciprocal Rank) @ K
+            # Find the rank of the first relevant item
+            try:
+                # np.where returns tuple of arrays, we want first index of first match
+                first_hit_rank = np.where(np.isin(top_k, list(gt_items)))[0][0]
+                mrr = 1.0 / (first_hit_rank + 1)
+            except IndexError:
+                # No hits in top_k
+                mrr = 0.0
+            results[f'MRR@{k}'].append(mrr)
     
     # Average
     avg_results = {}
