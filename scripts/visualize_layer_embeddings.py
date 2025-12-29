@@ -62,7 +62,35 @@ def load_dataset(data_path='data'):
     
     # Build Graph
     print("Building adjacency matrix...")
-    from src.utils.graph_utils import build_sparse_graph
+    
+    def build_sparse_graph(n_users, n_items, train_pairs):
+        import scipy.sparse as sp
+        row = np.array([u for u, i in train_pairs])
+        col = np.array([i for u, i in train_pairs])
+        data = np.ones(len(train_pairs), dtype=np.float32)
+        
+        R = sp.coo_matrix((data, (row, col)), shape=(n_users, n_items))
+        
+        adj_mat = sp.dok_matrix((n_users + n_items, n_users + n_items), dtype=np.float32)
+        adj_mat = adj_mat.tolil()
+        R = R.tolil()
+        
+        adj_mat[:n_users, n_users:] = R
+        adj_mat[n_users:, :n_users] = R.T
+        adj_mat = adj_mat.tocoo()
+        
+        rowsum = np.array(adj_mat.sum(1))
+        d_inv_sqrt = np.power(rowsum, -0.5).flatten()
+        d_inv_sqrt[np.isinf(d_inv_sqrt)] = 0.
+        d_mat_inv_sqrt = sp.diags(d_inv_sqrt)
+        
+        norm_adj = d_mat_inv_sqrt.dot(adj_mat).dot(d_mat_inv_sqrt).tocoo()
+        
+        indices = torch.LongTensor(np.array([norm_adj.row, norm_adj.col]))
+        values = torch.FloatTensor(norm_adj.data)
+        shape = torch.Size(norm_adj.shape)
+        return torch.sparse_coo_tensor(indices, values, shape).coalesce()
+
     adj_norm = build_sparse_graph(loader.n_users, loader.n_items, train_data)
     adj_norm = adj_norm.to(device)
     
