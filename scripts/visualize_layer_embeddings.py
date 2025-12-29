@@ -205,7 +205,7 @@ def visualize_layer1(embeddings_dict, title="Layer 1 Embeddings", n_samples=500)
     for model_name, (u_emb, _) in embeddings_dict.items():
         # Sample random users
         indices = np.random.choice(len(u_emb), n_samples, replace=False)
-        u_sample = u_emb[indices].cpu().numpy()
+        u_sample = u_emb[indices].detach().cpu().numpy()
         
         pca = PCA(n_components=2)
         u_pca = pca.fit_transform(u_sample)
@@ -224,7 +224,7 @@ def visualize_layer1(embeddings_dict, title="Layer 1 Embeddings", n_samples=500)
     for model_name, (_, i_emb) in embeddings_dict.items():
         # Sample random items
         indices = np.random.choice(len(i_emb), n_samples, replace=False)
-        i_sample = i_emb[indices].cpu().numpy()
+        i_sample = i_emb[indices].detach().cpu().numpy()
         
         pca = PCA(n_components=2)
         i_pca = pca.fit_transform(i_sample)
