@@ -68,7 +68,7 @@
       \field{title}{Heterogeneous Graph Neural Network for Recommendation}
       \field{year}{2020}
     \endentry
-    \entry{he2020lightgcnsimplifyingpoweringgraph}{inproceedings}{}{}
+    \entry{he2020lightgcn}{inproceedings}{}{}
       \name{author}{6}{}{%
         {{hash=cf3f1b6bfe8e9131a8c719c1af0dce5d}{%
            family={He},
@@ -90,41 +90,39 @@
            familyi={L\bibinitperiod},
            given={Yan},
            giveni={Y\bibinitperiod}}}%
-        {{hash=b20f786926022139bb630b378300fe36}{%
+        {{hash=b63b81cfb08482419493a6590a74cdb7}{%
            family={Zhang},
            familyi={Z\bibinitperiod},
-           given={Yongdong},
-           giveni={Y\bibinitperiod}}}%
+           given={Yong-Dong},
+           giveni={Y\bibinithyphendelim D\bibinitperiod}}}%
         {{hash=00b734eb3fb588e4c6c94e4271080d0b}{%
            family={Wang},
            familyi={W\bibinitperiod},
            given={Meng},
            giveni={M\bibinitperiod}}}%
       }
+      \list{publisher}{1}{%
+        {ACM}%
+      }
       \strng{namehash}{5288584512ef6ddfdb0f4e97d3bced50}
-      \strng{fullhash}{2af67127bcbe8e1d217d8ffeaee94eae}
-      \strng{fullhashraw}{2af67127bcbe8e1d217d8ffeaee94eae}
-      \strng{bibnamehash}{2af67127bcbe8e1d217d8ffeaee94eae}
-      \strng{authorbibnamehash}{2af67127bcbe8e1d217d8ffeaee94eae}
+      \strng{fullhash}{12b20ff8201a14d0bd8a5d3035833b2a}
+      \strng{fullhashraw}{12b20ff8201a14d0bd8a5d3035833b2a}
+      \strng{bibnamehash}{12b20ff8201a14d0bd8a5d3035833b2a}
+      \strng{authorbibnamehash}{12b20ff8201a14d0bd8a5d3035833b2a}
       \strng{authornamehash}{5288584512ef6ddfdb0f4e97d3bced50}
-      \strng{authorfullhash}{2af67127bcbe8e1d217d8ffeaee94eae}
-      \strng{authorfullhashraw}{2af67127bcbe8e1d217d8ffeaee94eae}
+      \strng{authorfullhash}{12b20ff8201a14d0bd8a5d3035833b2a}
+      \strng{authorfullhashraw}{12b20ff8201a14d0bd8a5d3035833b2a}
       \field{sortinit}{3}
       \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
-      \field{eprintclass}{cs.IR}
-      \field{eprinttype}{arXiv}
+      \field{booktitle}{Proceedings of the 43rd International ACM SIGIR Conference on Research and Development in Information Retrieval (SIGIR ’20)}
       \field{title}{LightGCN: Simplifying and Powering Graph Convolution Network for Recommendation}
       \field{year}{2020}
-      \verb{eprint}
-      \verb 2002.02126
-      \endverb
-      \verb{urlraw}
-      \verb https://arxiv.org/abs/2002.02126
-      \endverb
-      \verb{url}
-      \verb https://arxiv.org/abs/2002.02126
+      \field{pages}{639\bibrangedash 648}
+      \range{pages}{10}
+      \verb{doi}
+      \verb 10.1145/3397271.3401063
       \endverb
     \endentry
   \enddatalist
