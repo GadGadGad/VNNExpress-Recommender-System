@@ -618,6 +618,8 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
         return None
         
     print(f"\nLoading {embedding_type} embeddings...")
+    if articles_path:
+        articles_path = Path(articles_path)
     embeddings = None
 
     # Helper to find file in multiple locations
