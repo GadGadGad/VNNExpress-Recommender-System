@@ -1295,6 +1295,7 @@ def main():
     parser = argparse.ArgumentParser(description='Train CF/CL Models')
     parser.add_argument('--model', '-m', choices=['simgcl', 'xsimgcl', 'lightgcl', 'ma-hcl', 'ma_hgn', 'bigcf', 'lightgcn'], 
                         default='simgcl', help='Model to train')
+    parser.add_argument('--data-path', default='data/processed/strict_g1', help='Path to graph data')
     parser.add_argument('--articles-path', default=None, help='Explicit path to articles.csv')
     parser.add_argument('--epochs', type=int, default=100)
     parser.add_argument('--batch-size', type=int, default=2048)
