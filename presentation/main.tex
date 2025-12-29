@@ -64,53 +64,87 @@
 \end{frame}
 
 %------------------------------------------------------------
-\section{Project Overview \& Methodology}
+\section{Project Overview}
 %------------------------------------------------------------
 \begin{frame}
     \frametitle{Motivation: Why News Recommendation?}
-    In the digital era, news platforms face \textbf{Information Overload}:
 
-    \vspace{0.3cm}
-    \begin{itemize}
-        \item \textbf{User Experience:} Navigating thousands of daily articles is overwhelming.
-        \item \textbf{Retention:} Personalized content increases user engagement and platform stickiness.
-        \item \textbf{Monetization:} Better engagement leads to higher ad revenue and subscriptions.
-    \end{itemize}
+    \begin{block}{The Problem}
+        In the digital era, news platforms face severe \textbf{Information Overload}.
+    \end{block}
 
-    \vspace{0.5cm}
-    \textbf{Target:} Build a system that understands both \textit{Content semantics} and \textit{User behavior}.
+    \vspace{0.2cm}
+    \begin{block}{Why It Matters}
+        \begin{itemize}
+            \item \textbf{User Experience:} Navigating thousands of daily articles is overwhelming.
+            \item \textbf{Retention:} Personalized content increases user engagement and platform stickiness.
+            \item \textbf{Monetization:} Better engagement leads to higher ad revenue and subscriptions.
+        \end{itemize}
+    \end{block}
+
+    \begin{block}{Overall Goal}
+        Develop a state-of-the-art recommendation engine for \textbf{Vietnamese news}.
+    \end{block}
+    % \vspace{0.3cm}
+    % \begin{alertblock}{Our Goal}
+    %     Build a system that understands both \textit{Content Semantics} and \textit{User Behavior}.
+    % \end{alertblock}
 \end{frame}
 
-\begin{frame}
-    \frametitle{Research Objectives}
-    Our goal is to develop a state-of-the-art recommendation engine for Vietnamese news:
 
-    \vspace{0.3cm}
-    \begin{itemize}
-        \item \textbf{Hybrid Logic:} Combine Collaborative Filtering (CF) with Content-Based (CB) techniques.
-        \item \textbf{Graph Learning:} Leverage GNNs to model complex user-article interactions.
-        \item \textbf{Multimodal Fusion:} Incorporate Social (replies) signals.
-        \item \textbf{Vietnamese NLP:} Optimize PhoBERT embeddings for news semantics.
-    \end{itemize}
-\end{frame}
+% \begin{frame}
+%     \frametitle{Research Objectives}
+
+%     \begin{block}{Overall Goal}
+%         Develop a state-of-the-art recommendation engine for \textbf{Vietnamese news}.
+%     \end{block}
+
+%     \vspace{0.3cm}
+%     \begin{columns}[T,onlytextwidth]
+%         \begin{column}{0.48\textwidth}
+%             \begin{block}{Modeling Perspective}
+%                 \begin{itemize}
+%                     \item \textbf{Hybrid Logic:} Combine Collaborative Filtering (CF) with Content-Based (CB).
+%                     \item \textbf{Graph Learning:} Model complex user–article interactions using GNNs.
+%                 \end{itemize}
+%             \end{block}
+%         \end{column}
+
+%         \begin{column}{0.48\textwidth}
+%             \begin{block}{Representation Perspective}
+%                 \begin{itemize}
+%                     \item \textbf{Multimodal Fusion:} Incorporate Social (reply) signals.
+%                     \item \textbf{Vietnamese NLP:} Optimize embeddings for news semantics.
+%                 \end{itemize}
+%             \end{block}
+%         \end{column}
+%     \end{columns}
+% \end{frame}
 
 
 \begin{frame}
     \frametitle{Problem Statement}
-    \textbf{Challenge:} How to recommend relevant news articles to users?
 
-    \vspace{0.5cm}
-    \textbf{Key Challenges:}
-    \begin{enumerate}
-        \item \textbf{Cold Start:} New users/articles have no interaction history
-        \item \textbf{Sparse Data:} Most users read very few articles (99.9\% sparsity)
-        \item \textbf{Vietnamese Language:} Limited NLP resources for Vietnamese text
-        \item \textbf{Dynamic Content:} News articles are time-sensitive
-    \end{enumerate}
+    \begin{block}{Research Question}
+        How can we recommend \textbf{relevant news articles} to users effectively?
+    \end{block}
 
-    \vspace{0.5cm}
-    \textbf{Our Approach:} Graph-based Contrastive Learning with PhoBERT embeddings
+    \vspace{0.3cm}
+    \begin{block}{Key Challenges}
+        \begin{enumerate}
+            \item \textbf{Cold Start:} New users and articles have no interaction history.
+            \item \textbf{Sparse Data:} Most users read very few articles (99.9\% sparsity).
+            \item \textbf{Vietnamese Language:} Limited NLP resources for Vietnamese text.
+            \item \textbf{Dynamic Content:} News articles are time-sensitive and short-lived.
+        \end{enumerate}
+    \end{block}
+
+    % \vspace{0.3cm}
+    % \begin{alertblock}{Our Direction}
+    %     Graph-based Contrastive Learning with PhoBERT embeddings.
+    % \end{alertblock}
 \end{frame}
+
 
 %------------------------------------------------------------
 \section{Dataset Construction and EDA}
@@ -118,134 +152,189 @@
 
 \begin{frame}
     \frametitle{VnExpress Data Crawling}
-    \textbf{Data Source:} VnExpress.net (largest Vietnamese news portal)
 
-    \vspace{0.3cm}
-    \textbf{Categories Crawled:}
-    \begin{columns}
-        \column{0.5\textwidth}
-        \begin{itemize}
-            \item 'Thế giới'
-            \item 'Giáo dục'
-            \item 'Thể thao'
-        \end{itemize}
+    \begin{columns}[T,onlytextwidth]
+        \begin{column}{0.48\textwidth}
+            \begin{block}{Data Source}
+                \textbf{VnExpress.net}
+            \end{block}
 
-        \column{0.5\textwidth}
-        \begin{itemize}
-            \item 'Thời sự'
-            \item 'Kinh doanh'
-            \item 'Khoa học công nghệ'
-        \end{itemize}
+            \vspace{0.2cm}
+            \begin{block}{Categories Crawled}
+                \begin{columns}[T,onlytextwidth]
+                    \begin{column}{0.5\textwidth}
+                        \begin{itemize}
+                            \item Thế giới
+                            \item Giáo dục
+                            \item Thể thao
+                        \end{itemize}
+                    \end{column}
+                    \begin{column}{0.5\textwidth}
+                        \begin{itemize}
+                            \item Thời sự
+                            \item Kinh doanh
+                            \item Khoa học công nghệ
+                        \end{itemize}
+                    \end{column}
+                \end{columns}
+            \end{block}
+        \end{column}
+
+        \begin{column}{0.52\textwidth}
+            \begin{block}{Collected Data}
+                \begin{itemize}
+                    \item \textbf{Articles:} title, content, author, publish date
+                    \item \textbf{Metadata:} category, tags (per article)
+                    \item \textbf{Comments:} user ID, comment text, reactions, replies
+                    \item \textbf{User profiles:} user ID, username, join date
+                \end{itemize}
+            \end{block}
+
+            \vspace{0.15cm}
+            \begin{alertblock}{Outcome}
+                A structured dataset enabling both \textit{content understanding} and \textit{behavior modeling}.
+            \end{alertblock}
+        \end{column}
     \end{columns}
-
-    \vspace{0.5cm}
-    \textbf{Collected Data:}
-    \begin{itemize}
-        \item Articles: title, content, author, publish date
-        \item Metadata: category, tags (per article)
-        \item Comments: user ID, comment text, reactions, replies
-        \item User profiles: user ID, username, join date
-    \end{itemize}
 \end{frame}
+
 
 \begin{frame}
     \frametitle{Data Collection Pipeline: 3-Step Workflow}
     Our crawler implements a resilient 3-stage architecture to handle high-volume news data:
 
-    \vspace{0.4cm}
+    \vspace{0.25cm}
     \centering
-    \begin{tikzpicture}[node distance=1.3cm, auto,
-            stage/.style={rectangle, draw, fill=blue!10, text width=2.5cm, text centered, rounded corners, minimum height=0.7cm, font=\scriptsize},
-            data/.style={cylinder, draw, shape border rotate=90, fill=green!10, text width=1.8cm, text centered, font=\tiny, aspect=0.25},
-            arrow/.style={->, >=stealth, thick}]
+    \begin{tikzpicture}[
+        font=\scriptsize,
+        x=1cm,y=1cm,
+        stage/.style={rectangle, draw, fill=blue!10, rounded corners, minimum height=0.9cm, minimum width=4.2cm, align=center},
+        data/.style={cylinder, draw, shape border rotate=90, fill=green!10, aspect=0.25,
+                     minimum height=0.9cm, minimum width=2.4cm, align=center},
+        note/.style={rectangle, draw=none, align=left, text width=5.1cm},
+        arrow/.style={->, >=Stealth, thick, rounded corners}
+    ]
 
-        \node[stage] (s1) {\textbf{Step 1: Discovery}\\(requests)};
-        \node[data, right=0.8cm of s1] (d1) {articles.csv};
-        \node[stage, below=1cm of s1] (s2) {\textbf{Step 2: Deep Crawl}\\(Selenium)};
-        \node[data, right=0.8cm of s2] (d2) {replies.csv};
-        \node[stage, below=1cm of s2] (s3) {\textbf{Step 3: Enrichment}\\(Playwright)};
-        \node[data, right=0.8cm of s3] (d3) {user\_profiles.csv};
+        % Row 1
+        \node[stage] (s1) at (0, 1.6) {\textbf{Step 1: Discovery}\\(requests)};
+        \node[data]  (d1) at (5.0, 1.6) {articles.csv};
+        \node[note]  (n1) at (9.3, 1.6) {Parallel scanning of category pages\\to find new URLs.};
 
-        \draw[arrow] (s1) -- (d1);
-        \draw[arrow] (d1) |- (s2);
-        \draw[arrow] (s2) -- (d2);
-        \draw[arrow] (d2) |- (s3);
-        \draw[arrow] (s3) -- (d3);
+        % Row 2
+        \node[stage] (s2) at (0, 0.0) {\textbf{Step 2: Deep Crawl}\\(Selenium)};
+        \node[data]  (d2) at (5.0, 0.0) {replies.csv};
+        \node[note]  (n2) at (9.3, 0.0) {Parallel browser workers to extract\\deep comment threads \& nested replies.};
 
-        \node[right=0.2cm of d1, text width=4cm, font=\tiny, align=left] {Parallel scanning of category pages to find new URLs.};
-        \node[right=0.2cm of d2, text width=4cm, font=\tiny, align=left] {Parallel browser workers to extract deep comment threads \& nested replies.};
-        \node[right=0.2cm of d3, text width=4cm, font=\tiny, align=left] {Scraping full history for all unique active commenters.};
+        % Row 3
+        \node[stage] (s3) at (0, -1.6) {\textbf{Step 3: Enrichment}\\(Playwright)};
+        \node[data]  (d3) at (5.0, -1.6) {user\_profiles.csv};
+        \node[note]  (n3) at (9.3, -1.6) {Scraping full history for all unique\\active commenters.};
+
+        % Horizontal arrows: stage -> data (straight, clean)
+        \draw[arrow] (s1.east) -- (d1.west);
+        \draw[arrow] (s2.east) -- (d2.west);
+        \draw[arrow] (s3.east) -- (d3.west);
+
+        % Vertical flow arrows: data1 -> stage2 -> data2 -> stage3 (outside corridor)
+        % Create a "corridor" x = 2.5 to route arrows so they never overlap boxes.
+        \coordinate (c1) at (2.5, 1.6);
+        \coordinate (c2) at (2.5, 0.0);
+        \coordinate (c3) at (2.5,-1.6);
+
+        \draw[arrow] (d1.west) -- (c1) -- (c2) -- (s2.west);
+        \draw[arrow] (d2.west) -- (c2) -- (c3) -- (s3.west);
+
     \end{tikzpicture}
 \end{frame}
 
+
 \begin{frame}
     \frametitle{Pipeline Orchestration \& Efficiency}
-    \begin{itemize}
-        \item \textbf{Parallelism:} \texttt{Step 2} (Selenium) is resource-intensive. We split the workload across $N$ parallel browser instances using \texttt{multiprocessing}.
-        \item \textbf{Resiliency:}
-              \begin{itemize}
-                  \item \textbf{Caching:} Avoids redundant HTTP requests for static content.
-                  \item \textbf{Checkpointing:} Atomic writes to CSV allow resuming from the last article in case of failure.
-                  \item \textbf{Headless Execution:} Minimizes resource overhead in production environments.
-              \end{itemize}
-        \item \textbf{Tool Stack:}
-              \begin{itemize}
-                  \item \textbf{Requests:} High-speed metadata extraction.
-                  \item \textbf{Selenium:} Handling complex JS (Load More buttons).
-                  \item \textbf{Playwright:} Modern, fast engine for user history scraping.
-              \end{itemize}
-    \end{itemize}
-\end{frame}
 
-%------------------------------------------------------------
-% Section Dataset Overview merged into Data Science
-%------------------------------------------------------------
+    \begin{columns}[T,onlytextwidth]
+        %------------------------------------------------
+        \begin{column}{0.33\textwidth}
+            \begin{block}{Parallelism}
+                \begin{itemize}
+                    \item \texttt{Step 2} (Selenium) is resource-intensive.
+                    \item Workload is split across $N$ parallel browser instances.
+                    \item Implemented via \texttt{multiprocessing}.
+                \end{itemize}
+            \end{block}
+        \end{column}
 
-\begin{frame}
-    \frametitle{Dataset Overview: High-Level Statistics}
-    \begin{columns}
-        \column{0.5\textwidth}
-        \textbf{Raw Behavioral Data:}
-        \begin{itemize}
-            \item \textbf{3,685} Articles
-            \item \textbf{42,050} Comments
-            \item \textbf{6} News Categories
-            \item \textbf{19,842} User Profiles
-        \end{itemize}
+        %------------------------------------------------
+        \begin{column}{0.34\textwidth}
+            \begin{block}{Resiliency}
+                \begin{itemize}
+                    \item \textbf{Caching:} avoids redundant HTTP requests.
+                    \item \textbf{Checkpointing:} atomic CSV writes enable safe resume.
+                    \item \textbf{Headless Execution:} minimizes runtime overhead.
+                \end{itemize}
+            \end{block}
+        \end{column}
 
-        \column{0.5\textwidth}
-        \textbf{Graph Interaction Set (G1-G3):}
-        \begin{itemize}
-            \item \textbf{13,117} Unique Users
-            \item \textbf{3,645} Active Articles
-            \item \textbf{38,505} Total Interactions
-            \item \textbf{Sparsity: 99.919\%}
-        \end{itemize}
+        %------------------------------------------------
+        \begin{column}{0.33\textwidth}
+            \begin{block}{Tool Stack}
+                \begin{itemize}
+                    \item \textbf{Requests:} fast metadata extraction.
+                    \item \textbf{Selenium:} handles dynamic JS (Load More).
+                    \item \textbf{Playwright:} efficient user history scraping.
+                \end{itemize}
+            \end{block}
+        \end{column}
     \end{columns}
+
+    \vspace{0.3cm}
 \end{frame}
 
 \begin{frame}
     \frametitle{Dataset Overview (VnExpress)}
-    \begin{columns}
-        \begin{column}{0.5\textwidth}
-            \textbf{Statistics:}
-            \begin{itemize}
-                \item \textbf{Users:} 13,117
-                \item \textbf{Articles:} 3,645
-                \item \textbf{Interactions:} 38,505
-                \item \textbf{Sparsity:} 99.92\%
-            \end{itemize}
-            \vspace{0.2cm}
-            \small The dataset is highly sparse, typical of news domains where users read only a tiny fraction of daily content.
+
+    \begin{columns}[T,onlytextwidth]
+        %---------------- Left: compact stats ----------------
+        \begin{column}{0.38\textwidth}
+
+            \begin{block}{Raw Behavioral Data}
+                \begin{itemize}
+                    \item \textbf{3,685} Articles
+                    \item \textbf{42,050} Comments
+                    \item \textbf{6} News Categories
+                    \item \textbf{19,842} User Profiles
+                \end{itemize}
+            \end{block}
+
+            \vspace{0.15cm}
+            \begin{block}{Graph Interaction Set (G1--G3)}
+                \begin{itemize}
+                    \item \textbf{13,117} Unique Users
+                    \item \textbf{3,645} Active Articles
+                    \item \textbf{38,505} Total Interactions
+                    \item \textbf{Sparsity: 99.919\%}
+                \end{itemize}
+            \end{block}
+
+            \vspace{0.15cm}
+            \begin{alertblock}{Key Takeaway}
+                \scriptsize
+                The dataset is highly sparse, typical of news domains where users read only a tiny fraction of daily content.
+            \end{alertblock}
+
         \end{column}
-        \begin{column}{0.5\textwidth}
+
+        %---------------- Right: big figure ----------------
+        \begin{column}{0.62\textwidth}
             \centering
-            % Assuming image exists at ../plots/eda_00_summary_dashboard.png
-            % Adjust path if necessary. LaTeX root is presentation/
             \includegraphics[width=\textwidth]{../plots/eda_00_summary_dashboard.png}
+
+            % Optional caption (keep tiny to avoid vbox overflow)
+            \vspace{0.1cm}
+            {\tiny Summary dashboard of dataset scale and interaction sparsity.}
         \end{column}
     \end{columns}
 \end{frame}
+
 
 \begin{frame}
     \frametitle{Data Sample: Interaction \& Content}
@@ -358,25 +447,6 @@
     \includegraphics[height=0.75\textheight,keepaspectratio]{../plots/graph_eda_03_connectivity.png}
 \end{frame}
 
-\begin{frame}
-    \frametitle{Graph Topology: A Heterogeneous Network}
-    \centering
-    \includegraphics[height=0.65\textheight]{../plots/graph_network_topology.png}
-    \vspace{0.1cm}
-    \begin{itemize}
-        \item \color{blue} \textbf{Blue Nodes:} \color{black} Active Users
-        \item \color{green!60!black} \textbf{Green Nodes:} \color{black} News Articles
-        \item \color{red} \textbf{Dashed Edges:} \color{black} Social Reply interactions
-    \end{itemize}
-\end{frame}
-
-\begin{frame}
-    \frametitle{Graph Topology}
-    Visualizing the User-Article-Comment bipartite graph structure.
-    \centering
-    \includegraphics[width=0.7\textwidth]{../plots/graph_network_topology.png}
-\end{frame}
-
 %------------------------------------------------------------
 \section{Motivation: Graph Expansion Strategy}
 %------------------------------------------------------------
@@ -393,31 +463,39 @@
 
 \begin{frame}
     \frametitle{Solution: Expanding the Graph Structure}
-    We progressively enrich the graph to alleviate sparsity. We define \textbf{3 Graph Tiers} for experimentation:
+
+    \begin{block}{Core Idea}
+        To alleviate extreme sparsity, we \textbf{progressively enrich the interaction graph}.
+        We define \textbf{three graph tiers (G1–G3)} for controlled experimentation.
+    \end{block}
 
     \vspace{0.3cm}
-    \begin{itemize}
-        \setlength\itemsep{1em}
-        \item \textbf{Graph G1 (Bipartite Baseline):}
-              \begin{itemize}
-                  \item Nodes: Users, Articles.
-                  \item Edges: \textit{Comment}.
-                  \item \textit{Standard CF setting.}
-              \end{itemize}
 
-        \item \textbf{Graph G2 (Social Expansion - "The Increase"):}
-              \begin{itemize}
-                  \item \textbf{+ User-User Edges:} Created via "Reply" interactions.
-                  \item \textit{Hypothesis: Users who converse share interests.}
-              \end{itemize}
+    \begin{enumerate}
+        \setlength\itemsep{0.9em}
 
-        \item \textbf{Graph G3 (Semantic Expansion):}
-              \begin{itemize}
-                  \item \textbf{+ Category Nodes:} Users connect to Categories they read.
-                  \item \textit{Hypothesis: High-level hubs reduce path length.}
-              \end{itemize}
-    \end{itemize}
+        \item \textbf{Graph G1 — Bipartite Baseline}
+        \begin{itemize}
+            \item \textbf{Nodes:} Users, Articles
+            \item \textbf{Edges:} \textit{Comment}
+            \item Represents a \textit{standard collaborative filtering setting}
+        \end{itemize}
+
+        \item \textbf{Graph G2 — Social Expansion (\textit{``The Increase''})}
+        \begin{itemize}
+            \item \textbf{+ User–User Edges} via \textit{Reply} interactions
+            \item \textit{Hypothesis:} Users who converse are likely to share interests
+        \end{itemize}
+
+        \item \textbf{Graph G3 — Semantic Expansion}
+        \begin{itemize}
+            \item \textbf{+ Category Nodes} connected to users they read
+            \item \textit{Hypothesis:} High-level semantic hubs reduce graph path length
+        \end{itemize}
+
+    \end{enumerate}
 \end{frame}
+
 
 \begin{frame}
     \frametitle{Core Innovation: Social Fusion (Graph G2)}
@@ -453,6 +531,18 @@
     \begin{block}{Impact on Sparsity}
         By adding User-User edges (G2), the GNN can propagate "interests" even if User A has only read 1 article.
     \end{block}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Graph Topology: A Heterogeneous Network}
+    \centering
+    \includegraphics[height=0.9\textheight]{../plots/graph_network_topology.png}
+    \vspace{0.1cm}
+    % \begin{itemize}
+    %     \item \color{blue} \textbf{Blue Nodes:} \color{black} Active Users
+    %     \item \color{green!60!black} \textbf{Green Nodes:} \color{black} News Articles
+    %     \item \color{red} \textbf{Dashed Edges:} \color{black} Social Reply interactions
+    % \end{itemize}
 \end{frame}
 
 %------------------------------------------------------------
