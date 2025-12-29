@@ -13,6 +13,7 @@
 \usepackage{graphicx}
 \usepackage[table]{xcolor}
 \usepackage{colortbl}
+\usepackage{multirow}
 \usepackage{tikz}
 \usetikzlibrary{positioning, arrows.meta, shapes.geometric}
 \usepackage{animate}
@@ -88,7 +89,7 @@
     \begin{itemize}
         \item \textbf{Hybrid Logic:} Combine Collaborative Filtering (CF) with Content-Based (CB) techniques.
         \item \textbf{Graph Learning:} Leverage GNNs to model complex user-article interactions.
-        \item \textbf{Multimodal Fusion:} Incorporate Social (replies) and Temporal (time-decay) signals.
+        \item \textbf{Multimodal Fusion:} Incorporate Social (replies) signals.
         \item \textbf{Vietnamese NLP:} Optimize PhoBERT embeddings for news semantics.
     \end{itemize}
 \end{frame}
@@ -535,7 +536,7 @@
 
 \begin{frame}
     \frametitle{Inspiration \& Theoretical Foundation}
-    \textbf{Where did this idea come from?} \\
+    \textbf{Where did this idea come from?}
     Our architecture is an adaptation of the \textbf{HGNR} framework, optimized with LightGCN mechanics.
 
     \vspace{0.3cm}
@@ -544,8 +545,7 @@
             \begin{block}{1. HGNR (arXiv:\allowbreak 2009.00799)}
                 \textbf{Heterogeneous GNN for Recommendation}
                 \begin{itemize}
-                    \item \textbf{Key Idea:} Users and items have multiple types of relationships \\
-                    (e.g., Click vs Reply).
+                    \item \textbf{Key Idea:} Users and items have multiple types of relationships (e.g., Comment vs Reply).
                     \item \textbf{Mechanism:} Use relation-specific aggregation steps.
                 \end{itemize}
             \end{block}
@@ -574,7 +574,7 @@
     \textbf{The Problem with Standard GNNs (LightGCN, NGCF):}
     \begin{itemize}
         \item They treat the graph as \textbf{Homogeneous}: All nodes are just "IDs", all edges are just "links".
-        \item \color{red} \textbf{Failure Case:} \color{black} A "Reply" (social trust) is treated identically to a "Click" (casual interest).
+        \item \color{red} \textbf{Failure Case:} \color{black} A "Reply" (social trust) is treated identically to a "Comment" (explicit interest).
     \end{itemize}
 
     \vspace{0.3cm}
@@ -583,7 +583,7 @@
         \item \textbf{Multiple Node Types:} Users $\ne$ Items.
         \item \textbf{Multiple Edge Types:}
               \begin{itemize}
-                  \item \texttt{User-Click-Item}: Explicit Interest.
+                  \item \texttt{User-Comment-Item}: Explicit Interest.
                   \item \texttt{User-Reply-User}: Social Influence / Trust.
               \end{itemize}
     \end{itemize}
@@ -640,92 +640,66 @@
     \end{columns}
 \end{frame}
 
-%------------------------------------------------------------
-
-%------------------------------------------------------------
-\section{Engineering Implementation}
-%------------------------------------------------------------
-
 \begin{frame}
-    \frametitle{1. Data Engineering Pipeline (ETL)}
-    \textbf{From Raw HTML to Graph Tensors:}
+    \frametitle{Alternative Component: MA-HCL (Failed Experiment)}
+    \small
+    \textbf{Idea:} Combine Heterogeneity (Social + Interest) with Contrastive Learning + LightGCN. \\
+    \textbf{Result:} Performance dropped (-48\%), proving that \textbf{Graph Attention (GAT)} is crucial for this dataset, while simple LightGCN over-smooths the distinct social signals.
 
     \vspace{0.3cm}
     \centering
-    \begin{tikzpicture}[node distance=1.2cm, auto,
-            process/.style={rectangle, draw, fill=blue!10, text width=2.5cm, text centered, rounded corners, minimum height=0.8cm, font=\scriptsize},
-            artifact/.style={cylinder, draw, shape border rotate=90, fill=green!10, text width=1.5cm, text centered, font=\tiny, aspect=0.25},
-            arrow/.style={->, >=stealth, thick}]
+    \begin{tikzpicture}[
+            scale=0.75, transform shape, % <--- Scaled down
+            node distance=1.2cm,         % <--- Reduced distance
+            layer/.style={rectangle, draw=blue!60, fill=blue!5, thick, minimum width=2.2cm, minimum height=0.8cm, rounded corners},
+            loss/.style={circle, draw=red!60, fill=red!5, thick, minimum size=0.8cm},
+            arrow/.style={->, >=stealth, thick, color=gray}
+        ]
+        % Inputs
+        \node (user) [circle, draw=black, fill=gray!20] {User};
+        \node (item) [circle, draw=black, fill=gray!20, right=1.5cm of user] {Item}; % Closer
 
-        \node[artifact] (raw) {Raw CSVs\\(Crawl)};
-        \node[process, right=0.6cm of raw] (clean) {\textbf{Preprocessing}\\ (Regex, NLP)};
-        \node[process, right=0.6cm of clean] (graph) {\textbf{Graph Builder}\\ (PyG HeteroData)};
-        \node[artifact, right=0.6cm of graph] (final) {graph.pt\\(Tensors)};
+        % Encoders
+        \node (interest) [layer, below=1.2cm of item, xshift=-0.5cm] {Interest (LightGCN)}; % Simplified Text
+        \node (social) [layer, below=1.2cm of user, xshift=0.5cm] {Social (LightGCN)};
 
-        \draw[arrow] (raw) -- (clean);
-        \draw[arrow] (clean) -- (graph);
-        \draw[arrow] (graph) -- (final);
+        % Embeddings
+        \node (emb_int) [rectangle, draw, below=0.8cm of interest] {$E_{Int}$};
+        \node (emb_soc) [rectangle, draw, below=0.8cm of social] {$E_{Soc}$};
+
+        % Fusion
+        \node (fusion) [layer, below=0.8cm of emb_int, xshift=-1.0cm, minimum width=3.5cm, fill=green!10] {Fusion ($\alpha E_{S} + (1-\alpha) E_{I}$)};
+
+        % Loss
+        \node (cl) [loss, right=0.8cm of interest] {CL};
+        \node (bpr) [loss, below=0.5cm of fusion] {BPR};
+
+        % Arrows
+        \draw[arrow] (user) -- (social);
+        \draw[arrow] (user) -- (interest);
+        \draw[arrow] (item) -- (interest);
+
+        \draw[arrow] (interest) -- (emb_int);
+        \draw[arrow] (social) -- (emb_soc);
+
+        \draw[arrow] (emb_int) -- (fusion);
+        \draw[arrow] (emb_soc) -- (fusion);
+
+        \draw[arrow] (fusion) -- (bpr);
+
+        % CL Arrows
+        \draw[arrow, dashed, red] (interest) -- (cl);
+        \draw[arrow, dashed, red, bend left] (social) to (cl);
+
+        \node[right=0.1cm of cl, text width=2.5cm, font=\scriptsize, align=left] {Contrastive Loss\\(Unstable)};
+
     \end{tikzpicture}
-
-    \vspace{0.4cm}
-    \begin{itemize}
-        \item \textbf{Text Processing:}
-              \begin{itemize}
-                  \item \texttt{vncorenlp} for segmentation.
-                  \item \texttt{VN-SBERT} for 768d dense embeddings.
-              \end{itemize}
-        \item \textbf{Graph Construction (G4):}
-              \begin{itemize}
-                  \item Map strings (User IDs) $\rightarrow$ Integer Indices $[0, N]$.
-                  \item Create Edge Indices ($2 \times E$) for 6 relation types.
-                  \item Normalize adjacency matrices $\hat{A} = D^{-1/2} A D^{-1/2}$.
-              \end{itemize}
-    \end{itemize}
 \end{frame}
 
-\begin{frame}
-    \frametitle{2. Model Training Pipeline}
-    \textbf{Orchestration Script:} \texttt{train\_cf\_models.py}
+%------------------------------------------------------------
 
-    \vspace{0.3cm}
-    \begin{block}{Training Loop (Epoch $t$)}
-        \begin{enumerate}
-            \item \textbf{Graph Encoder:} Pass graph $\mathcal{G}$ through $L$ layers of LightGCN/SimGCL.
-            \item \textbf{Vector Retrieval:} Get User $E_u$ and Item $E_i$ embeddings.
-            \item \textbf{Negative Sampling:} Sample hard negatives (items user didn't interact with).
-            \item \textbf{Loss Computation:}
-                  \[ \mathcal{L}_{total} = \mathcal{L}_{BPR}(pos, neg) + \lambda \cdot \mathcal{L}_{CL}(View_1, View_2) + \gamma \cdot \|\Theta\|_2 \]
-            \item \textbf{Backpropagation:} Update weights via Adam Optimizer ($lr=0.001$).
-        \end{enumerate}
-    \end{block}
-\end{frame}
+%------------------------------------------------------------
 
-\begin{frame}
-    \frametitle{3. Deployment Pipeline (Streamlit)}
-    \textbf{Real-time Inference Engine:}
-
-    \vspace{0.3cm}
-    \begin{columns}
-        \column{0.5\textwidth}
-        \begin{block}{Hybrid Scoring Logic}
-            For User $u$ and Candidate Item $i$:
-            \begin{enumerate}
-                \item \textbf{CF Score:} Dot product $s_{cf} = e_u^T e_i$ (from SimGCL).
-                \item \textbf{CB Score:} Cosine similarity $s_{cb}$ between User Profile vector and Item Vector (VN-SBERT).
-                \item \textbf{Fusion:}
-                      \[ S_{final} = \beta \cdot \text{norm}(s_{cf}) + (1-\beta) \cdot s_{cb} \]
-            \end{enumerate}
-        \end{block}
-
-        \column{0.5\textwidth}
-        \textbf{Features:}
-        \begin{itemize}
-            \item \textbf{Response Time:} $< 50ms$ (Pre-computed indices).
-            \item \textbf{Cold-Start Fallback:} If user is new ($s_{cf}=0$), fallback to Trending or Content-Based.
-            \item \textbf{Interactive UI:} Adjust $\beta$ weight dynamically.
-        \end{itemize}
-    \end{columns}
-\end{frame}
 
 %------------------------------------------------------------
 \section{Experimental Results \& Innovations}
@@ -742,16 +716,15 @@
         \scriptsize
         \begin{tabular}{l|c|cc|c}
             \toprule
-            \textbf{Model}                           & \textbf{Type}   & \textbf{R@10}   & \textbf{N@10}   & \textbf{Gain}   \\
+            \textbf{Model}                           & \textbf{Type}   & \textbf{R@10}   & \textbf{N@10}   & \textbf{Gain}    \\
             \midrule
-            \rowcolor{green!15} \textbf{MA-HGN (G2)} & \textbf{Hetero} & \textbf{0.4364} & \textbf{0.2636} & \textbf{Best}   \\
-            \rowcolor{green!15} \textbf{BIGCF (G1)}  & \textbf{CF}     & \textbf{0.4015} & \textbf{0.2488} & \textbf{-8.0\%} \\
-            NGCF (G2)                                & CF              & 0.3389          & 0.2180          & -22.3\%         \\
-            LightGCL (G1)                            & Graph CL        & 0.3081          & 0.2021          & -29.4\%         \\
-            XSimGCL (G2)                             & Graph CL        & 0.3036          & 0.2002          & -30.4\%         \\
-            IGCL (G3)                                & Graph CL        & 0.2845          & 0.1832          & -34.8\%         \\
-            MA-HCL (G3)                              & Hetero CL       & 0.2260          & 0.1491          & -48.2\%         \\
-            SimGCL (G3)                              & Graph CL        & 0.2181          & 0.1333          & -50.0\%         \\
+            \rowcolor{green!15} \textbf{MA-HGN (G2)} & \textbf{Hetero} & \textbf{0.4364} & \textbf{0.2636} & \textbf{Best}    \\
+            \rowcolor{green!15} \textbf{BIGCF (G1)}  & \textbf{CF}     & \textbf{0.4015} & \textbf{0.2488} & \textbf{-8.0\%}  \\
+            LightGCL (G1)                            & Graph CL        & 0.3081          & 0.2021          & -29.4\%          \\
+            XSimGCL (G2)                             & Graph CL        & 0.3036          & 0.2002          & -30.4\%          \\
+            LightGCN (G1)                            & GNN             & 0.2812          & 0.1739          & -35.6\%          \\
+            MA-HCL (G3)                              & Hetero CL       & 0.2260          & 0.1491          & -48.2\%          \\
+            SimGCL (G3)                              & Graph CL        & 0.2181          & 0.1333          & -50.0\%          \\
             \bottomrule
         \end{tabular}
     \end{table}
@@ -786,7 +759,16 @@
             NGCF                                 & CF (GNN)      & 0.0387          & 0.0223          & Baseline GNN        \\
             MA-HGN                               & Hetero        & 0.0369          & 0.0201          & Relation-focused    \\
             MA-HCL                               & Hetero CL     & 0.0320          & 0.0192          & Hetero CL           \\
+            LightGCN                             & GNN           & 0.0266          & 0.0151          & Simple GNN          \\
             SimGCL                               & Graph CL      & 0.0228          & 0.0122          & Baseline CL         \\
+            \midrule
+            User-KNN (Pearson)                   & Memory CF     & 0.0412          & 0.0235          & Baseline            \\
+            User-KNN (Jaccard)                   & Memory CF     & 0.0336          & 0.0178          & Baseline            \\
+            Item-KNN (Cosine)                    & Memory CF     & 0.0213          & 0.0113          & Baseline            \\
+            Item-KNN (Jaccard)                   & Memory CF     & 0.0119          & 0.0057          & Baseline            \\
+            SVD (k=64)                           & Model CF      & 0.0123          & 0.0058          & Baseline            \\
+            NMF (ALS-like)                       & Model CF      & 0.0112          & 0.0052          & Baseline            \\
+            Slope One (Implicit)                 & Memory CF     & 0.0083          & 0.0038          & Poor on Implicit    \\
             \bottomrule
         \end{tabular}
     \end{table}
@@ -863,6 +845,8 @@
 %         \quad \small{(random init)}
 %     \end{block}
 % \end{frame}
+
+
 
 \begin{frame}
     \frametitle{Ablation Study: GNN Architecture}
@@ -992,38 +976,7 @@
     \end{itemize}
 \end{frame}
 
-\begin{frame}
-    \frametitle{Impact of Embeddings (Ablation Study)}
-    \textbf{Question:} Which pretrained Vietnamese embeddings work best?\\
-    Testing \textbf{SimGCL on G2} with different initializations:
 
-    \vspace{0.2cm}
-    \begin{table}
-        \centering
-        \footnotesize
-        \begin{tabular}{l|c|c|c|c|c}
-            \toprule
-            \textbf{Model}                      & \textbf{Graph} & \textbf{R@10}   & \textbf{NDCG@10} & \textbf{Recall Gain} & \textbf{Protocol} \\
-            \midrule
-            \rowcolor{green!15} \textbf{MA-HCL} & \textbf{G2}    & \textbf{0.0453} & \textbf{0.0245}  & Best CF              & Full              \\
-            SimGCL                              & G3             & 0.2127          & 0.1391           & Standard             & Full              \\
-            XSimGCL                             & G3             & 0.2068          & 0.1371           & -3\%                 & Full              \\
-            \midrule
-            BGE-M3                              & G2             & 0.0524          & 0.0281           & Baseline (CB)        & Full              \\
-            TF-IDF                              & G2             & 0.0524          & 0.0287           & Baseline (CB)        & Full              \\
-            \midrule
-            \rowcolor{blue!10} \textbf{MA-HCL}  & \textbf{G1}    & \textbf{0.2485} & \textbf{0.1598}  & SOTA                 & LOO100            \\
-            XSimGCL                             & G2             & 0.5792          & 0.4368           & -22\%                & LOO100            \\
-            \bottomrule
-        \end{tabular}
-    \end{table}
-
-    \vspace{0.2cm}
-    \begin{itemize}
-        \item \textbf{Insight:} In dense strict-filtered graphs, topology (G2) dominates performance, reducing sensitivity to embedding initialization.
-        \item Pretrained embeddings remain important for cold-start robustness.
-    \end{itemize}
-\end{frame}
 
 
 
@@ -1061,30 +1014,7 @@
     \textbf{Verdict:} Category Hubs provide a scalable semantic alternative, capturing thematic interests without the ``Density Trap''.
 \end{frame}
 
-\begin{frame}
-    \frametitle{Ablation Study: Impact of Innovations}
-    How much does each "signal" contribute to the performance?
 
-    \vspace{0.3cm}
-    \begin{table}
-        \centering
-        \begin{tabular}{llcc}
-            \toprule
-            \textbf{Configuration}                                & \textbf{Recall@10} & \textbf{Gain}     \\
-            \midrule
-            Base Graph (LightGCN)                                 & 0.0284             & --                \\
-            + \color{red} Social Fusion \color{black}             & 0.0532             & \textbf{+87.3\%}  \\
-            + \color{blue} Temporal Decay \color{black} (XSimGCL) & \textbf{0.0782}    & \textbf{+175.4\%} \\
-            \bottomrule
-        \end{tabular}
-    \end{table}
-
-    \vspace{0.4cm}
-    \begin{itemize}
-        \item \textbf{Social Fusion:} Dramatically reduces sparsity by connecting users, providing a huge jump in "Discovery".
-        \item \textbf{Temporal Decay:} Refines the rankings by ensuring only "Relevant-Now" news reaches the user.
-    \end{itemize}
-\end{frame}
 
 \begin{frame}
     \frametitle{Our Contribution: MA-HCL Model}
@@ -1119,35 +1049,7 @@
     \end{itemize}
 \end{frame}
 
-\begin{frame}
-    \frametitle{Edge Type Ablation Study}
-    \textbf{Question:} Do additional edge features improve the model?\\
-    Testing \textbf{MA-HCL} with incrementally added features:
 
-    \vspace{0.2cm}
-    \begin{table}
-        \centering
-        \footnotesize
-        \begin{tabular}{l|c|cc|c}
-            \toprule
-            \textbf{Configuration}                   & \textbf{Edges} & \textbf{R@10}   & \textbf{NDCG@10} & \textbf{$\Delta$}      \\
-            \midrule
-            Baseline (UA + UU)                       & 27k            & 0.1406          & 0.0960           & --                     \\
-            + Weighted edges                         & 27k            & 0.1253          & 0.0822           & \textcolor{red}{-11\%} \\
-            + Author nodes                           & 30k            & 0.1341          & 0.0931           & -5\%                   \\
-            + Full combo                             & 37k            & 0.1426          & 0.0948           & +1\%                   \\
-            \midrule
-            \rowcolor{green!15} \textbf{G2 Original} & \textbf{65k}   & \textbf{0.1502} & \textbf{0.1024}  & \textbf{+7\%}          \\
-            \bottomrule
-        \end{tabular}
-    \end{table}
-
-    \vspace{0.2cm}
-    \begin{itemize}
-        \item \textbf{Weighted edges hurt} (-11\%): Engagement/recency decay adds noise
-        \item \textbf{G2 Original is optimal}: Simple hetero structure works best
-    \end{itemize}
-\end{frame}
 
 \begin{frame}
     \frametitle{Evaluation Methodology \& Validity}
@@ -1209,31 +1111,7 @@
     \end{block}
 \end{frame}
 
-\begin{frame}
-    \frametitle{Discussion: TF-IDF vs PhoBERT (Final Comparison)}
-    \textbf{Refined Result:} Even with 10x improvement, PhoBERT still trails TF-IDF.
 
-    \vspace{0.2cm}
-    \begin{columns}
-        \begin{column}{0.48\textwidth}
-            \begin{block}{TF-IDF (Keyword Lead)}
-                \begin{itemize}
-                    \item \textbf{Precision:} Perfect match for Vietnamese named entities (Tây Nguyên, EVN).
-                    \item \textbf{Specificity:} Captures the exact "Who, Where, When" of news.
-                \end{itemize}
-            \end{block}
-        \end{column}
-
-        \begin{column}{0.48\textwidth}
-            \begin{block}{PhoBERT (Semantic Context)}
-                \begin{itemize}
-                    \item \textbf{Fuzzy Logic:} Maps "Bitcoin" $\approx$ "Finance", losing niche specificity.
-                    \item \textbf{Pooling Dilution:} Mean pooling blends specific entities into a generic sentence vector.
-                \end{itemize}
-            \end{block}
-        \end{column}
-    \end{columns}
-\end{frame}
 
 \begin{frame}
     \frametitle{Benchmarking Context: The Sparsity Barrier}
@@ -1262,62 +1140,13 @@
     \end{block}
 \end{frame}
 
-\begin{frame}
-    \frametitle{Scientific Impact: Relative Gain Analysis}
-    The most critical metric in Recommendation research is the \textbf{improvement over the baseline}.
 
-    \vspace{0.5cm}
-    \centering
-    \begin{tikzpicture}
-        \node[draw, thick, circle, fill=gray!20] (LB) at (0,0) {LightGCN};
-        \node[draw, thick, circle, fill=blue!20] (XS) at (5,0) {XSimGCL};
-        \draw[->, line width=2pt, blue!70] (LB) -- (XS) node[midway, above] {\textbf{+181\% Recall Increase}};
-
-        \node[draw, thick, circle, fill=gray!10] (NG) at (0,-1.5) {NGCF};
-        \draw[->, line width=1.5pt, gray] (NG) to [bend right] node[midway, below] {\textbf{+206\% Total Gain}} (XS);
-    \end{tikzpicture}
-
-    \vspace{0.5cm}
-    \begin{itemize}
-        \item Our proposed stack is not just "better" - it's a \textbf{3x boost} in discovery power.
-        \item Proves that \textbf{Contrastive Learning} is essential for sparse Vietnamese News.
-    \end{itemize}
-\end{frame}
 
 %------------------------------------------------------------
 % Section Core Innovations merged into Results & Innovations
 %------------------------------------------------------------
 
-\begin{frame}
-    \frametitle{Enhanced Recommendation Signals}
-    We improved the system's accuracy by integrating multi-modal signals:
 
-    \vspace{0.3cm}
-    \begin{itemize}
-        \item \textbf{Temporal Signals (Time-Decay):} Applying $w = e^{-0.01 \Delta t}$ to prioritize recent interactions, critical for news.
-        \item \textbf{Social Signals (Reply Network):} Injecting user-user reply edges into the GNN adjacency matrix to solve sparsity.
-        \item \textbf{Hard Negative Mining:} Using popularity-based sampling instead of random negatives to improve discriminative power.
-    \end{itemize}
-
-    \vspace{0.3cm}
-    \centering
-    \begin{tikzpicture}[node distance=1.5cm, auto,
-            node/.style={circle, draw, fill=green!10, minimum size=0.8cm, font=\scriptsize},
-            arrow/.style={->, >=stealth, thick}]
-        \node[node] (u1) {U1};
-        \node[node, right=1cm of u1] (u2) {U2};
-        \node[node, below=0.8cm of u1] (i1) {I1};
-        \node[node, right=1cm of i1] (i2) {I2};
-
-        \draw[arrow, blue] (u1) -- (i1) node[midway, left] {\tiny $e^{-\lambda t}$};
-        \draw[arrow, red, <->] (u1) -- (u2) node[midway, above] {\tiny Social};
-        \draw[arrow, blue] (u2) -- (i2) node[midway, right] {\tiny $e^{-\lambda t}$};
-    \end{tikzpicture}
-
-    \begin{block}{Innovation Logic}
-        \scriptsize Combining Temporal Decay (Blue) with Social Connection (Red) to predict missing links.
-    \end{block}
-\end{frame}
 
 %------------------------------------------------------------
 \section{Live Demo \& Conclusion}
@@ -1382,6 +1211,9 @@
     \vspace{1cm}
     \large Q \& A
 \end{frame}
+%------------------------------------------------------------
+
+
 %------------------------------------------------------------
 
 \begin{frame}[allowframebreaks]

@@ -182,14 +182,8 @@ class GNNDataConverter:
         
         print(f"   → {len(self.replies):,} initial interactions captured")
         
-        # Apply Time Decay (lambda=0.01 for daily decay)
-        if 'date' in self.replies.columns and self.replies['date'].notna().any():
-            max_date = self.replies['date'].max()
-            self.replies['days_ago'] = (max_date - self.replies['date']).dt.total_seconds() / (24 * 3600)
-            self.replies['time_decay'] = np.exp(-0.01 * self.replies['days_ago'].fillna(30))
-            print(f"   → Applied Time Decay (Avg weight: {self.replies['time_decay'].mean():.3f})")
-        else:
-            self.replies['time_decay'] = 1.0
+        # Time Decay REMOVED as per user request
+        self.replies['time_decay'] = 1.0
 
         # Iterative K-Core filtering
         prev_len = 0

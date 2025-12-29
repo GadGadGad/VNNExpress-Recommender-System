@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Train Collaborative Filtering / Contrastive Learning Models
-Supports: NGCF, SimpleX, DirectAU, SGL, SimGCL, NCL, LightGCL
+Supports: SimpleX, DirectAU, SGL, SimGCL, NCL, LightGCL
 """
 import os
 import sys
@@ -20,10 +20,10 @@ from datetime import datetime
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.models import NGCF, LightGCL, SimGCL, XSimGCL, MAHGN
+from src.models import LightGCL, SimGCL, XSimGCL, MAHGN, LightGCN
 from src.models.ma_hcl import MAHCL
 from src.models.bigcf import BIGCF
-from src.models.igcl import IGCL
+
 from src.models.semantic_id import generate_semantic_ids
 from src.inference.re_ranker import CalibratedReRanker
 import scipy.sparse as sp
@@ -618,6 +618,8 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
         return None
         
     print(f"\nLoading {embedding_type} embeddings...")
+    if articles_path:
+        articles_path = Path(articles_path)
     embeddings = None
 
     # Helper to find file in multiple locations
@@ -647,13 +649,14 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
         emb_filename = 'phobert_article_embeddings.pt'
     elif embedding_type == 'vndoc':
         emb_filename = 'vndoc_article_embeddings.pt'
-    elif embedding_type in ['bge-m3', 'gte', 'e5-large', 'e5-base', 'vn-sbert']:
+    elif embedding_type in ['bge-m3', 'gte', 'e5-large', 'e5-base', 'vn-sbert', 'vndoc']:
         name_map = {
             'bge-m3': 'bge-m3_article_embeddings.pt',
             'gte': 'gte-multilingual_article_embeddings.pt',
             'e5-large': 'e5-large_article_embeddings.pt',
             'e5-base': 'e5-base_article_embeddings.pt',
-            'vn-sbert': 'vietnamese-sbert_article_embeddings.pt'
+            'vn-sbert': 'vietnamese-sbert_article_embeddings.pt',
+            'vndoc': 'vietnamese-document-embedding.pt'
         }
         emb_filename = name_map[embedding_type]
     
@@ -679,7 +682,8 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
                      'gte': 'thenlper/gte-large', 
                      'e5-large': 'intfloat/multilingual-e5-large',
                      'e5-base': 'intfloat/multilingual-e5-base',
-                     'vn-sbert': 'keepitreal/vietnamese-sbert'
+                     'vn-sbert': 'keepitreal/vietnamese-sbert',
+                     'vndoc': 'dangvantuan/vietnamese-document-embedding'
                  }
                  
                  model_name = hf_map.get(embedding_type)
@@ -695,12 +699,14 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
                          print(f"  ✅ Using explicit articles file: {articles_path}")
                      else:
                          print(f"  ⚠️ Warning: Explicit articles path not found: {articles_path}")
-                         print(f"  ... Falling back to auto-search in: {search_dirs}")
+                     print(f"  ... Falling back to auto-search in: {search_dirs}")
+                     if not articles_path:
                          articles_path = resolve_path('articles.csv', search_dirs)
-                         if (not articles_path) and data_path: articles_path = Path(data_path).parent / 'articles.csv'
-                         if not articles_path: articles_path = Path('data/raw/articles.csv')
+                     if (not articles_path) and data_path: articles_path = Path(data_path).parent / 'articles.csv'
+                     if not articles_path: articles_path = Path('data/raw/articles.csv')
                  else:
-                     articles_path = resolve_path('articles.csv', search_dirs)
+                     if not articles_path:
+                         articles_path = resolve_path('articles.csv', search_dirs)
                      if (not articles_path) and data_path: articles_path = Path(data_path).parent / 'articles.csv'
                      if not articles_path: articles_path = Path('data/raw/articles.csv')
 
@@ -728,7 +734,13 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
                  print(f"  Loaded {len(df)} articles. Encoding with {model_name}...")
                  
                  # Prepare Text
-                 df['text'] = df['title'].fillna('') + ' ' + df['abstract'].fillna('')
+                 text_col = 'abstract' if 'abstract' in df.columns else 'short_description'
+                 if text_col not in df.columns:
+                     print(f"  ⚠️ neither 'abstract' nor 'short_description' found. Using title only.")
+                     df['text'] = df['title'].fillna('')
+                 else:
+                     df['text'] = df['title'].fillna('') + ' ' + df[text_col].fillna('')
+                 
                  texts = df['text'].tolist()
                  
                  # Encode
@@ -762,7 +774,9 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
             
             # Load articles CSV để lấy nội dung text
             # Load articles CSV
-            articles_path = resolve_path('articles.csv', search_dirs)
+            # Load articles CSV
+            if not articles_path:
+                articles_path = resolve_path('articles.csv', search_dirs)
             
             if not articles_path:
                  # Last resort fallback
@@ -1122,7 +1136,7 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
             
             # Different models have different loss signatures
             if hasattr(model, 'calculate_loss'):
-                if args.model in ['simgcl', 'bigcf', 'igcl', 'xsimgcl']:
+                if args.model in ['simgcl', 'bigcf', 'igcl', 'xsimgcl', 'lightgcn']:
                     graph_structure = data.get('adj_norm')
                     if graph_structure is None:
                         # Fallback if not computed (shouldn't happen if setup is correct)
@@ -1187,8 +1201,7 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
                                                                   semantic_ids=semantic_ids, user_priors=user_priors)
                 elif isinstance(model, BIGCF):
                     loss, bpr, cl, reg = model.calculate_loss(graph_structure, users, pos_items, neg_items)
-                elif isinstance(model, IGCL):
-                    loss, bpr, ssl, reg = model.calculate_loss(graph_structure, users, pos_items, neg_items)
+
                 elif isinstance(model, MAHGN):
                     # MAHGN logic for heterogeneous graph structure
                     hetero_graph_structure = getattr(data, 'edge_index_dict', None)
@@ -1285,9 +1298,9 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
 
 def main():
     parser = argparse.ArgumentParser(description='Train CF/CL Models')
-    parser.add_argument('--model', '-m', choices=['ngcf', 'simgcl', 'xsimgcl', 'lightgcl', 'ma-hcl', 'ma_hgn', 'bigcf', 'igcl'], 
-                        default='ngcf', help='Model to train')
-    parser.add_argument('--data-path', default='data/processed', help='Data directory')
+    parser.add_argument('--model', '-m', choices=['simgcl', 'xsimgcl', 'lightgcl', 'ma-hcl', 'ma_hgn', 'bigcf', 'lightgcn'], 
+                        default='simgcl', help='Model to train')
+    parser.add_argument('--data-path', default='data/processed/strict_g1', help='Path to graph data')
     parser.add_argument('--articles-path', default=None, help='Explicit path to articles.csv')
     parser.add_argument('--epochs', type=int, default=100)
     parser.add_argument('--batch-size', type=int, default=2048)
@@ -1415,7 +1428,7 @@ def main():
 
     # Precompute adj_norm for SimGCL / CGRC / BIGCF / IGCL / XSimGCL
     # Precompute adj_norm for graph-based models
-    graph_models = ['simgcl', 'bigcf', 'igcl', 'xsimgcl', 'lightgcl', 'ma-hcl', 'ma_hgn']
+    graph_models = ['simgcl', 'bigcf', 'igcl', 'xsimgcl', 'lightgcl', 'ma-hcl', 'ma_hgn', 'lightgcn']
     if args.model in graph_models:
         print(f"\nPrecomputing normalized adjacency for {args.model.upper()}...")
         
@@ -1522,11 +1535,7 @@ def main():
         re_ranker = CalibratedReRanker(categories, alpha=0.5, lambda_mmr=0.5)
         print(f"  Loaded {n_cats} categories for {len(categories)} items.")
     
-    if args.model == 'ngcf':
-        model = NGCF(n_users, n_items, embedding_dim=args.hidden_dim, n_layers=args.n_layers).to(device)
-        if pretrained_emb is not None:
-             model.item_embedding.weight.data.copy_(pretrained_emb)
-             print("  Transferred embeddings to NGCF")
+
 
     elif args.model == 'lightgcl':
         model = LightGCLWrapper(n_users, n_items, embed_dim=args.hidden_dim, n_layers=args.n_layers, 
@@ -1538,18 +1547,23 @@ def main():
             model.model.E_i_0.data.copy_(pretrained_emb)
             print("  Transferred embeddings to LightGCL (E_i_0)")
             
+    elif args.model == 'lightgcn':
+        # LightGCN (No SSL overhead)
+        from src.models import LightGCN
+        model = LightGCN(n_users, n_items, embedding_dim=args.hidden_dim, n_layers=args.n_layers, 
+                         dropout=args.dropout).to(device)
+        
+        if pretrained_emb is not None:
+             model.item_embedding.weight.data.copy_(pretrained_emb)
+             print("  Transferred embeddings to LightGCN")
+             
     elif args.model == 'bigcf':
         model = BIGCF(n_users, n_items, embedding_dim=args.hidden_dim, n_layers=args.n_layers).to(device)
         if pretrained_emb is not None:
              model.item_embedding.weight.data.copy_(pretrained_emb)
              print("  Transferred embeddings to BIGCF")
 
-    elif args.model == 'igcl':
-        model = IGCL(n_users, n_items, embedding_dim=args.hidden_dim, n_layers=args.n_layers,
-                     ssl_weight=args.ssl_weight, temp=args.temp).to(device)
-        if pretrained_emb is not None:
-             model.item_embedding.weight.data.copy_(pretrained_emb)
-             print("  Transferred embeddings to IGCL")
+
 
     elif args.model == 'ma-hcl':
         from src.models.ma_hcl import MAHCL

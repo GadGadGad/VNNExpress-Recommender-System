@@ -1,8 +1,0 @@
-\babel@toc {english}{}\relax 
-\beamer@sectionintoc {1}{Project Overview \& Methodology}{3}{0}{1}
-\beamer@sectionintoc {2}{Dataset Construction and EDA}{7}{0}{2}
-\beamer@sectionintoc {3}{State-of-the-Art (SOTA) Baselines}{24}{0}{3}
-\beamer@sectionintoc {4}{Proposed Method: MA-HGN}{28}{0}{4}
-\beamer@sectionintoc {5}{Engineering Implementation}{32}{0}{5}
-\beamer@sectionintoc {6}{Experimental Results \& Innovations}{36}{0}{6}
-\beamer@sectionintoc {7}{Live Demo \& Conclusion}{55}{0}{7}
