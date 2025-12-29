@@ -203,8 +203,8 @@
 
 
 \begin{frame}
-  \frametitle{Data Collection Pipeline: 3-Step Workflow}
-  Our crawler implements a resilient 3-stage architecture to handle high-volume news data:
+    \frametitle{Data Collection Pipeline: 3-Step Workflow}
+    Our crawler implements a resilient 3-stage architecture to handle high-volume news data:
 
     \vspace{0.25cm}
     \centering
@@ -348,98 +348,49 @@
     \vspace{0.3cm}
     \textbf{2. Social Sample (Comment/Reply)} \\
     \begin{itemize}
-      \item \textbf{3,685} Articles
-      \item \textbf{42,050} Comments
-      \item \textbf{6} News Categories
-      \item \textbf{19,842} User Profiles
+        \item \textbf{User A:} "Nếu giỏi thì cố gắng mua lại mấy công ty này..."
+        \item \textbf{User B:} (Reply to A) "Mua lại Meta chắc cần nghìn tỷ USD..." \\
+              $\Rightarrow$ \color{red} Social Connection detected \color{black}
     \end{itemize}
 
-    \column{0.5\textwidth}
-    \textbf{Graph Interaction Set (G1-G3):}
+    \vspace{0.3cm}
+    \begin{block}{Feature Mapping}
+        \scriptsize
+        \begin{itemize}
+            \item \textbf{Article} $\rightarrow$ PhoBERT Embedding ($d=64$) $\rightarrow$ Node Feature.
+            \item \textbf{User} $\rightarrow$ Interaction aggregation $\rightarrow$ Node Embedding.
+            \item \textbf{Reply} $\rightarrow$ User-User Edge in the Heterogeneous Graph.
+        \end{itemize}
+    \end{block}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Category Distribution (VnExpress)}
+    \centering
+    \includegraphics[width=0.95\textwidth]{../plots/eda_09_metadata_categories.png}
+    \vspace{0.2cm}
     \begin{itemize}
-      \item \textbf{13,117} Unique Users
-      \item \textbf{3,645} Active Articles
-      \item \textbf{38,505} Total Interactions
-      \item \textbf{Sparsity: 99.919\%}
+        \item \textbf{Thế giới} and \textbf{Thời sự} are the dominant categories.
+        \item Skewed distribution reflects editorial priorities.
     \end{itemize}
-  \end{columns}
 \end{frame}
 
 \begin{frame}
-  \frametitle{Dataset Overview (VnExpress)}
-  \begin{columns}
-    \begin{column}{0.5\textwidth}
-      \textbf{Statistics:}
-      \begin{itemize}
-        \item \textbf{Users:} 13,117
-        \item \textbf{Articles:} 3,645
-        \item \textbf{Interactions:} 38,505
-        \item \textbf{Sparsity:} 99.92\%
-      \end{itemize}
-      \vspace{0.2cm}
-      \small The dataset is highly sparse, typical of news domains where users read only a tiny fraction of daily content.
-    \end{column}
-    \begin{column}{0.5\textwidth}
-      \centering
-      % Assuming image exists at ../plots/eda_00_summary_dashboard.png
-      % Adjust path if necessary. LaTeX root is presentation/
-      \includegraphics[width=\textwidth]{../plots/eda_00_summary_dashboard.png}
-    \end{column}
-  \end{columns}
+    \frametitle{User Engagement Patterns (1/2)}
+    \centering
+    \includegraphics[width=0.95\textwidth]{../plots/eda_03_user_activity_top.png}
+    \begin{block}{Distribution Analysis}
+        Article popularity follows Zipf's law. Top 10 users account for 15\% of all interactions.
+    \end{block}
 \end{frame}
 
 \begin{frame}
-  \frametitle{Data Sample: Interaction \& Content}
-  \textbf{1. Content Sample (Article)} \\
-  \textit{"Chinh phục loạt 'ông lớn' công nghệ sau hơn 500 lần bị từ chối"} \\
-  $\rightarrow$ \textbf{Tags:} [ Meta, Amazon, Apple, Tesla, kĩ sư công nghệ ]
-
-  \vspace{0.3cm}
-  \textbf{2. Social Sample (Comment/Reply)} \\
-  \begin{itemize}
-    \item \textbf{User A:} "Nếu giỏi thì cố gắng mua lại mấy công ty này..."
-    \item \textbf{User B:} (Reply to A) "Mua lại Meta chắc cần nghìn tỷ USD..." \\
-          $\Rightarrow$ \color{red} Social Connection detected \color{black}
-  \end{itemize}
-
-  \vspace{0.3cm}
-  \begin{block}{Feature Mapping}
-    \scriptsize
-    \begin{itemize}
-      \item \textbf{Article} $\rightarrow$ PhoBERT Embedding ($d=64$) $\rightarrow$ Node Feature.
-      \item \textbf{User} $\rightarrow$ Interaction aggregation $\rightarrow$ Node Embedding.
-      \item \textbf{Reply} $\rightarrow$ User-User Edge in the Heterogeneous Graph.
-    \end{itemize}
-  \end{block}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Category Distribution (VnExpress)}
-  \centering
-  \includegraphics[width=0.95\textwidth]{../plots/eda_09_metadata_categories.png}
-  \vspace{0.2cm}
-  \begin{itemize}
-    \item \textbf{Thế giới} and \textbf{Thời sự} are the dominant categories.
-    \item Skewed distribution reflects editorial priorities.
-  \end{itemize}
-\end{frame}
-
-\begin{frame}
-  \frametitle{User Engagement Patterns (1/2)}
-  \centering
-  \includegraphics[width=0.95\textwidth]{../plots/eda_03_user_activity_top.png}
-  \begin{block}{Distribution Analysis}
-    Article popularity follows Zipf's law. Top 10 users account for 15\% of all interactions.
-  \end{block}
-\end{frame}
-
-\begin{frame}
-  \frametitle{User Engagement Patterns (2/2)}
-  \centering
-  \includegraphics[width=0.95\textwidth]{../plots/eda_03_user_activity_bottom.png}
-  \begin{block}{Power Law Observation}
-    Long-tail distribution: 80\% of users have fewer than 10 interactions.
-  \end{block}
+    \frametitle{User Engagement Patterns (2/2)}
+    \centering
+    \includegraphics[width=0.95\textwidth]{../plots/eda_03_user_activity_bottom.png}
+    \begin{block}{Power Law Observation}
+        Long-tail distribution: 80\% of users have fewer than 10 interactions.
+    \end{block}
 \end{frame}
 
 % \begin{frame}
@@ -473,9 +424,9 @@
 % \end{frame}
 
 \begin{frame}
-  \frametitle{Engagement by Category}
-  \centering
-  \includegraphics[width=0.9\textwidth]{../plots/eda_11_engagement_by_category.png}
+    \frametitle{Engagement by Category}
+    \centering
+    \includegraphics[width=0.9\textwidth]{../plots/eda_11_engagement_by_category.png}
 \end{frame}
 
 %------------------------------------------------------------
@@ -483,20 +434,20 @@
 %------------------------------------------------------------
 
 \begin{frame}
-  \frametitle{Graph Degree Distribution}
-  \centering
-  \includegraphics[width=0.95\textwidth]{../plots/graph_eda_01_degree_distribution.png}
-  \vspace{0.2cm}
-  \begin{itemize}
-    \item User degrees peak at very low values (high cold-start risk).
-    \item Article degrees are more distributed but still sparse.
-  \end{itemize}
+    \frametitle{Graph Degree Distribution}
+    \centering
+    \includegraphics[width=0.95\textwidth]{../plots/graph_eda_01_degree_distribution.png}
+    \vspace{0.2cm}
+    \begin{itemize}
+        \item User degrees peak at very low values (high cold-start risk).
+        \item Article degrees are more distributed but still sparse.
+    \end{itemize}
 \end{frame}
 
 \begin{frame}
-  \frametitle{Graph Connectivity \& Density}
-  \centering
-  \includegraphics[height=0.75\textheight,keepaspectratio]{../plots/graph_eda_03_connectivity.png}
+    \frametitle{Graph Connectivity \& Density}
+    \centering
+    \includegraphics[height=0.75\textheight,keepaspectratio]{../plots/graph_eda_03_connectivity.png}
 \end{frame}
 
 %------------------------------------------------------------
@@ -504,13 +455,13 @@
 %------------------------------------------------------------
 
 \begin{frame}
-  \frametitle{The Sparsity Challenge}
-  \textbf{Problem:} Interactions are extremely sproparse (99.919\%), making it hard for models to learn.
+    \frametitle{The Sparsity Challenge}
+    \textbf{Problem:} Interactions are extremely sparse (99.919\%), making it hard for models to learn.
 
-  \vspace{0.3cm}
-  \begin{block}{Sparsity Calculation}
-    \[ \text{Sparsity} = 1 - \frac{38,505 \text{ (Interactions)}}{13,117 \text{ (Users)} \times 3,645 \text{ (Articles)}} = \mathbf{99.919\%} \]
-  \end{block}
+    \vspace{0.3cm}
+    \begin{block}{Sparsity Calculation}
+        \[ \text{Sparsity} = 1 - \frac{38,505 \text{ (Interactions)}}{13,117 \text{ (Users)} \times 3,645 \text{ (Articles)}} = \mathbf{99.919\%} \]
+    \end{block}
 \end{frame}
 
 \begin{frame}

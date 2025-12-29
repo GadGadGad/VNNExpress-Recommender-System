@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023/Debian) (preloaded format=xelatex 2025.6.18)  29 DEC 2025 20:02
+This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023/Debian) (preloaded format=xelatex 2025.6.18)  29 DEC 2025 20:04
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1276,7 +1276,7 @@ Package biblatex Warning: 'babel/polyglossia' detected but 'csquotes' missing.
 
 \@quotelevel=\count520
 \@quotereset=\count521
-(./main.aux)
+No file main.aux.
 \openout1 = `main.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 52.
@@ -1299,7 +1299,6 @@ LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 52.
 LaTeX Font Info:    ... okay on input line 52.
 LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 52.
 LaTeX Font Info:    ... okay on input line 52.
-
 *geometry* driver: auto-detecting
 *geometry* detected driver: xetex
 *geometry* verbose mode - [ preamble ] result:
@@ -1335,9 +1334,11 @@ LaTeX Font Info:    ... okay on input line 52.
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
 Package hyperref Info: Link coloring OFF on input line 52.
-(./main.out) (./main.out)
 \@outlinefile=\write6
 \openout6 = `main.out'.
+
+
+Package hyperref Warning: Rerun to get /PageLabels entry.
 
 
 (/usr/share/texlive/texmf-dist/tex/latex/translator/translator-basic-dictionary
@@ -1632,16 +1633,17 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [1
 
-] (./main.toc)
+]
+No file main.toc.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
-
 [2
 
-] (./main.toc)
+]
+No file main.toc.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [3
+[3
 
 ]
 File: assets/images/uit-logo.png Graphic file (type bmp)
@@ -1653,10 +1655,11 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [5
 
-] (./main.toc)
+]
+No file main.toc.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [6
+[6
 
 ]
 LaTeX Font Info:    Font shape `TU/lmss/m/it' in size <10.95> not available
@@ -1695,231 +1698,69 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 [10
 
 ]
-! Undefined control sequence.
-\beamerx@\beamer@columncom ...3->\beamer@colclose 
-                                                  \def \beamer@colclose {\en...
-l.366 \end{frame}
-                 
-? q
-OK, entering \batchmode...
-! Undefined control sequence.
-\@tempa ->\beamer@colmode 
-                          
-l.366 \end{frame}
-                 
-The control sequence at the end of the top line
-of your error message was never \def'ed. If you have
-misspelled it (e.g., `\hobx'), type `I' and the correct
-spelling (e.g., `I\hbox'). Otherwise just continue,
-and I'll forget about whatever was undefined.
-
-
-! Undefined control sequence.
-\@tempa ->\beamer@colmode 
-                          
-l.366 \end{frame}
-                 
-The control sequence at the end of the top line
-of your error message was never \def'ed. If you have
-misspelled it (e.g., `\hobx'), type `I' and the correct
-spelling (e.g., `I\hbox'). Otherwise just continue,
-and I'll forget about whatever was undefined.
-
-! Package keyval Error:  undefined.
-
-See the keyval package documentation for explanation.
-Type  H <return>  for immediate help.
- ...                                              
-                                                  
-l.366 \end{frame}
-                 
-Try typing  <return>  to proceed.
-If that doesn't work, type  X <return>  to quit.
-
-! Undefined control sequence.
-\beamerx@\beamer@columncom ...\beamer@colheadskip 
-                                                  \ignorespaces 
-l.366 \end{frame}
-                 
-The control sequence at the end of the top line
-of your error message was never \def'ed. If you have
-misspelled it (e.g., `\hobx'), type `I' and the correct
-spelling (e.g., `I\hbox'). Otherwise just continue,
-and I'll forget about whatever was undefined.
-
-! Undefined control sequence.
-<argument> \beamer@colalign 
-                            
-l.366 \end{frame}
-                 
-The control sequence at the end of the top line
-of your error message was never \def'ed. If you have
-misspelled it (e.g., `\hobx'), type `I' and the correct
-spelling (e.g., `I\hbox'). Otherwise just continue,
-and I'll forget about whatever was undefined.
-
-! Undefined control sequence.
-<argument> \beamer@colalign 
-                            
-l.366 \end{frame}
-                 
-The control sequence at the end of the top line
-of your error message was never \def'ed. If you have
-misspelled it (e.g., `\hobx'), type `I' and the correct
-spelling (e.g., `I\hbox'). Otherwise just continue,
-and I'll forget about whatever was undefined.
-
-! Undefined control sequence.
-\beamer@doifinframe ...lose {}\beamer@colexitcode 
-                                                  \beamer@todoend \endgroup ...
-l.366 \end{frame}
-                 
-The control sequence at the end of the top line
-of your error message was never \def'ed. If you have
-misspelled it (e.g., `\hobx'), type `I' and the correct
-spelling (e.g., `I\hbox'). Otherwise just continue,
-and I'll forget about whatever was undefined.
-
-! Undefined control sequence.
-\beamer@doifinframe ...olexitcode \beamer@todoend 
-                                                  \endgroup \endgroup  \end ...
-l.366 \end{frame}
-                 
-The control sequence at the end of the top line
-of your error message was never \def'ed. If you have
-misspelled it (e.g., `\hobx'), type `I' and the correct
-spelling (e.g., `I\hbox'). Otherwise just continue,
-and I'll forget about whatever was undefined.
-
-! Missing } inserted.
-<inserted text> 
-                }
-l.366 \end{frame}
-                 
-I've inserted something that you may have forgotten.
-(See the <inserted text> above.)
-With luck, this will get me unwedged. But if you
-really didn't forget anything, try typing `2' now; then
-my insertion and my current dilemma will both disappear.
-
-
-! LaTeX Error: \begin{document} ended by \end{beamer@framepauses}.
-
-See the LaTeX manual or LaTeX Companion for explanation.
-Type  H <return>  for immediate help.
- ...                                              
-                                                  
-l.366 \end{frame}
-                 
-Your command was ignored.
-Type  I <command> <return>  to replace it with another command,
-or  <return>  to continue without it.
-
-! Extra \endgroup.
-<recently read> \endgroup 
-                          
-l.366 \end{frame}
-                 
-Things are pretty mixed up, but I think the worst is over.
-
-! Too many }'s.
-\endbeamer@frameslide ...amer@framepauses}\egroup 
-                                                  \ifx \beamer@frametitle \@...
-l.366 \end{frame}
-                 
-You've closed more groups than you opened.
-Such booboos are generally harmless, so keep going.
-
-! Undefined control sequence.
-\endbeamer@frameslide ...box \else \beamer@zoomer 
-                                                  \fi \beamer@undolabels \be...
-l.366 \end{frame}
-                 
-The control sequence at the end of the top line
-of your error message was never \def'ed. If you have
-misspelled it (e.g., `\hobx'), type `I' and the correct
-spelling (e.g., `I\hbox'). Otherwise just continue,
-and I'll forget about whatever was undefined.
-
-
-! LaTeX Error: \begin{document} ended by \end{beamer@frameslide}.
-
-See the LaTeX manual or LaTeX Companion for explanation.
-Type  H <return>  for immediate help.
- ...                                              
-                                                  
-l.366 \end{frame}
-                 
-Your command was ignored.
-Type  I <command> <return>  to replace it with another command,
-or  <return>  to continue without it.
-
-! Extra \endgroup.
-<recently read> \endgroup 
-                          
-l.366 \end{frame}
-                 
-Things are pretty mixed up, but I think the worst is over.
-
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [11
-
-]
-File: ../plots/eda_00_summary_dashboard.png Graphic file (type bmp)
-<../plots/eda_00_summary_dashboard.png>
-File: assets/images/uit-logo.png Graphic file (type bmp)
-<assets/images/uit-logo.png>
- [12
-
-]
-File: assets/images/uit-logo.png Graphic file (type bmp)
-<assets/images/uit-logo.png>
- [13
 
 ]
 File: ../plots/eda_09_metadata_categories.png Graphic file (type bmp)
 <../plots/eda_09_metadata_categories.png>
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [14
+ [12
 
 ]
 File: ../plots/eda_03_user_activity_top.png Graphic file (type bmp)
 <../plots/eda_03_user_activity_top.png>
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [15
+ [13
 
 ]
 File: ../plots/eda_03_user_activity_bottom.png Graphic file (type bmp)
 <../plots/eda_03_user_activity_bottom.png>
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [16
+ [14
 
 ]
 File: ../plots/eda_11_engagement_by_category.png Graphic file (type bmp)
 <../plots/eda_11_engagement_by_category.png>
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [17
+ [15
 
 ]
 File: ../plots/graph_eda_01_degree_distribution.png Graphic file (type bmp)
 <../plots/graph_eda_01_degree_distribution.png>
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [18
+ [16
 
 ]
 File: ../plots/graph_eda_03_connectivity.png Graphic file (type bmp)
 <../plots/graph_eda_03_connectivity.png>
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
+ [17
+
+]
+No file main.toc.
+File: assets/images/uit-logo.png Graphic file (type bmp)
+<assets/images/uit-logo.png>
+[18
+
+]
+File: assets/images/uit-logo.png Graphic file (type bmp)
+<assets/images/uit-logo.png>
  [19
 
-] (./main.toc)
+]
+LaTeX Font Info:    Font shape `TU/lmss/m/it' in size <10> not available
+(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 500.
+LaTeX Font Info:    Font shape `TU/lmss/bx/it' in size <10.95> not available
+(Font)              Font shape `TU/lmss/bx/sl' tried instead on input line 500.
+
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [20
@@ -1930,152 +1771,152 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
  [21
 
 ]
-LaTeX Font Info:    Font shape `TU/lmss/m/it' in size <10> not available
-(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 549.
-LaTeX Font Info:    Font shape `TU/lmss/bx/it' in size <10.95> not available
-(Font)              Font shape `TU/lmss/bx/sl' tried instead on input line 549.
-
-File: assets/images/uit-logo.png Graphic file (type bmp)
-<assets/images/uit-logo.png>
- [22
-
-]
-File: assets/images/uit-logo.png Graphic file (type bmp)
-<assets/images/uit-logo.png>
- [23
-
-]
 File: ../plots/graph_network_topology.png Graphic file (type bmp)
 <../plots/graph_network_topology.png>
 
-Overfull \vbox (8.21713pt too high) detected at line 598
+Overfull \vbox (8.21713pt too high) detected at line 549
  []
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
+[22
+
+]
+No file main.toc.
+File: assets/images/uit-logo.png Graphic file (type bmp)
+<assets/images/uit-logo.png>
+[23
+
+]
+File: assets/images/uit-logo.png Graphic file (type bmp)
+<assets/images/uit-logo.png>
  [24
 
-] (./main.toc)
+]
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [25
 
 ]
-File: assets/images/uit-logo.png Graphic file (type bmp)
-<assets/images/uit-logo.png>
- [26
 
-]
-File: assets/images/uit-logo.png Graphic file (type bmp)
-<assets/images/uit-logo.png>
- [27
-
-]
-
-LaTeX Warning: Citation 'shi2020hgrec' on page 28 undefined on input line 681.
+LaTeX Warning: Citation 'shi2020hgrec' on page 26 undefined on input line 632.
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [28
+[26
 
 ]
 File: assets/images/content-based.png Graphic file (type bmp)
 <assets/images/content-based.png>
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [29
+ [27
 
 ]
 File: assets/images/user-user-cf-2.png Graphic file (type bmp)
 <assets/images/user-user-cf-2.png>
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [30
+ [28
 
 ]
 File: assets/images/item-item.drawio.png Graphic file (type bmp)
 <assets/images/item-item.drawio.png>
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [31
+ [29
 
-] (./main.toc)
+]
+No file main.toc.
+File: assets/images/uit-logo.png Graphic file (type bmp)
+<assets/images/uit-logo.png>
+[30
+
+]
+
+LaTeX Warning: Citation 'shi2020hgrec' on page 31 undefined on input line 738.
+
+
+LaTeX Warning: Citation 'he2020lightgcn' on page 31 undefined on input line 738
+.
+
+
+Overfull \vbox (16.38152pt too high) detected at line 738
+ []
+
+File: assets/images/uit-logo.png Graphic file (type bmp)
+<assets/images/uit-logo.png>
+[31
+
+]
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [32
 
 ]
-
-LaTeX Warning: Citation 'shi2020hgrec' on page 33 undefined on input line 787.
-
-
-LaTeX Warning: Citation 'he2020lightgcn' on page 33 undefined on input line 787
-.
-
-
-Overfull \vbox (16.38152pt too high) detected at line 787
- []
-
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [33
 
 ]
+LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
+(Font)              scaled to size 10.00107pt on input line 858.
+LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
+(Font)              scaled to size 7.00075pt on input line 858.
+LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
+(Font)              scaled to size 9.99893pt on input line 858.
+LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
+(Font)              scaled to size 6.99925pt on input line 858.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [34
 
 ]
+No file main.toc.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [35
+[35
 
 ]
-LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 10.00107pt on input line 907.
-LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 7.00075pt on input line 907.
-LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 9.99893pt on input line 907.
-LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 6.99925pt on input line 907.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [36
 
-] (./main.toc)
+]
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [37
 
 ]
+LaTeX Font Info:    Font shape `TU/lmss/m/it' in size <6> not available
+(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 967.
+LaTeX Font Info:    Font shape `TU/lmss/bx/it' in size <6> not available
+(Font)              Font shape `TU/lmss/bx/sl' tried instead on input line 967.
+
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [38
 
 ]
+Overfull \vbox (33.16792pt too high) detected at line 1007
+ []
+
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [39
+[39
 
 ]
-LaTeX Font Info:    Font shape `TU/lmss/m/it' in size <6> not available
-(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 1016.
-
-LaTeX Font Info:    Font shape `TU/lmss/bx/it' in size <6> not available
-(Font)              Font shape `TU/lmss/bx/sl' tried instead on input line 1016
-.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [40
 
 ]
-Overfull \vbox (33.16792pt too high) detected at line 1056
+Overfull \vbox (3.00227pt too high) detected at line 1070
  []
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [41
+[41
 
 ]
 File: assets/images/uit-logo.png Graphic file (type bmp)
@@ -2083,12 +1924,13 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
  [42
 
 ]
-Overfull \vbox (3.00227pt too high) detected at line 1119
+Overfull \hbox (4.37463pt too wide) in paragraph at lines 1131--1131
+ [] 
  []
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [43
+[43
 
 ]
 File: assets/images/uit-logo.png Graphic file (type bmp)
@@ -2096,10 +1938,10 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
  [44
 
 ]
-Overfull \hbox (4.37463pt too wide) in paragraph at lines 1180--1180
- [] 
- []
-
+LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
+(Font)              scaled to size 14.40152pt on input line 1203.
+LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
+(Font)              scaled to size 14.39845pt on input line 1203.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [45
@@ -2110,20 +1952,17 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
  [46
 
 ]
-LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 14.40152pt on input line 1252.
-LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 14.39845pt on input line 1252.
+No file main.toc.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [47
+[47
 
 ]
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [48
 
-] (./main.toc)
+]
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [49
@@ -2134,22 +1973,12 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
  [50
 
 ]
-File: assets/images/uit-logo.png Graphic file (type bmp)
-<assets/images/uit-logo.png>
- [51
 
-]
-File: assets/images/uit-logo.png Graphic file (type bmp)
-<assets/images/uit-logo.png>
- [52
-
-]
-
-LaTeX Warning: Empty bibliography on input line 1337.
+LaTeX Warning: Empty bibliography on input line 1288.
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [53
+[51
 
 ]
 \tf@nav=\write7
@@ -2161,16 +1990,26 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 \tf@snm=\write9
 \openout9 = `main.snm'.
 
- (./main.aux)
+ [52] (./main.aux)
  ***********
 LaTeX2e <2023-11-01> patch level 1
 L3 programming layer <2024-01-22>
  ***********
 
+
 LaTeX Warning: There were undefined references.
 
-Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: E17DE1070BA22BAEBFDE8B4D350FD0F5;1455.
+
+LaTeX Warning: Temporary extra page added at the end. Rerun to get it removed.
+
+
+Package rerunfilecheck Warning: File `main.out' has changed.
+(rerunfilecheck)                Rerun to get outlines right
+(rerunfilecheck)                or use package `bookmark'.
+
+Package rerunfilecheck Info: Checksums for `main.out':
+(rerunfilecheck)             Before: <no file>
+(rerunfilecheck)             After:  E17DE1070BA22BAEBFDE8B4D350FD0F5;1455.
 
 Package biblatex Warning: Please (re)run Biber on the file:
 (biblatex)                main
@@ -2181,12 +2020,12 @@ Package logreq Info: Writing requests to 'main.run.xml'.
 
  ) 
 Here is how much of TeX's memory you used:
- 42501 strings out of 474878
- 884480 string characters out of 5762516
- 1945627 words of memory out of 5000000
- 63783 multiletter control sequences out of 15000+600000
+ 42429 strings out of 474878
+ 882815 string characters out of 5762516
+ 1944627 words of memory out of 5000000
+ 63733 multiletter control sequences out of 15000+600000
  566510 words of font info for 124 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
- 128i,15n,123p,1056b,3945s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 128i,15n,123p,1056b,3858s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on main.pdf (53 pages).
+Output written on main.pdf (52 pages).
