@@ -115,34 +115,34 @@
 \section{Project Overview}
 %------------------------------------------------------------
 \begin{frame}
-    \frametitle{Motivation: Why News Recommendation?}
+  \frametitle{Motivation: Why News Recommendation?}
 
-    \begin{block}{The Problem}
-        In the digital era, news platforms face severe \textbf{Information Overload}.
-    \end{block}
+  \begin{block}{The Problem}
+    In the digital era, news platforms face severe \textbf{Information Overload}.
+  \end{block}
 
-    \vspace{0.2cm}
-    \begin{block}{Why It Matters}
-        \begin{itemize}
-            \item \textbf{User Experience:} Navigating thousands of daily articles is overwhelming.
-            \item \textbf{Retention:} Personalized content increases user engagement and platform stickiness.
-            \item \textbf{Monetization:} Better engagement leads to higher ad revenue and subscriptions.
-        \end{itemize}
-    \end{block}
+  \vspace{0.2cm}
+  \begin{block}{Why It Matters}
+    \begin{itemize}
+      \item \textbf{User Experience:} Navigating thousands of daily articles is overwhelming.
+      \item \textbf{Retention:} Personalized content increases user engagement and platform stickiness.
+      \item \textbf{Monetization:} Better engagement leads to higher ad revenue and subscriptions.
+    \end{itemize}
+  \end{block}
 
-    \vspace{0.3cm}
-    \begin{alertblock}{Overall Goal}
-        Develop a state-of-the-art recommendation engine for \textbf{Vietnamese news}.
-    \end{alertblock}
+  \vspace{0.3cm}
+  \begin{alertblock}{Overall Goal}
+    Develop a state-of-the-art recommendation engine for \textbf{Vietnamese news}.
+  \end{alertblock}
 \end{frame}
 
 
 \begin{frame}
-    \frametitle{Problem Statement}
+  \frametitle{Problem Statement}
 
-    \begin{block}{Research Question}
-        How can we recommend \textbf{relevant news articles} to users effectively?
-    \end{block}
+  \begin{block}{Research Question}
+    How can we recommend \textbf{relevant news articles} to users effectively?
+  \end{block}
 
     \vspace{0.3cm}
     \begin{block}{Key Challenges}
@@ -161,51 +161,51 @@
 %------------------------------------------------------------
 
 \begin{frame}
-    \frametitle{VnExpress Data Crawling}
+  \frametitle{VnExpress Data Crawling}
 
-    \begin{columns}[T,onlytextwidth]
-        \begin{column}{0.48\textwidth}
-            \begin{block}{Data Source}
-                \textbf{VnExpress.net}
-            \end{block}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.48\textwidth}
+      \begin{block}{Data Source}
+        \textbf{VnExpress.net}
+      \end{block}
 
-            \vspace{0.2cm}
-            \begin{block}{Categories Crawled}
-                \begin{columns}[T,onlytextwidth]
-                    \begin{column}{0.5\textwidth}
-                        \begin{itemize}
-                            \item "Thế giới"
-                            \item "Giáo dục"
-                            \item "Thể thao"
-                        \end{itemize}
-                    \end{column}
-                    \begin{column}{0.5\textwidth}
-                        \begin{itemize}
-                            \item "Thời sự"
-                            \item "Kinh doanh"
-                            \item "Khoa học công nghệ"
-                        \end{itemize}
-                    \end{column}
-                \end{columns}
-            \end{block}
-        \end{column}
+      \vspace{0.2cm}
+      \begin{block}{Categories Crawled}
+        \begin{columns}[T,onlytextwidth]
+          \begin{column}{0.5\textwidth}
+            \begin{itemize}
+              \item "Thế giới"
+              \item "Giáo dục"
+              \item "Thể thao"
+            \end{itemize}
+          \end{column}
+          \begin{column}{0.5\textwidth}
+            \begin{itemize}
+              \item "Thời sự"
+              \item "Kinh doanh"
+              \item "Khoa học công nghệ"
+            \end{itemize}
+          \end{column}
+        \end{columns}
+      \end{block}
+    \end{column}
 
-        \begin{column}{0.52\textwidth}
-            \begin{block}{Collected Data}
-                \begin{itemize}
-                    \item \textbf{Articles:} title, content, author, publish date
-                    \item \textbf{Metadata:} category, tags (per article)
-                    \item \textbf{Comments:} user ID, comment text, reactions, replies
-                    \item \textbf{User profiles:} user ID, username, join date
-                \end{itemize}
-            \end{block}
+    \begin{column}{0.52\textwidth}
+      \begin{block}{Collected Data}
+        \begin{itemize}
+          \item \textbf{Articles:} title, content, author, publish date
+          \item \textbf{Metadata:} category, tags (per article)
+          \item \textbf{Comments:} user ID, comment text, reactions, replies
+          \item \textbf{User profiles:} user ID, username, join date
+        \end{itemize}
+      \end{block}
 
-        \end{column}
-    \end{columns}
-    \vspace{0.15cm}
-    \begin{alertblock}{Outcome}
-        A structured dataset enabling both \textit{content understanding} and \textit{behavior modeling}.
-    \end{alertblock}
+    \end{column}
+  \end{columns}
+  \vspace{0.15cm}
+  \begin{alertblock}{Outcome}
+    A structured dataset enabling both \textit{content understanding} and \textit{behavior modeling}.
+  \end{alertblock}
 \end{frame}
 
 \begin{frame}
@@ -213,98 +213,98 @@
   \centering
 
   \begin{tikzpicture}[
-    % Scale nhỏ lại 0.8 để vừa vặn slide, transform shape để font co giãn theo
-    scale=0.8, transform shape, 
-    node distance=0.6cm and 0.8cm, % Giảm khoảng cách giữa các node
-    % Style cho các khối xử lý
-    process/.style={
-        rectangle, 
-        rounded corners=4pt, 
-        minimum width=3.0cm, 
-        minimum height=1.0cm, 
-        align=center, 
-        text=white,
-        font=\scriptsize\bfseries,
-        drop shadow
-    }, 
-    step1/.style={process, fill=blue!60!cyan},
-    step2/.style={process, fill=red!60!orange},
-    step3/.style={process, fill=purple!60!violet},
-    step4/.style={process, fill=teal!60!green},
-    % Style cho file dữ liệu (Hình trụ)
-    data/.style={
-        cylinder, 
-        shape border rotate=90, 
-        draw=gray!80, 
-        fill=yellow!10, 
-        aspect=0.25, 
-        minimum height=0.7cm, 
-        minimum width=1.4cm, 
-        align=center, 
-        font=\tiny\ttfamily,
-        drop shadow={opacity=0.2}
-    },
-    % Style cho Nguồn Web (Hình đám mây)
-    source/.style={
-        cloud,
-        cloud puffs=11, 
-        draw=blue!50, 
-        fill=blue!5, 
-        aspect=2,
-        minimum width=1.8cm, 
-        minimum height=1.2cm, 
-        align=center, 
-        font=\scriptsize\itshape\color{blue!80!black}
-    },
-    % Style mũi tên
-    arrow/.style={-Stealth, thick, draw=gray!60, rounded corners}
-]
+      % Scale nhỏ lại 0.8 để vừa vặn slide, transform shape để font co giãn theo
+      scale=0.8, transform shape,
+      node distance=0.6cm and 0.8cm, % Giảm khoảng cách giữa các node
+      % Style cho các khối xử lý
+      process/.style={
+          rectangle,
+          rounded corners=4pt,
+          minimum width=3.0cm,
+          minimum height=1.0cm,
+          align=center,
+          text=white,
+          font=\scriptsize\bfseries,
+          drop shadow
+        },
+      step1/.style={process, fill=blue!60!cyan},
+      step2/.style={process, fill=red!60!orange},
+      step3/.style={process, fill=purple!60!violet},
+      step4/.style={process, fill=teal!60!green},
+      % Style cho file dữ liệu (Hình trụ)
+      data/.style={
+          cylinder,
+          shape border rotate=90,
+          draw=gray!80,
+          fill=yellow!10,
+          aspect=0.25,
+          minimum height=0.7cm,
+          minimum width=1.4cm,
+          align=center,
+          font=\tiny\ttfamily,
+          drop shadow={opacity=0.2}
+        },
+      % Style cho Nguồn Web (Hình đám mây)
+      source/.style={
+          cloud,
+          cloud puffs=11,
+          draw=blue!50,
+          fill=blue!5,
+          aspect=2,
+          minimum width=1.8cm,
+          minimum height=1.2cm,
+          align=center,
+          font=\scriptsize\itshape\color{blue!80!black}
+        },
+      % Style mũi tên
+      arrow/.style={-Stealth, thick, draw=gray!60, rounded corners}
+    ]
 
-  % --- Start: Web Source ---
-  \node[source] (web) {VnExpress\\Website};
+    % --- Start: Web Source ---
+    \node[source] (web) {VnExpress\\Website};
 
-  % --- Step 1: Discovery ---
-  \node[step1, right=0.8cm of web] (s1) {Step 1: Discovery\\(Scanning)};
-  \node[data, right=0.6cm of s1] (d1) {articles.csv};
+    % --- Step 1: Discovery ---
+    \node[step1, right=0.8cm of web] (s1) {Step 1: Discovery\\(Scanning)};
+    \node[data, right=0.6cm of s1] (d1) {articles.csv};
 
-  % --- Branching ---
-  
-  % Step 4: Metadata (Branch lên trên)
-  \node[step4, above right=0.3cm and 1.2cm of d1] (s4) {Step 4: Metadata\\(Tags/Category)};
-  \node[data, right=0.6cm of s4] (d4) {metadata.csv};
+    % --- Branching ---
 
-  % Step 2: Deep Crawl (Branch xuống dưới)
-  \node[step2, below right=0.3cm and 1.2cm of d1] (s2) {Step 2: Deep Crawl\\(Comments)};
-  \node[data, right=0.6cm of s2] (d2) {replies.csv};
+    % Step 4: Metadata (Branch lên trên)
+    \node[step4, above right=0.3cm and 1.2cm of d1] (s4) {Step 4: Metadata\\(Tags/Category)};
+    \node[data, right=0.6cm of s4] (d4) {metadata.csv};
 
-  % --- Step 3: Enrichment (Tiếp nối Step 2) ---
-  % Đặt bên dưới d2 và lệch sang trái một chút để tạo vòng cung gọn gàng hoặc thẳng hàng
-  \node[step3, below=0.8cm of d2] (s3) {Step 3: Enrichment\\(User Profiles)};
-  \node[data, left=0.8cm of s3] (d3) {user\_profiles.csv};
+    % Step 2: Deep Crawl (Branch xuống dưới)
+    \node[step2, below right=0.3cm and 1.2cm of d1] (s2) {Step 2: Deep Crawl\\(Comments)};
+    \node[data, right=0.6cm of s2] (d2) {replies.csv};
 
-  % --- Connections (Mũi tên) ---
-  
-  % Web -> Step 1 -> Articles
-  \draw[arrow] (web) -- (s1);
-  \draw[arrow] (s1) -- (d1);
+    % --- Step 3: Enrichment (Tiếp nối Step 2) ---
+    % Đặt bên dưới d2 và lệch sang trái một chút để tạo vòng cung gọn gàng hoặc thẳng hàng
+    \node[step3, below=0.8cm of d2] (s3) {Step 3: Enrichment\\(User Profiles)};
+    \node[data, left=0.8cm of s3] (d3) {user\_profiles.csv};
 
-  % Articles -> Split (Step 4 & Step 2)
-  \draw[arrow] (d1.east) -- ++(0.3,0) |- (s4.west);
-  \draw[arrow] (d1.east) -- ++(0.3,0) |- (s2.west);
+    % --- Connections (Mũi tên) ---
 
-  % Outputs của Step 4 & 2
-  \draw[arrow] (s4) -- (d4);
-  \draw[arrow] (s2) -- (d2);
+    % Web -> Step 1 -> Articles
+    \draw[arrow] (web) -- (s1);
+    \draw[arrow] (s1) -- (d1);
 
-  % Replies -> Step 3 -> User Profiles
-  \draw[arrow] (d2.south) -- (s3.north);
-  \draw[arrow] (s3) -- (d3);
+    % Articles -> Split (Step 4 & Step 2)
+    \draw[arrow] (d1.east) -- ++(0.3,0) |- (s4.west);
+    \draw[arrow] (d1.east) -- ++(0.3,0) |- (s2.west);
 
-  % --- Annotations (Ghi chú nhỏ) ---
-  \node[text=gray, font=\tiny, align=center, below=0.1cm of s1] {Input: Categories};
-  \node[text=gray, font=\tiny, align=center, below=0.05cm of s4] {Selenium (Stealth)};
-  \node[text=gray, font=\tiny, align=center, below=0.05cm of s2] {Selenium (Single)};
-  \node[text=gray, font=\tiny, align=center, below=0.1cm of s3] {Playwright};
+    % Outputs của Step 4 & 2
+    \draw[arrow] (s4) -- (d4);
+    \draw[arrow] (s2) -- (d2);
+
+    % Replies -> Step 3 -> User Profiles
+    \draw[arrow] (d2.south) -- (s3.north);
+    \draw[arrow] (s3) -- (d3);
+
+    % --- Annotations (Ghi chú nhỏ) ---
+    \node[text=gray, font=\tiny, align=center, below=0.1cm of s1] {Input: Categories};
+    \node[text=gray, font=\tiny, align=center, below=0.05cm of s4] {Selenium (Stealth)};
+    \node[text=gray, font=\tiny, align=center, below=0.05cm of s2] {Selenium (Single)};
+    \node[text=gray, font=\tiny, align=center, below=0.1cm of s3] {Playwright};
 
   \end{tikzpicture}
 \end{frame}
@@ -327,10 +327,10 @@
   \begin{tabular}{|l|l|l|l|l|l|l|}
     \hline
     \rowcolor{headArticles}
-    \textbf{article\_id} & \textbf{url} & \textbf{title} & \textbf{short\_description} &
-    \textbf{author} & \textbf{published\_at} & \textbf{content} \\
+    \textbf{article\_id} & \textbf{url}           & \textbf{title}   & \textbf{short\_description} &
+    \textbf{author}      & \textbf{published\_at} & \textbf{content}                                                                  \\
     \hline
-    56b.. & http:... & Đề ... & Dự thảo... & Sơn Hà & Thứ hai,... & Chiều ... \\
+    56b..                & http:...               & Đề ...           & Dự thảo...                  & Sơn Hà & Thứ hai,... & Chiều ... \\
     \hline
   \end{tabular}
 
@@ -343,9 +343,9 @@
   \begin{tabular}{|l|l|l|}
     \hline
     \rowcolor{headMetadata}
-    \textbf{article\_url} & \textbf{category} & \textbf{tags} \\
+    \textbf{article\_url} & \textbf{category}  & \textbf{tags}               \\
     \hline
-    https://vnexpress... & Khoa học công nghệ & \texttt{["công nghệ", ...]} \\
+    https://vnexpress...  & Khoa học công nghệ & \texttt{["công nghệ", ...]} \\
     \hline
   \end{tabular}
 
@@ -359,9 +359,9 @@
     \hline
     \rowcolor{headReplies}
     \textbf{article\_url} & \textbf{parent\_user\_id} & \textbf{parent\_text} &
-    \textbf{\dots} & \textbf{reply\_user\_id} & \textbf{reply\_text} \\
+    \textbf{\dots}        & \textbf{reply\_user\_id}  & \textbf{reply\_text}                                  \\
     \hline
-    http:... & 1002635618 & Cũng ... &  & 1032087702 & Đúng rồi ... \\
+    http:...              & 1002635618                & Cũng ...              &   & 1032087702 & Đúng rồi ... \\
     \hline
   \end{tabular}
 
@@ -376,7 +376,7 @@
     \rowcolor{headUsers}
     \textbf{user\_id} & \textbf{username} & \textbf{join\_date} \\
     \hline
-    1002611525	 & Mèo đi hia & 11/2014 \\
+    1002611525        & Mèo đi hia        & 11/2014             \\
     \hline
   \end{tabular}
 
@@ -388,26 +388,26 @@
   \frametitle{Dataset Summary}
 
   \begin{block}{Dataset Summary}
-      \begin{columns}[T,onlytextwidth]
+    \begin{columns}[T,onlytextwidth]
 
-          %------------ Left column ------------
-          \begin{column}{0.5\textwidth}
-              \begin{itemize}
-                  \item \textbf{3,645 Articles} across \textbf{6 categories}
-                  \item \textbf{40,045 Comments} from \textbf{15,693 users}
-              \end{itemize}
-          \end{column}
+      %------------ Left column ------------
+      \begin{column}{0.5\textwidth}
+        \begin{itemize}
+          \item \textbf{3,645 Articles} across \textbf{6 categories}
+          \item \textbf{40,045 Comments} from \textbf{15,693 users}
+        \end{itemize}
+      \end{column}
 
-          %------------ Right column ------------
-          \begin{column}{0.5\textwidth}
-              \begin{itemize}
-                  \item Avg Interactions/User:  2.55
-                  \item Avg Interactions/Item:  10.99
-                  \item $< 3$ interactions: 12489 users (79.6\%)
-              \end{itemize}
-          \end{column}
+      %------------ Right column ------------
+      \begin{column}{0.5\textwidth}
+        \begin{itemize}
+          \item Avg Interactions/User:  2.55
+          \item Avg Interactions/Item:  10.99
+          \item $< 3$ interactions: 12489 users (79.6\%)
+        \end{itemize}
+      \end{column}
 
-      \end{columns}
+    \end{columns}
   \end{block}
 
   \vspace{0.25cm}
@@ -446,33 +446,33 @@
 % \end{frame}
 
 \begin{frame}
-    \frametitle{Category Distribution}
-    \centering
-    \includegraphics[width=0.95\textwidth]{../plots/eda_09_metadata_categories.png}
-    \vspace{0.2cm}
-    \begin{block}{Category Balance Observation}
-      \begin{itemize}
-          \item The dataset is well-balanced across major news categories, with no single category dominating the article volume.
-      \end{itemize}
-  \end{block}  
+  \frametitle{Category Distribution}
+  \centering
+  \includegraphics[width=0.95\textwidth]{../plots/eda_09_metadata_categories.png}
+  \vspace{0.2cm}
+  \begin{block}{Category Balance Observation}
+    \begin{itemize}
+      \item The dataset is well-balanced across major news categories, with no single category dominating the article volume.
+    \end{itemize}
+  \end{block}
 \end{frame}
 
 \begin{frame}
-    \frametitle{User Engagement Patterns (1/2)}
-    \centering
-    \includegraphics[width=0.98\textwidth]{../plots/eda_03_user_activity_top.png}
-    \begin{block}{Distribution Analysis}
-        Article popularity follows Zipf's law. Top 10 users account for 15\% of all interactions.
-    \end{block}
+  \frametitle{User Engagement Patterns (1/2)}
+  \centering
+  \includegraphics[width=0.98\textwidth]{../plots/eda_03_user_activity_top.png}
+  \begin{block}{Distribution Analysis}
+    Article popularity follows Zipf's law. Top 10 users account for 15\% of all interactions.
+  \end{block}
 \end{frame}
 
 \begin{frame}
-    \frametitle{User Engagement Patterns (2/2)}
-    \centering
-    \includegraphics[width=0.98\textwidth]{../plots/eda_03_user_activity_bottom.png}
-    \begin{block}{Power Law Observation}
-        Long-tail distribution: 80\% of users have fewer than 10 interactions.
-    \end{block}
+  \frametitle{User Engagement Patterns (2/2)}
+  \centering
+  \includegraphics[width=0.98\textwidth]{../plots/eda_03_user_activity_bottom.png}
+  \begin{block}{Power Law Observation}
+    Long-tail distribution: 80\% of users have fewer than 10 interactions.
+  \end{block}
 \end{frame}
 
 % \begin{frame}
@@ -506,13 +506,13 @@
 % \end{frame}
 
 \begin{frame}
-    \frametitle{Engagement by Category}
-    \centering
-    \includegraphics[width=0.9\textwidth]{../plots/eda_11_engagement_by_category.png}
-    \begin{block}{Engagement Insight}
-      Categories such as \textbf{Sports} and \textbf{Technology} show the highest engagement, leading both in average comments per article and total comment volume.
-    \end{block}
-  
+  \frametitle{Engagement by Category}
+  \centering
+  \includegraphics[width=0.9\textwidth]{../plots/eda_11_engagement_by_category.png}
+  \begin{block}{Engagement Insight}
+    Categories such as \textbf{Sports} and \textbf{Technology} show the highest engagement, leading both in average comments per article and total comment volume.
+  \end{block}
+
 \end{frame}
 
 %------------------------------------------------------------
@@ -520,20 +520,20 @@
 %------------------------------------------------------------
 
 \begin{frame}
-    \frametitle{Graph Degree Distribution}
-    \centering
-    \includegraphics[width=0.98\textwidth]{../plots/graph_eda_01_degree_distribution.png}
-    \vspace{0.2cm}
-    \begin{itemize}
-        \item User degrees peak at very low values (high cold-start risk).
-        \item Article degrees are more distributed but still sparse.
-    \end{itemize}
+  \frametitle{Graph Degree Distribution}
+  \centering
+  \includegraphics[width=0.98\textwidth]{../plots/graph_eda_01_degree_distribution.png}
+  \vspace{0.2cm}
+  \begin{itemize}
+    \item User degrees peak at very low values (high cold-start risk).
+    \item Article degrees are more distributed but still sparse.
+  \end{itemize}
 \end{frame}
 
 \begin{frame}
-    \frametitle{Graph Connectivity \& Density}
-    \centering
-    \includegraphics[height=0.75\textheight,keepaspectratio]{../plots/graph_eda_03_connectivity.png}
+  \frametitle{Graph Connectivity \& Density}
+  \centering
+  \includegraphics[height=0.75\textheight,keepaspectratio]{../plots/graph_eda_03_connectivity.png}
 \end{frame}
 
 %------------------------------------------------------------
@@ -551,38 +551,38 @@
 \end{frame}
 
 \begin{frame}
-    \frametitle{Solution: Expanding the Graph Structure}
+  \frametitle{Solution: Expanding the Graph Structure}
 
-    \begin{block}{Core Idea}
-        To alleviate extreme sparsity, we \textbf{progressively enrich the interaction graph}.
-        We define \textbf{three graph tiers (G1–G3)} for controlled experimentation.
-    \end{block}
+  \begin{block}{Core Idea}
+    To alleviate extreme sparsity, we \textbf{progressively enrich the interaction graph}.
+    We define \textbf{three graph tiers (G1–G3)} for controlled experimentation.
+  \end{block}
 
-    \vspace{0.3cm}
+  \vspace{0.3cm}
 
-    \begin{enumerate}
-        \setlength\itemsep{0.9em}
+  \begin{enumerate}
+    \setlength\itemsep{0.9em}
 
-        \item \textbf{Graph G1 — Bipartite Baseline}
-        \begin{itemize}
+    \item \textbf{Graph G1 — Bipartite Baseline}
+          \begin{itemize}
             \item \textbf{Nodes:} Users, Articles
             \item \textbf{Edges:} \textit{Comment}
             \item Represents a \textit{standard collaborative filtering setting}
-        \end{itemize}
+          \end{itemize}
 
-        \item \textbf{Graph G2 — Social Expansion (\textit{``The Increase''})}
-        \begin{itemize}
+    \item \textbf{Graph G2 — Social Expansion (\textit{``The Increase''})}
+          \begin{itemize}
             \item \textbf{+ User–User Edges} via \textit{Reply} interactions
             \item \textit{Hypothesis:} Users who converse are likely to share interests
-        \end{itemize}
+          \end{itemize}
 
-        \item \textbf{Graph G3 — Semantic Expansion}
-        \begin{itemize}
+    \item \textbf{Graph G3 — Semantic Expansion}
+          \begin{itemize}
             \item \textbf{+ Category Nodes} connected to users they read
             \item \textit{Hypothesis:} High-level semantic hubs reduce graph path length
-        \end{itemize}
+          \end{itemize}
 
-    \end{enumerate}
+  \end{enumerate}
 \end{frame}
 
 % --- SLIDE 1: GRAPH G1 (BASELINE) ---
@@ -591,31 +591,31 @@
   \framesubtitle{Baseline Collaborative Filtering Structure}
   \centering
   \begin{tikzpicture}[scale=0.9, transform shape]
-      % 1. Nodes
-      \node[user] (u1) at (0, 3) {User 1};
-      \node[user] (u2) at (0, 1) {User 2};
-      \node[user] (u3) at (0, -1) {User 3};
+    % 1. Nodes
+    \node[user] (u1) at (0, 3) {User 1};
+    \node[user] (u2) at (0, 1) {User 2};
+    \node[user] (u3) at (0, -1) {User 3};
 
-      \node[article] (a1) at (6, 3) {Art 1};
-      \node[article] (a2) at (6, 1) {Art 2};
-      \node[article] (a3) at (6, -1) {Art 3};
+    \node[article] (a1) at (6, 3) {Art 1};
+    \node[article] (a2) at (6, 1) {Art 2};
+    \node[article] (a3) at (6, -1) {Art 3};
 
-      % 2. Edges
-      \draw[interact] (u1) -- (a1);
-      \draw[interact] (u1) -- (a2);
-      \draw[interact] (u2) -- (a2);
-      \draw[interact] (u3) -- (a3);
-      \draw[interact] (u3) -- (a2);
+    % 2. Edges
+    \draw[interact] (u1) -- (a1);
+    \draw[interact] (u1) -- (a2);
+    \draw[interact] (u2) -- (a2);
+    \draw[interact] (u3) -- (a3);
+    \draw[interact] (u3) -- (a2);
 
-      % 3. Annotations
-      \node[infobox] at (3, -3) {
-          \textbf{Structure:} Standard User-Item Bipartite Graph \\
-          \textbf{Edge:} Explicit interaction (Comment/View) \\
-          \textbf{Limitation:} Sparse connections, suffers from Cold-Start.
-      };
-      
-      \node[above=0.2cm of u1, userblue, font=\bfseries] {USERS};
-      \node[above=0.2cm of a1, articlegreen, font=\bfseries] {ARTICLES};
+    % 3. Annotations
+    \node[infobox] at (3, -3) {
+      \textbf{Structure:} Standard User-Item Bipartite Graph \\
+      \textbf{Edge:} Explicit interaction (Comment/View) \\
+      \textbf{Limitation:} Sparse connections, suffers from Cold-Start.
+    };
+
+    \node[above=0.2cm of u1, userblue, font=\bfseries] {USERS};
+    \node[above=0.2cm of a1, articlegreen, font=\bfseries] {ARTICLES};
   \end{tikzpicture}
 \end{frame}
 
@@ -625,34 +625,34 @@
   \framesubtitle{Enhancing Connectivity via Social Homophily}
   \centering
   \begin{tikzpicture}[scale=0.9, transform shape]
-      % 1. Nodes
-      \node[user] (u1) at (0, 3) {User 1};
-      \node[user] (u2) at (0, 1) {User 2};
-      \node[user] (u3) at (0, -1) {User 3};
+    % 1. Nodes
+    \node[user] (u1) at (0, 3) {User 1};
+    \node[user] (u2) at (0, 1) {User 2};
+    \node[user] (u3) at (0, -1) {User 3};
 
-      \node[article] (a1) at (6, 3) {Art 1};
-      \node[article] (a2) at (6, 1) {Art 2};
-      \node[article] (a3) at (6, -1) {Art 3};
+    \node[article] (a1) at (6, 3) {Art 1};
+    \node[article] (a2) at (6, 1) {Art 2};
+    \node[article] (a3) at (6, -1) {Art 3};
 
-      % 2. Edges
-      \draw[interact] (u1) -- (a1);
-      \draw[interact] (u1) -- (a2);
-      \draw[interact] (u2) -- (a2);
-      \draw[interact] (u3) -- (a3);
+    % 2. Edges
+    \draw[interact] (u1) -- (a1);
+    \draw[interact] (u1) -- (a2);
+    \draw[interact] (u2) -- (a2);
+    \draw[interact] (u3) -- (a3);
 
-      % 3. NEW SOCIAL EDGES
-      \draw[social] (u1) to node[midway, left=0.1cm, font=\tiny\bfseries, text=socialorange] {Reply} (u2);
-      \draw[social] (u2) to (u3);
+    % 3. NEW SOCIAL EDGES
+    \draw[social] (u1) to node[midway, left=0.1cm, font=\tiny\bfseries, text=socialorange] {Reply} (u2);
+    \draw[social] (u2) to (u3);
 
-      % 4. Annotations
-      \node[infobox] at (3, -3) {
-          \textbf{Structure:} G1 + \textcolor{socialorange}{User-User Edges} \\
-          \textbf{Logic:} Users who reply to each other share interests (Homophily). \\
-          \textbf{Benefit:} Propagates information between users even without shared articles.
-      };
+    % 4. Annotations
+    \node[infobox] at (3, -3) {
+      \textbf{Structure:} G1 + \textcolor{socialorange}{User-User Edges} \\
+      \textbf{Logic:} Users who reply to each other share interests (Homophily). \\
+      \textbf{Benefit:} Propagates information between users even without shared articles.
+    };
 
-      \node[above=0.2cm of u1, userblue, font=\bfseries] {SOCIAL NETWORK};
-      \node[above=0.2cm of a1, articlegreen, font=\bfseries] {CONTENT};
+    \node[above=0.2cm of u1, userblue, font=\bfseries] {SOCIAL NETWORK};
+    \node[above=0.2cm of a1, articlegreen, font=\bfseries] {CONTENT};
   \end{tikzpicture}
 \end{frame}
 
@@ -662,33 +662,33 @@
 
   \vspace{0.3cm}
   \begin{columns}
-      \column{0.5\textwidth}
-      \centering
-      \begin{tikzpicture}[node distance=1.5cm, every node/.style={scale=0.7}]
-          \node[circle, draw, fill=blue!20] (U1) {User A};
-          \node[circle, draw, fill=blue!20, right of=U1, xshift=1cm] (U2) {User B};
-          \node[rectangle, draw, fill=green!20, below of=U1] (A1) {Article 1};
-          \node[rectangle, draw, fill=green!20, below of=U2] (A2) {Article 2};
+    \column{0.5\textwidth}
+    \centering
+    \begin{tikzpicture}[node distance=1.5cm, every node/.style={scale=0.7}]
+      \node[circle, draw, fill=blue!20] (U1) {User A};
+      \node[circle, draw, fill=blue!20, right of=U1, xshift=1cm] (U2) {User B};
+      \node[rectangle, draw, fill=green!20, below of=U1] (A1) {Article 1};
+      \node[rectangle, draw, fill=green!20, below of=U2] (A2) {Article 2};
 
-          \draw[->, thick] (U1) -- (A1) node[midway, left] {Read};
-          \draw[->, thick, red, dashed] (U1) -- (U2) node[midway, above] {Reply};
-          \draw[->, thick] (U2) -- (A2) node[midway, right] {Read};
+      \draw[->, thick] (U1) -- (A1) node[midway, left] {Read};
+      \draw[->, thick, red, dashed] (U1) -- (U2) node[midway, above] {Reply};
+      \draw[->, thick] (U2) -- (A2) node[midway, right] {Read};
 
-          \draw[->, blue, dotted, bend left] (U1) to node[midway, below] {Suggest?} (A2);
-      \end{tikzpicture}
+      \draw[->, blue, dotted, bend left] (U1) to node[midway, below] {Suggest?} (A2);
+    \end{tikzpicture}
 
-      \column{0.5\textwidth}
-      \textbf{The Logic:}
-      \begin{itemize}
-          \item \textbf{Direct:} User A likes Article 1.
-          \item \textbf{Social:} User A replies to User B $\rightarrow$ \textit{Shared Interest}.
-          \item \textbf{Inference:} User A is likely to enjoy Article 2 (read by B).
-      \end{itemize}
+    \column{0.5\textwidth}
+    \textbf{The Logic:}
+    \begin{itemize}
+      \item \textbf{Direct:} User A likes Article 1.
+      \item \textbf{Social:} User A replies to User B $\rightarrow$ \textit{Shared Interest}.
+      \item \textbf{Inference:} User A is likely to enjoy Article 2 (read by B).
+    \end{itemize}
   \end{columns}
 
   \vspace{0.4cm}
   \begin{block}{Impact on Sparsity}
-      By adding User-User edges (G2), the GNN can propagate "interests" even if User A has only read 1 article.
+    By adding User-User edges (G2), the GNN can propagate "interests" even if User A has only read 1 article.
   \end{block}
 \end{frame}
 
@@ -698,40 +698,40 @@
   \framesubtitle{Reducing Sparsity with Category Bridges}
   \centering
   \begin{tikzpicture}[scale=0.85, transform shape]
-      % 1. Nodes
-      \node[user] (u1) at (0, 3) {User 1};
-      \node[user] (u2) at (0, 0) {User 2};
+    % 1. Nodes
+    \node[user] (u1) at (0, 3) {User 1};
+    \node[user] (u2) at (0, 0) {User 2};
 
-      \node[category] (c1) at (4, 3) {Sport};
-      \node[category] (c2) at (4, 0) {Tech};
+    \node[category] (c1) at (4, 3) {Sport};
+    \node[category] (c2) at (4, 0) {Tech};
 
-      \node[article] (a1) at (8, 3.5) {Art 1};
-      \node[article] (a2) at (8, 2.5) {Art 2};
-      \node[article] (a3) at (8, 0.5) {Art 3};
-      \node[article] (a4) at (8, -0.5) {Art 4};
+    \node[article] (a1) at (8, 3.5) {Art 1};
+    \node[article] (a2) at (8, 2.5) {Art 2};
+    \node[article] (a3) at (8, 0.5) {Art 3};
+    \node[article] (a4) at (8, -0.5) {Art 4};
 
-      % 2. Edges
-      \draw[semantic] (u1) -- (c1);
-      \draw[semantic] (u1) -- (c2);
-      \draw[semantic] (u2) -- (c2);
+    % 2. Edges
+    \draw[semantic] (u1) -- (c1);
+    \draw[semantic] (u1) -- (c2);
+    \draw[semantic] (u2) -- (c2);
 
-      \draw[semantic] (c1) -- (a1);
-      \draw[semantic] (c1) -- (a2);
-      \draw[semantic] (c2) -- (a3);
-      \draw[semantic] (c2) -- (a4);
-      
-      \draw[interact, dotted, opacity=0.3] (u1) to[bend left=20] (a1);
+    \draw[semantic] (c1) -- (a1);
+    \draw[semantic] (c1) -- (a2);
+    \draw[semantic] (c2) -- (a3);
+    \draw[semantic] (c2) -- (a4);
 
-      % 3. Annotations
-      \node[infobox] at (4, -3) {
-          \textbf{Structure:} Tripartite-like (User $\to$ Category $\to$ Article) \\
-          \textbf{Logic:} Categories act as \textit{dense hubs}, shortening the path distance. \\
-          \textbf{Benefit:} Extreme connectivity; connects users to ALL articles in a topic.
-      };
+    \draw[interact, dotted, opacity=0.3] (u1) to[bend left=20] (a1);
 
-      \node[above=0.2cm of u1, userblue, font=\bfseries] {USERS};
-      \node[above=0.2cm of c1, cathub, font=\bfseries] {CATEGORIES};
-      \node[above=0.2cm of a1, articlegreen, font=\bfseries] {ARTICLES};
+    % 3. Annotations
+    \node[infobox] at (4, -3) {
+      \textbf{Structure:} Tripartite-like (User $\to$ Category $\to$ Article) \\
+      \textbf{Logic:} Categories act as \textit{dense hubs}, shortening the path distance. \\
+      \textbf{Benefit:} Extreme connectivity; connects users to ALL articles in a topic.
+    };
+
+    \node[above=0.2cm of u1, userblue, font=\bfseries] {USERS};
+    \node[above=0.2cm of c1, cathub, font=\bfseries] {CATEGORIES};
+    \node[above=0.2cm of a1, articlegreen, font=\bfseries] {ARTICLES};
   \end{tikzpicture}
 \end{frame}
 
@@ -815,15 +815,15 @@
   \begin{enumerate}
     \item \textbf{Graph Neural Networks (GNNs):}
           \begin{itemize}
-            \item \textbf{LightGCL (2023):} Efficient Global Context Learning via SVD for better structural alignment.
-            \item \textbf{XSimGCL (2023):} Extreme Simple Graph Contrastive Learning using noise perturbation instead of graph augmentation.
-            \item \textbf{LightGCN (2020):} Simplified GCN by removing non-linearities. Current industry standard for efficiency.
+            \item \textbf{LightGCL \cite{cai2023lightgcl} (2023):} Efficient Global Context Learning via SVD for better structural alignment.
+            \item \textbf{XSimGCL \cite{yu2023xsimgcl} (2023):} Extreme Simple Graph Contrastive Learning using noise perturbation instead of graph augmentation.
+            \item \textbf{LightGCN \cite{he2020lightgcn} (2020):} Simplified GCN by removing non-linearities. Current industry standard for efficiency.
           \end{itemize}
 
           \vspace{0.2cm}
     \item \textbf{Contrastive Learning (CL):}
           \begin{itemize}
-            \item \textbf{SimGCL (2022):} Augments graph structure with noise to learn robust representations. Handles sparsity better than pure GNNs.
+            \item \textbf{SimGCL \cite{yu2022graph} (2022):} Augments graph structure with noise to learn robust representations. Handles sparsity better than pure GNNs.
           \end{itemize}
 
           \vspace{0.2cm}
@@ -1124,8 +1124,8 @@
     \begin{column}{0.48\textwidth}
       \textbf{Models ($N=6$):}
       \begin{itemize}
-        \item \textbf{Baselines:} LightGCN, HGN
-        \item \textbf{Contrastive:} LightGCL, SimGCL, XSimGCL (SOTA), HCL (Ours)
+        \item \textbf{Baselines:} LightGCN \cite{he2020lightgcn}, HGN
+        \item \textbf{Contrastive:} LightGCL \cite{cai2023lightgcl}, SimGCL \cite{yu2022graph}, XSimGCL \cite{yu2023xsimgcl} (SOTA), HCL (Ours)
       \end{itemize}
 
       \vspace{0.2cm}
@@ -1165,6 +1165,7 @@
     \item \textbf{Metric Choice:}
           \begin{itemize}
             \item \textbf{Recall@10}: Measures system coverage.
+            \item \textbf{Hit Rate@10}: Measures if the relevant item is in the top-10.
             \item \textbf{NDCG@10}: Rewards models that rank true items higher.
             \item \textbf{MRR}: Standard for single-target news retrieval.
           \end{itemize}
@@ -1188,9 +1189,9 @@
   \begin{table}
     \centering
     \tiny
-    \setlength{\tabcolsep}{2.5pt}
+    \setlength{\tabcolsep}{1.5pt}
     \renewcommand{\arraystretch}{0.95}
-    \begin{tabular}{l|c|cccc}
+    \begin{tabularx}{\textwidth}{l|c|*4{>{\centering\arraybackslash}X}}
       \toprule
       \textbf{Model}                        & \textbf{Type} & \textbf{R@10}   & \textbf{N@10}   & \textbf{H@10}   & \textbf{MRR}    \\
       \midrule
@@ -1219,48 +1220,8 @@
       HCL                                   & Hetero CL     & 0.0250          & 0.0152          & 0.0471          & 0.0205          \\
       SimGCL                                & Graph CL      & 0.0222          & 0.0122          & 0.0322          & 0.0137          \\
       \bottomrule
-    \end{tabular}
+    \end{tabularx}
   \end{table}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Technical Analysis: Why CB Models Excel?}
-  \textbf{Question:} Why do Semantic Models (PhoBERT) consistently outperform Graph models in this task?
-
-  \vspace{0.3cm}
-  \begin{columns}[T]
-    \begin{column}{0.48\textwidth}
-      \begin{block}{1. Cold Start \& Item Turnover}
-        \begin{itemize}
-          \item \textbf{News Reality:} High article turnover. New items have zero interactions ($k=0$).
-          \item \textbf{Graph Limit:} GNNs require structural edges to represent items.
-          \item \textbf{CB Advantage:} Text is available at $t=0$. Zero-shot capability.
-        \end{itemize}
-      \end{block}
-
-      \begin{block}{2. Density Contrast}
-        \begin{itemize}
-          \item \textbf{Interactions:} 99.9\% Sparse.
-          \item \textbf{Text:} Denser semantic signal.
-        \end{itemize}
-      \end{block}
-    \end{column}
-
-    \begin{column}{0.48\textwidth}
-      \begin{block}{3. Linguistic Pre-training}
-        \begin{itemize}
-          \item \textbf{PhoBERT:} Leverages massive external Knowledge (LLM-style).
-          \item \textbf{Graph:} Must learn relationships from scratch using only local nodes.
-        \end{itemize}
-      \end{block}
-
-      \begin{block}{4. Stability \& Tail Items}
-        \begin{itemize}
-          \item CB performs identically on popular and long-tail (unseen) items.
-        \end{itemize}
-      \end{block}
-    \end{column}
-  \end{columns}
 \end{frame}
 
 \begin{frame}
@@ -1280,7 +1241,7 @@
       \midrule
       \textbf{G2}    & \parbox{3.5cm}{\textbf{+61k Social Edges}                 \\ Density: \textbf{0.064\%}} & \textbf{0.0369} \\
       \midrule
-      G3             & \parbox{3.5cm}{+6 Categories                              \\ 16k User-Cat Edges}                   & 0.0299          \\
+      G3             & \parbox{3.5cm}{+6 Categories                              \\ 16k User-Cat Edges \\ Density: \textbf{0.096\%}}                   & 0.0299          \\
       \bottomrule
     \end{tabular}
   \end{table}
@@ -1321,11 +1282,43 @@
   \textbf{Observations:}
   \begin{itemize}
     \item \textbf{XSimGCL} is the most efficient method (fastest training time).
-    \item \textbf{MA-HCL} maintains comparable efficiency to SimGCL/LightGCL on bipartite graphs (G1, G3) while handling heterogeneity.
+    \item \textbf{MA-HCL} maintains comparable efficiency to SimGCL \cite{yu2022graph}/LightGCL \cite{cai2023lightgcl} on bipartite graphs (G1, G3) while handling heterogeneity.
     \item \textbf{MA-HGN} incurs significant computational cost on dense heterogeneous graphs (G2), taking \textbf{2-3x longer} than Contrastive Learning methods.
   \end{itemize}
 \end{frame}
 
+
+\begin{frame}
+  \frametitle{Our Contributions: HGN \& HCL}
+  We propose two distinct architectures to handle the "VnExpress Heterogeneity":
+
+  \vspace{0.2cm}
+  \begin{columns}
+    \begin{column}{0.48\textwidth}
+      \begin{block}{1. HGN (Best for Structure)}
+        \begin{itemize}
+          \item \textbf{Method:} Meta-path Aggregation + Attention Fusion.
+          \item \textbf{Recall@10 (G2):} \textbf{0.0369} (Highest Graph Model).
+        \end{itemize}
+      \end{block}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \begin{block}{2. HCL (Contrastive)}
+        \begin{itemize}
+          \item \textbf{Method:} Heterogeneity + Contrastive Loss.
+          \item \textbf{Recall@10 (G2):} 0.0320 (Stable).
+        \end{itemize}
+      \end{block}
+    \end{column}
+  \end{columns}
+
+  \vspace{0.3cm}
+  \textbf{Key Takeaway:}
+  \begin{itemize}
+    \item \textbf{HGN} successfully exploits the Social graph (G2) to achieve the best structural performance (+40\% over G1).
+    \item \textbf{HCL} offers a lightweight alternative, though attention mechanisms (HGN) prove superior for this specific heterogeneous dataset.
+  \end{itemize}
+\end{frame}
 
 
 \begin{frame}
@@ -1389,64 +1382,31 @@
 
 
 \begin{frame}
-  \frametitle{Our Contributions: HGN \& HCL}
-  We propose two distinct architectures to handle the "VnExpress Heterogeneity":
-
-  \vspace{0.2cm}
-  \begin{columns}
-    \begin{column}{0.48\textwidth}
-      \begin{block}{1. HGN (Best for Structure)}
-        \begin{itemize}
-          \item \textbf{Method:} Meta-path Aggregation + Attention Fusion.
-          \item \textbf{Recall@10 (G2):} \textbf{0.0369} (Highest Graph Model).
-        \end{itemize}
-      \end{block}
-    \end{column}
-    \begin{column}{0.48\textwidth}
-      \begin{block}{2. HCL (Contrastive)}
-        \begin{itemize}
-          \item \textbf{Method:} Heterogeneity + Contrastive Loss.
-          \item \textbf{Recall@10 (G2):} 0.0320 (Stable).
-        \end{itemize}
-      \end{block}
-    \end{column}
-  \end{columns}
-
-  \vspace{0.3cm}
-  \textbf{Key Takeaway:}
-  \begin{itemize}
-    \item \textbf{HGN} successfully exploits the Social graph (G2) to achieve the best structural performance (+40\% over G1).
-    \item \textbf{HCL} offers a lightweight alternative, though attention mechanisms (HGN) prove superior for this specific heterogeneous dataset.
-  \end{itemize}
-\end{frame}
-
-
-\begin{frame}
   \frametitle{Ablation Study: Impact of GNN Depth ($L$)}
   \textbf{Question:} Does deeper graph propagation help?
   \textbf{Metric:} Recall@10 on Full Ranking.
 
   \begin{table}
     \centering
-    \tiny
+    \normalsize
     \setlength{\tabcolsep}{5pt}
-    \begin{tabular}{l|cccc|l}
+    \begin{tabularx}{\textwidth}{l|*4{>{\centering\arraybackslash}X}}
       \toprule
-      \textbf{Model} & \textbf{L=1}   & \textbf{L=2}   & \textbf{L=3}   & \textbf{L=4}     \\
+      \textbf{Model} & \textbf{L=1}   & \textbf{L=2}   & \textbf{L=3}   & \textbf{L=4}   \\
       \midrule
-      LightGCL       & 0.032          & \textbf{0.040} & \textbf{0.043} & \textbf{0.042} & \\
+      LightGCL       & 0.032          & \textbf{0.040} & \textbf{0.043} & \textbf{0.042} \\
       \midrule
-      XSimGCL        & 0.028          & 0.035          & 0.039          & 0.041          & \\
+      XSimGCL        & 0.028          & 0.035          & 0.039          & 0.041          \\
       \midrule
-      LightGCN       & 0.031          & 0.032          & 0.32           & 0.031          & \\
+      LightGCN       & 0.031          & 0.026          & 0.022          & 0.019          \\
       \midrule
-      HGN            & \textbf{0.033} & 0.026          & 0.026          & 0.028          & \\
+      HGN            & \textbf{0.033} & 0.032          & 0.026          & 0.028          \\
       \midrule
-      HCL            & 0.020          & 0.010          & 0.007          & 0.009          & \\
+      HCL            & 0.020          & 0.010          & 0.007          & 0.009          \\
       \midrule
-      SimGCL         & 0.024          & 0.027          & 0.021          & 0.023          & \\
+      SimGCL         & 0.024          & 0.027          & 0.021          & 0.023          \\
       \bottomrule
-    \end{tabular}
+    \end{tabularx}
   \end{table}
 
   \vspace{0.1cm}
@@ -1479,10 +1439,10 @@
       Amazon-Book        & 78k              & 77k              & \textbf{0.037\%} & \textbf{0.0585}         \\
       Tmall              & 47k              & 41k              & 0.119\%          & 0.0528                  \\
       \midrule
-      \textbf{Ours (G2)} & \textbf{13k}     & \textbf{3.6k}    & \textbf{0.08\%}  & \textbf{0.0369} (@10)   \\
+      \textbf{Ours (G2)} & \textbf{13k}     & \textbf{3.6k}    & \textbf{0.064\%} & \textbf{0.0436} (@10)   \\
       \bottomrule
     \end{tabular}
-    \caption{Comparison with Standard Benchmarks (LightGCN/SimGCL Results)}
+    \caption{Comparison with Standard Benchmarks (LightGCN \cite{he2020lightgcn}/SimGCL \cite{yu2022graph} Results)}
   \end{table}
 
 \end{frame}

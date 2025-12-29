@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023/Debian) (preloaded format=xelatex 2025.6.18)  29 DEC 2025 23:05
+This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023/Debian) (preloaded format=xelatex 2025.6.18)  29 DEC 2025 23:09
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1835,9 +1835,24 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
  [26
 
 ]
+
+LaTeX Warning: Citation 'cai2023lightgcl' on page 27 undefined on input line 83
+5.
+
+
+LaTeX Warning: Citation 'yu2023xsimgcl' on page 27 undefined on input line 835.
+
+
+
+LaTeX Warning: Citation 'he2020lightgcn' on page 27 undefined on input line 835
+.
+
+
+LaTeX Warning: Citation 'yu2022graph' on page 27 undefined on input line 835.
+
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [27
+[27
 
 ]
 File: assets/images/uit-logo.png Graphic file (type bmp)
@@ -1923,9 +1938,24 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
  [38
 
 ]
+
+LaTeX Warning: Citation 'he2020lightgcn' on page 39 undefined on input line 115
+7.
+
+
+LaTeX Warning: Citation 'cai2023lightgcl' on page 39 undefined on input line 11
+57.
+
+
+LaTeX Warning: Citation 'yu2022graph' on page 39 undefined on input line 1157.
+
+
+LaTeX Warning: Citation 'yu2023xsimgcl' on page 39 undefined on input line 1157
+.
+
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [39
+[39
 
 ]
 File: assets/images/uit-logo.png Graphic file (type bmp)
@@ -1933,33 +1963,35 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
  [40
 
 ]
-LaTeX Font Info:    Font shape `TU/lmss/bx/it' in size <6> not available
-(Font)              Font shape `TU/lmss/bx/sl' tried instead on input line 1224
-.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [41
 
 ]
-Overfull \vbox (33.16792pt too high) detected at line 1264
+File: assets/images/uit-logo.png Graphic file (type bmp)
+<assets/images/uit-logo.png>
+ [42
+
+]
+
+LaTeX Warning: Citation 'yu2022graph' on page 43 undefined on input line 1288.
+
+
+LaTeX Warning: Citation 'cai2023lightgcl' on page 43 undefined on input line 12
+88.
+
+
+Overfull \vbox (16.60228pt too high) detected at line 1288
  []
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
-[42
+[43
 
 ]
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [43
-
-]
-Overfull \vbox (3.00227pt too high) detected at line 1327
- []
-
-File: assets/images/uit-logo.png Graphic file (type bmp)
-<assets/images/uit-logo.png>
-[44
+ [44
 
 ]
 File: assets/images/uit-logo.png Graphic file (type bmp)
@@ -1967,7 +1999,7 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
  [45
 
 ]
-Overfull \hbox (4.37463pt too wide) in paragraph at lines 1388--1388
+Overfull \hbox (4.37463pt too wide) in paragraph at lines 1381--1381
  [] 
  []
 
@@ -1976,25 +2008,43 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 [46
 
 ]
-File: assets/images/uit-logo.png Graphic file (type bmp)
-<assets/images/uit-logo.png>
- [47
-
-]
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 14.40152pt on input line 1460.
+(Font)              scaled to size 14.40152pt on input line 1420.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 14.39845pt on input line 1460.
+(Font)              scaled to size 14.39845pt on input line 1420.
+
+Overfull \vbox (5.2056pt too high) detected at line 1420
+ []
+
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [48
+[47
 
 ]
+
+LaTeX Warning: Citation 'he2020lightgcn' on page 48 undefined on input line 144
+8.
+
+
+LaTeX Warning: Citation 'yu2022graph' on page 48 undefined on input line 1448.
+
+
+LaTeX Warning: Citation 'he2020lightgcn' on page 48 undefined on input line 144
+8.
+
+
+LaTeX Warning: Citation 'yu2022graph' on page 48 undefined on input line 1448.
+
+File: assets/images/uit-logo.png Graphic file (type bmp)
+<assets/images/uit-logo.png>
+[48
+
+] (./main.toc)
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [49
 
-] (./main.toc)
+]
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [50
@@ -2010,17 +2060,12 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
  [52
 
 ]
-File: assets/images/uit-logo.png Graphic file (type bmp)
-<assets/images/uit-logo.png>
- [53
 
-]
-
-LaTeX Warning: Empty bibliography on input line 1545.
+LaTeX Warning: Empty bibliography on input line 1505.
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
-[54
+[53
 
 ]
 \tf@nav=\write7
@@ -2032,7 +2077,7 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 \tf@snm=\write9
 \openout9 = `main.snm'.
 
- (./main.aux)
+ [54] (./main.aux)
  ***********
 LaTeX2e <2023-11-01> patch level 1
 L3 programming layer <2024-01-22>
@@ -2040,6 +2085,9 @@ L3 programming layer <2024-01-22>
 
 
 LaTeX Warning: There were undefined references.
+
+
+LaTeX Warning: Temporary extra page added at the end. Rerun to get it removed.
 
 Package rerunfilecheck Info: File `main.out' has not changed.
 (rerunfilecheck)             Checksum: E17DE1070BA22BAEBFDE8B4D350FD0F5;1455.
@@ -2053,10 +2101,10 @@ Package logreq Info: Writing requests to 'main.run.xml'.
 
  ) 
 Here is how much of TeX's memory you used:
- 43407 strings out of 474878
- 906172 string characters out of 5762516
- 1945627 words of memory out of 5000000
- 64657 multiletter control sequences out of 15000+600000
+ 43389 strings out of 474878
+ 905372 string characters out of 5762516
+ 1954627 words of memory out of 5000000
+ 64639 multiletter control sequences out of 15000+600000
  566542 words of font info for 128 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
  128i,15n,123p,1129b,3945s stack positions out of 10000i,1000n,20000p,200000b,200000s
