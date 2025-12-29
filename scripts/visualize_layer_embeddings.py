@@ -193,53 +193,63 @@ def extract_layer1_mahgn(model, adj, edge_index_dict=None):
 # ## 3. Visualization Function
 
 # %%
-def visualize_layer1(embeddings_dict, title="Layer 1 Embeddings", n_samples=500):
+def calculate_mad(emb):
     """
-    Plots PCA of embeddings.
+    Calculate Mean Average Distance (MAD) to measure smoothness.
+    MAD = Mean( PairwiseCosineDistance ) or Mean( EuclideanDistanceToCentroid )
+    Here we use Mean Euclidean Distance to Centroid for efficiency and robustness.
+    """
+    if torch.is_tensor(emb):
+        emb = emb.detach().cpu().numpy()
+    
+    # Method 1: Mean Euclidean Distance to Centroid (Fast)
+    centroid = np.mean(emb, axis=0)
+    dists = np.linalg.norm(emb - centroid, axis=1)
+    mad_value = np.mean(dists)
+    return mad_value
+
+def visualize_layer1(embeddings_dict, title="Layer 1 Embeddings", n_samples=1000):
+    """
+    Plots Grid of t-SNE embeddings with MAD scores.
     embeddings_dict: {'ModelName': (user_emb, item_emb)}
     """
-    plt.figure(figsize=(15, 6))
+    n_models = len(embeddings_dict)
+    fig, axes = plt.subplots(1, n_models, figsize=(5 * n_models, 5))
+    if n_models == 1: axes = [axes]
     
-    # 1. User Embeddings Comparison
-    plt.subplot(1, 2, 1)
-    for model_name, (u_emb, _) in embeddings_dict.items():
-        # Sample random users
-        indices = np.random.choice(len(u_emb), n_samples, replace=False)
-        u_sample = u_emb[indices].detach().cpu().numpy()
-        
-        pca = PCA(n_components=2)
-        u_pca = pca.fit_transform(u_sample)
-        
-        # Normalize for easier overlay comparison
-        u_pca = (u_pca - u_pca.mean(0)) / u_pca.std(0)
-        
-        plt.scatter(u_pca[:, 0], u_pca[:, 1], label=model_name, alpha=0.5, s=10)
-        
-    plt.title(f"User Embeddings (PCA) - {title}")
-    plt.legend()
-    plt.grid(True, alpha=0.3)
+    print(f"Generating t-SNE and MAD scores for {n_models} models (Samples={n_samples})...")
     
-    # 2. Item Embeddings Comparison
-    plt.subplot(1, 2, 2)
-    for model_name, (_, i_emb) in embeddings_dict.items():
-        # Sample random items
-        indices = np.random.choice(len(i_emb), n_samples, replace=False)
-        i_sample = i_emb[indices].detach().cpu().numpy()
+    for idx, (model_name, (u_emb, _)) in enumerate(embeddings_dict.items()):
+        ax = axes[idx]
         
-        pca = PCA(n_components=2)
-        i_pca = pca.fit_transform(i_sample)
+        # Data prep
+        if len(u_emb) > n_samples:
+            indices = np.random.choice(len(u_emb), n_samples, replace=False)
+            u_sample = u_emb[indices].detach().cpu().numpy()
+        else:
+            u_sample = u_emb.detach().cpu().numpy()
+            
+        # 1. Calculate MAD (Quality Metric) on Sample
+        mad_score = calculate_mad(u_sample)
         
-        # Normalize
-        i_pca = (i_pca - i_pca.mean(0)) / i_pca.std(0)
+        # 2. t-SNE (Visual Structure)
+        # Init t-SNE (perplexity=30 is standard)
+        tsne = TSNE(n_components=2, perplexity=30, n_iter=1000, random_state=42)
+        u_tsne = tsne.fit_transform(u_sample)
         
-        plt.scatter(i_pca[:, 0], i_pca[:, 1], label=model_name, alpha=0.5, s=10)
-        
-    plt.title(f"Item Embeddings (PCA) - {title}")
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    
+        # Plot
+        ax.scatter(u_tsne[:, 0], u_tsne[:, 1], s=5, alpha=0.6)
+        ax.set_title(f"{model_name}\nMAD: {mad_score:.4f}", fontsize=14, fontweight='bold')
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['bottom'].set_visible(False)
+        ax.spines['left'].set_visible(False)
+
+    plt.suptitle(f"{title} (User Embeddings)", fontsize=16, y=1.05)
     plt.tight_layout()
-    plt.savefig('layer1_comparison.png')
+    plt.savefig('layer1_comparison.png', bbox_inches='tight')
     plt.show()
 
 # Main Execution
