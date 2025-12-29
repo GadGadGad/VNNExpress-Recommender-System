@@ -757,15 +757,15 @@
   \begin{enumerate}
     \item \textbf{Graph Neural Networks (GNNs):}
           \begin{itemize}
-            \item \textbf{LightGCL (2023):} Efficient Global Context Learning via SVD for better structural alignment.
-            \item \textbf{XSimGCL (2023):} Extreme Simple Graph Contrastive Learning using noise perturbation instead of graph augmentation.
-            \item \textbf{LightGCN (2020):} Simplified GCN by removing non-linearities. Current industry standard for efficiency.
+            \item \textbf{LightGCL \cite{cai2023lightgcl} (2023):} Efficient Global Context Learning via SVD for better structural alignment.
+            \item \textbf{XSimGCL \cite{yu2023xsimgcl} (2023):} Extreme Simple Graph Contrastive Learning using noise perturbation instead of graph augmentation.
+            \item \textbf{LightGCN \cite{he2020lightgcn} (2020):} Simplified GCN by removing non-linearities. Current industry standard for efficiency.
           \end{itemize}
 
           \vspace{0.2cm}
     \item \textbf{Contrastive Learning (CL):}
           \begin{itemize}
-            \item \textbf{SimGCL (2022):} Augments graph structure with noise to learn robust representations. Handles sparsity better than pure GNNs.
+            \item \textbf{SimGCL \cite{yu2022graph} (2022):} Augments graph structure with noise to learn robust representations. Handles sparsity better than pure GNNs.
           \end{itemize}
 
           \vspace{0.2cm}
@@ -1066,8 +1066,8 @@
     \begin{column}{0.48\textwidth}
       \textbf{Models ($N=6$):}
       \begin{itemize}
-        \item \textbf{Baselines:} LightGCN, HGN
-        \item \textbf{Contrastive:} LightGCL, SimGCL, XSimGCL (SOTA), HCL (Ours)
+        \item \textbf{Baselines:} LightGCN \cite{he2020lightgcn}, HGN
+        \item \textbf{Contrastive:} LightGCL \cite{cai2023lightgcl}, SimGCL \cite{yu2022graph}, XSimGCL \cite{yu2023xsimgcl} (SOTA), HCL (Ours)
       \end{itemize}
 
       \vspace{0.2cm}
@@ -1224,7 +1224,7 @@
   \textbf{Observations:}
   \begin{itemize}
     \item \textbf{XSimGCL} is the most efficient method (fastest training time).
-    \item \textbf{MA-HCL} maintains comparable efficiency to SimGCL/LightGCL on bipartite graphs (G1, G3) while handling heterogeneity.
+    \item \textbf{MA-HCL} maintains comparable efficiency to SimGCL \cite{yu2022graph}/LightGCL \cite{cai2023lightgcl} on bipartite graphs (G1, G3) while handling heterogeneity.
     \item \textbf{MA-HGN} incurs significant computational cost on dense heterogeneous graphs (G2), taking \textbf{2-3x longer} than Contrastive Learning methods.
   \end{itemize}
 \end{frame}
@@ -1384,7 +1384,7 @@
       \textbf{Ours (G2)} & \textbf{13k}     & \textbf{3.6k}    & \textbf{0.064\%} & \textbf{0.0436} (@10)   \\
       \bottomrule
     \end{tabular}
-    \caption{Comparison with Standard Benchmarks (LightGCN/SimGCL Results)}
+    \caption{Comparison with Standard Benchmarks (LightGCN \cite{he2020lightgcn}/SimGCL \cite{yu2022graph} Results)}
   \end{table}
 
 \end{frame}
