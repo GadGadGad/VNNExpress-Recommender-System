@@ -1,4 +1,4 @@
-This is LuaHBTeX, Version 1.22.0 (TeX Live 2025)  (format=lualatex 2025.11.28)  29 DEC 2025 16:21
+This is LuaHBTeX, Version 1.22.0 (TeX Live 2025)  (format=lualatex 2025.11.28)  29 DEC 2025 19:20
  restricted system commands enabled.
 **main.tex
 (./main.tex
@@ -2264,145 +2264,135 @@ Package luatex.def Info: assets/images/uit-logo.png  used on input line 758.
 ]
 File: assets/images/uit-logo.png Graphic file (type png)
 <use assets/images/uit-logo.png>
-Package luatex.def Info: assets/images/uit-logo.png  used on input line 802.
+Package luatex.def Info: assets/images/uit-logo.png  used on input line 801.
 (luatex.def)             Requested size: 35.19609pt x 28.45274pt.
  [38
 
 ]
+File: assets/images/uit-logo.png Graphic file (type png)
+<use assets/images/uit-logo.png>
+Package luatex.def Info: assets/images/uit-logo.png  used on input line 825.
+(luatex.def)             Requested size: 35.19609pt x 28.45274pt.
+ [39
+
+]
 LaTeX Font Info:    Font shape `TU/lmss/m/it' in size <6> not available
-(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 849.
+(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 871.
 LaTeX Font Info:    Font shape `TU/lmss/bx/it' in size <6> not available
-(Font)              Font shape `TU/lmss/bx/sl' tried instead on input line 849.
+(Font)              Font shape `TU/lmss/bx/sl' tried instead on input line 871.
 
 
-Overfull \vbox (42.61421pt too high) detected at line 849
+Overfull \vbox (42.61421pt too high) detected at line 871
  []
 
 File: assets/images/uit-logo.png Graphic file (type png)
 <use assets/images/uit-logo.png>
-Package luatex.def Info: assets/images/uit-logo.png  used on input line 849.
+Package luatex.def Info: assets/images/uit-logo.png  used on input line 871.
 (luatex.def)             Requested size: 35.19609pt x 28.45274pt.
-[39
+[40
 
 ]
 File: assets/images/uit-logo.png Graphic file (type png)
 <use assets/images/uit-logo.png>
-Package luatex.def Info: assets/images/uit-logo.png  used on input line 879.
+Package luatex.def Info: assets/images/uit-logo.png  used on input line 901.
 (luatex.def)             Requested size: 35.19609pt x 28.45274pt.
- [40
+ [41
 
 ]
-Overfull \vbox (3.0023pt too high) detected at line 912
+Overfull \vbox (3.0023pt too high) detected at line 934
  []
 
 File: assets/images/uit-logo.png Graphic file (type png)
 <use assets/images/uit-logo.png>
-Package luatex.def Info: assets/images/uit-logo.png  used on input line 912.
+Package luatex.def Info: assets/images/uit-logo.png  used on input line 934.
 (luatex.def)             Requested size: 35.19609pt x 28.45274pt.
-[41
+[42
 
 ]
 File: assets/images/uit-logo.png Graphic file (type png)
 <use assets/images/uit-logo.png>
-Package luatex.def Info: assets/images/uit-logo.png  used on input line 943.
+Package luatex.def Info: assets/images/uit-logo.png  used on input line 965.
 (luatex.def)             Requested size: 35.19609pt x 28.45274pt.
- [42
+ [43
 
 ]
-Overfull \hbox (4.3746pt too wide) in paragraph at lines 973--973
+Overfull \hbox (4.3746pt too wide) in paragraph at lines 995--995
  [] 
  []
 
 File: assets/images/uit-logo.png Graphic file (type png)
 <use assets/images/uit-logo.png>
-Package luatex.def Info: assets/images/uit-logo.png  used on input line 973.
-(luatex.def)             Requested size: 35.19609pt x 28.45274pt.
-[43
-
-]
-Overfull \vbox (13.2537pt too high) detected at line 1008
- []
-
-File: assets/images/uit-logo.png Graphic file (type png)
-<use assets/images/uit-logo.png>
-Package luatex.def Info: assets/images/uit-logo.png  used on input line 1008.
+Package luatex.def Info: assets/images/uit-logo.png  used on input line 995.
 (luatex.def)             Requested size: 35.19609pt x 28.45274pt.
 [44
 
 ]
-Overfull \vbox (13.33128pt too high) detected at line 1044
+Overfull \vbox (13.33128pt too high) detected at line 1030
  []
 
 File: assets/images/uit-logo.png Graphic file (type png)
 <use assets/images/uit-logo.png>
-Package luatex.def Info: assets/images/uit-logo.png  used on input line 1044.
+Package luatex.def Info: assets/images/uit-logo.png  used on input line 1030.
 (luatex.def)             Requested size: 35.19609pt x 28.45274pt.
 [45
 
 ]
 File: assets/images/uit-logo.png Graphic file (type png)
 <use assets/images/uit-logo.png>
-Package luatex.def Info: assets/images/uit-logo.png  used on input line 1066.
+Package luatex.def Info: assets/images/uit-logo.png  used on input line 1069.
 (luatex.def)             Requested size: 35.19609pt x 28.45274pt.
  [46
 
 ]
-File: assets/images/uit-logo.png Graphic file (type png)
-<use assets/images/uit-logo.png>
-Package luatex.def Info: assets/images/uit-logo.png  used on input line 1105.
-(luatex.def)             Requested size: 35.19609pt x 28.45274pt.
- [47
-
-]
-Overfull \vbox (40.5133pt too high) detected at line 1140
+Overfull \vbox (40.5133pt too high) detected at line 1104
  []
 
 File: assets/images/uit-logo.png Graphic file (type png)
 <use assets/images/uit-logo.png>
-Package luatex.def Info: assets/images/uit-logo.png  used on input line 1140.
+Package luatex.def Info: assets/images/uit-logo.png  used on input line 1104.
 (luatex.def)             Requested size: 35.19609pt x 28.45274pt.
-[48
+[47
 
 ] (./main.toc)
 File: assets/images/uit-logo.png Graphic file (type png)
 <use assets/images/uit-logo.png>
-Package luatex.def Info: assets/images/uit-logo.png  used on input line 1146.
+Package luatex.def Info: assets/images/uit-logo.png  used on input line 1110.
 (luatex.def)             Requested size: 35.19609pt x 28.45274pt.
- [49
+ [48
 
 ]
 ! Misplaced alignment tab character &.
 \beamer@doifinframe ...Poor Performance:} MA-HGN &
                                                    MA-HCL yield bad results ...
-l.1168 \end{frame}
+l.1132 \end{frame}
                   
 ? 
 File: assets/images/uit-logo.png Graphic file (type png)
 <use assets/images/uit-logo.png>
-Package luatex.def Info: assets/images/uit-logo.png  used on input line 1168.
+Package luatex.def Info: assets/images/uit-logo.png  used on input line 1132.
 (luatex.def)             Requested size: 35.19609pt x 28.45274pt.
-[50
+[49
 
 ]
 File: assets/images/uit-logo.png Graphic file (type png)
 <use assets/images/uit-logo.png>
-Package luatex.def Info: assets/images/uit-logo.png  used on input line 1179.
+Package luatex.def Info: assets/images/uit-logo.png  used on input line 1143.
+(luatex.def)             Requested size: 35.19609pt x 28.45274pt.
+ [50
+
+]
+File: assets/images/uit-logo.png Graphic file (type png)
+<use assets/images/uit-logo.png>
+Package luatex.def Info: assets/images/uit-logo.png  used on input line 1153.
 (luatex.def)             Requested size: 35.19609pt x 28.45274pt.
  [51
 
 ]
 File: assets/images/uit-logo.png Graphic file (type png)
 <use assets/images/uit-logo.png>
-Package luatex.def Info: assets/images/uit-logo.png  used on input line 1189.
+Package luatex.def Info: assets/images/uit-logo.png  used on input line 1161.
 (luatex.def)             Requested size: 35.19609pt x 28.45274pt.
  [52
-
-]
-File: assets/images/uit-logo.png Graphic file (type png)
-<use assets/images/uit-logo.png>
-Package luatex.def Info: assets/images/uit-logo.png  used on input line 1197.
-(luatex.def)             Requested size: 35.19609pt x 28.45274pt.
- [53
 
 ]
 \tf@nav=\write7
@@ -2436,17 +2426,17 @@ Package logreq Info: Writing requests to 'main.run.xml'.
 )
 
 Here is how much of LuaTeX's memory you used:
- 44259 strings out of 476081
+ 44239 strings out of 476081
  100000,1977958 words of node,token memory allocated
  6940 words of node memory still in use:
    32 hlist, 9 vlist, 5 rule, 36 disc, 4 local_par, 4 math, 138 glue, 25 kern, 4
 4 penalty, 426 glyph, 414 attribute, 92 glue_spec, 140 attribute_list, 8 write, 
 2 pdf_start_link, 2 pdf_end_link, 3 pdf_dest, 2 pdf_action, 38 pdf_colorstack no
 des
-   avail lists: 1:2,2:3679,3:1134,4:326,5:598,6:80,7:5669,8:53,9:1472,10:19,11:2
+   avail lists: 1:2,2:3679,3:1134,4:322,5:577,6:80,7:5582,8:53,9:1472,10:19,11:2
 11
- 65281 multiletter control sequences out of 65536+600000
- 107 fonts using 30073199 bytes
+ 65266 multiletter control sequences out of 65536+600000
+ 107 fonts using 30072863 bytes
  128i,15n,116p,692b,2431s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </opt/texlive/2025/texmf-dist/fonts/opentype/public/lm/lmsans10-boldoblique.otf>
 </opt/texlive/2025/texmf-dist/fonts/opentype/public/lm/lmsans9-regular.otf></opt
@@ -2459,10 +2449,10 @@ live/2025/texmf-dist/fonts/opentype/public/lm/lmmono10-regular.otf></opt/texlive
 mf-dist/fonts/opentype/public/lm/lmsans10-bold.otf></opt/texlive/2025/texmf-dist
 /fonts/opentype/public/lm/lmsans10-regular.otf></opt/texlive/2025/texmf-dist/fon
 ts/opentype/public/lm/lmsans12-regular.otf>
-Output written on main.pdf (53 pages, 2025823 bytes).
+Output written on main.pdf (52 pages, 2016873 bytes).
 
-PDF statistics: 2035 PDF objects out of 2073 (max. 8388607)
- 1717 compressed objects within 18 object streams
- 117 named destinations out of 1000 (max. 131072)
- 1360 words of extra memory for PDF output out of 10000 (max. 100000000)
+PDF statistics: 1979 PDF objects out of 2073 (max. 8388607)
+ 1677 compressed objects within 17 object streams
+ 115 named destinations out of 1000 (max. 131072)
+ 1230 words of extra memory for PDF output out of 10000 (max. 100000000)
 

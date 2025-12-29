@@ -801,6 +801,29 @@
 \end{frame}
 
 \begin{frame}
+  \frametitle{Evaluation Methodology \& Validity}
+  Our evaluation follows strict scientific standards for Recommender Systems:
+
+  \vspace{0.3cm}
+  \begin{itemize}
+    \item \textbf{Metric Choice:}
+          \begin{itemize}
+            \item \textbf{Recall@10}: Measures system coverage.
+            \item \textbf{NDCG@10}: Rewards models that rank true items higher.
+            \item \textbf{MRR}: Standard for single-target news retrieval.
+          \end{itemize}
+    \item \textbf{Implicit Feedback Validation:}
+          \begin{itemize}
+            \item These metrics are standard for \textbf{Binary (Implicit)} interactions.
+            \item NDCG compensates for varying test set sizes across users.
+          \end{itemize}
+    \item \textbf{Evaluation Strategy:}
+          \begin{itemize}
+            \item \textbf{Full ranking (80/20):} Random user split. Train on 80\% of users, test on 20\% unseen users to measure zero-shot capability.
+          \end{itemize}
+  \end{itemize}
+\end{frame}
+\begin{frame}
   \frametitle{Benchmark Results: Full Ranking}
   \textbf{Protocol:} 80/20 Split (Random). \\
   \textbf{Focus:} Retrieving relevant content based strictly on content similarity (Handling new users/items).
@@ -973,42 +996,6 @@
 
 
 \begin{frame}
-  \frametitle{Valid Semantic Enrichment: Category Hubs (G3)}
-  \textbf{Solution:} Instead of dense Article-Article edges, we introduce \textbf{Category Nodes} as middle-man hubs.
-
-  \vspace{0.3cm}
-  \begin{columns}
-    \begin{column}{0.48\textwidth}
-      \begin{block}{The G3 Architecture}
-        \begin{itemize}
-          \item \textbf{Compact:} Only 6 Category nodes.
-          \item \textbf{Efficient:} Adds $\sim$12k edges.
-          \item \textbf{Structure:} Dual-hop paths.
-                \begin{itemize}
-                  \item \scriptsize $User \leftrightarrow Category \leftrightarrow Article$
-                \end{itemize}
-        \end{itemize}
-      \end{block}
-    \end{column}
-
-    \begin{column}{0.48\textwidth}
-      \begin{block}{Role of Semantic Hubs}
-        \begin{itemize}
-          \item \textbf{Connectivity:} Creates paths between users and articles even without direct history.
-          \item \textbf{Signal Quality:} Captures thematic interest (e.g., "Sports") without the noise of random co-clicks.
-          \item \textbf{Scalability:} Avoids the exploded edge count of item-item graphs.
-        \end{itemize}
-      \end{block}
-    \end{column}
-  \end{columns}
-
-  \vspace{0.4cm}
-  \textbf{Verdict:} Category Hubs provide a scalable semantic alternative, effectively capturing thematic interests relative to the baseline.
-\end{frame}
-
-
-
-\begin{frame}
   \frametitle{Our Contributions: HGN \& HCL}
   We propose two distinct architectures to handle the "VnExpress Heterogeneity":
 
@@ -1039,32 +1026,6 @@
   \begin{itemize}
     \item \textbf{HGN} successfully exploits the Social graph (G2) to achieve the best structural performance (+40\% over G1).
     \item \textbf{HCL} offers a lightweight alternative, though attention mechanisms (HGN) prove superior for this specific heterogeneous dataset.
-  \end{itemize}
-\end{frame}
-
-
-
-\begin{frame}
-  \frametitle{Evaluation Methodology \& Validity}
-  Our evaluation follows strict scientific standards for Recommender Systems:
-
-  \vspace{0.3cm}
-  \begin{itemize}
-    \item \textbf{Metric Choice:}
-          \begin{itemize}
-            \item \textbf{Recall@10}: Measures system coverage.
-            \item \textbf{NDCG@10}: Rewards models that rank true items higher.
-            \item \textbf{MRR}: Standard for single-target news retrieval.
-          \end{itemize}
-    \item \textbf{Implicit Feedback Validation:}
-          \begin{itemize}
-            \item These metrics are standard for \textbf{Binary (Implicit)} interactions.
-            \item NDCG compensates for varying test set sizes across users.
-          \end{itemize}
-    \item \textbf{Evaluation Strategy:}
-          \begin{itemize}
-            \item \textbf{Full ranking (80/20):} Random user split. Train on 80\% of users, test on 20\% unseen users to measure zero-shot capability.
-          \end{itemize}
   \end{itemize}
 \end{frame}
 
