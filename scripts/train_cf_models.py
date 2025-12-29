@@ -792,7 +792,7 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
             # Load mapping idx2item
             sys.path.insert(0, str(Path(__file__).parent.parent))
             from src.data.dataloader_lightgcl import LightGCLDataLoader
-            loader = LightGCLDataLoader('data')
+            loader = LightGCLDataLoader(data_path if data_path else 'data')
             if loader.load_processed() is None:
                 print("      Error: Could not load processed LightGCL data for mapping.")
                 return None
