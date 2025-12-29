@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023/Debian) (preloaded format=xelatex 2025.6.18)  29 DEC 2025 20:04
+This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023/Debian) (preloaded format=xelatex 2025.6.18)  29 DEC 2025 20:09
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1690,7 +1690,7 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 File: ../plots/eda_00_summary_dashboard.png Graphic file (type bmp)
 <../plots/eda_00_summary_dashboard.png>
 
-Overfull \vbox (62.96301pt too high) detected at line 339
+Overfull \vbox (91.28024pt too high) detected at line 337
  []
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
@@ -1757,9 +1757,9 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 
 ]
 LaTeX Font Info:    Font shape `TU/lmss/m/it' in size <10> not available
-(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 500.
+(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 499.
 LaTeX Font Info:    Font shape `TU/lmss/bx/it' in size <10.95> not available
-(Font)              Font shape `TU/lmss/bx/sl' tried instead on input line 500.
+(Font)              Font shape `TU/lmss/bx/sl' tried instead on input line 499.
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
@@ -1774,7 +1774,7 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 File: ../plots/graph_network_topology.png Graphic file (type bmp)
 <../plots/graph_network_topology.png>
 
-Overfull \vbox (8.21713pt too high) detected at line 549
+Overfull \vbox (8.21713pt too high) detected at line 548
  []
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
@@ -1799,7 +1799,7 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 
 ]
 
-LaTeX Warning: Citation 'shi2020hgrec' on page 26 undefined on input line 632.
+LaTeX Warning: Citation 'shi2020hgrec' on page 26 undefined on input line 631.
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
@@ -1834,14 +1834,14 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 
 ]
 
-LaTeX Warning: Citation 'shi2020hgrec' on page 31 undefined on input line 738.
+LaTeX Warning: Citation 'shi2020hgrec' on page 31 undefined on input line 737.
 
 
-LaTeX Warning: Citation 'he2020lightgcn' on page 31 undefined on input line 738
+LaTeX Warning: Citation 'he2020lightgcn' on page 31 undefined on input line 737
 .
 
 
-Overfull \vbox (16.38152pt too high) detected at line 738
+Overfull \vbox (16.38152pt too high) detected at line 737
  []
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
@@ -1860,13 +1860,13 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 
 ]
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 10.00107pt on input line 858.
+(Font)              scaled to size 10.00107pt on input line 857.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 7.00075pt on input line 858.
+(Font)              scaled to size 7.00075pt on input line 857.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 9.99893pt on input line 858.
+(Font)              scaled to size 9.99893pt on input line 857.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 6.99925pt on input line 858.
+(Font)              scaled to size 6.99925pt on input line 857.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [34
@@ -1889,16 +1889,16 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 
 ]
 LaTeX Font Info:    Font shape `TU/lmss/m/it' in size <6> not available
-(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 967.
+(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 966.
 LaTeX Font Info:    Font shape `TU/lmss/bx/it' in size <6> not available
-(Font)              Font shape `TU/lmss/bx/sl' tried instead on input line 967.
+(Font)              Font shape `TU/lmss/bx/sl' tried instead on input line 966.
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [38
 
 ]
-Overfull \vbox (33.16792pt too high) detected at line 1007
+Overfull \vbox (33.16792pt too high) detected at line 1006
  []
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
@@ -1911,7 +1911,7 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
  [40
 
 ]
-Overfull \vbox (3.00227pt too high) detected at line 1070
+Overfull \vbox (3.00227pt too high) detected at line 1069
  []
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
@@ -1924,7 +1924,7 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
  [42
 
 ]
-Overfull \hbox (4.37463pt too wide) in paragraph at lines 1131--1131
+Overfull \hbox (4.37463pt too wide) in paragraph at lines 1130--1130
  [] 
  []
 
@@ -1939,9 +1939,9 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 
 ]
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 14.40152pt on input line 1203.
+(Font)              scaled to size 14.40152pt on input line 1202.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 14.39845pt on input line 1203.
+(Font)              scaled to size 14.39845pt on input line 1202.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [45
@@ -1974,7 +1974,7 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 
 ]
 
-LaTeX Warning: Empty bibliography on input line 1288.
+LaTeX Warning: Empty bibliography on input line 1287.
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
@@ -2020,10 +2020,10 @@ Package logreq Info: Writing requests to 'main.run.xml'.
 
  ) 
 Here is how much of TeX's memory you used:
- 42429 strings out of 474878
- 882815 string characters out of 5762516
+ 42422 strings out of 474878
+ 882659 string characters out of 5762516
  1944627 words of memory out of 5000000
- 63733 multiletter control sequences out of 15000+600000
+ 63726 multiletter control sequences out of 15000+600000
  566510 words of font info for 124 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
  128i,15n,123p,1056b,3858s stack positions out of 10000i,1000n,20000p,200000b,200000s

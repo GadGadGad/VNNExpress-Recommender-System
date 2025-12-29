@@ -293,50 +293,49 @@
 \end{frame}
 
 \begin{frame}
-    \frametitle{Dataset Overview (VnExpress)}
+  \frametitle{Dataset Overview (VnExpress)}
 
-    \begin{columns}[T,onlytextwidth]
-        %---------------- Left: compact stats ----------------
-        \begin{column}{0.38\textwidth}
+  %---------------- Top: two blocks side by side ----------------
+  \begin{columns}[T,onlytextwidth]
 
-            \begin{block}{Raw Behavioral Data}
-                \begin{itemize}
-                    \item \textbf{3,685} Articles
-                    \item \textbf{42,050} Comments
-                    \item \textbf{6} News Categories
-                    \item \textbf{19,842} User Profiles
-                \end{itemize}
-            \end{block}
+      \begin{column}{0.5\textwidth}
+          \begin{block}{Raw Behavioral Data}
+              \begin{itemize}
+                  \item \textbf{3,685} Articles
+                  \item \textbf{42,050} Comments
+                  \item \textbf{6} News Categories
+                  \item \textbf{19,842} User Profiles
+              \end{itemize}
+          \end{block}
+      \end{column}
 
-            \vspace{0.15cm}
-            \begin{block}{Graph Interaction Set (G1--G3)}
-                \begin{itemize}
-                    \item \textbf{13,117} Unique Users
-                    \item \textbf{3,645} Active Articles
-                    \item \textbf{38,505} Total Interactions
-                    \item \textbf{Sparsity: 99.919\%}
-                \end{itemize}
-            \end{block}
+      \begin{column}{0.5\textwidth}
+          \begin{block}{Graph Interaction Set (G1--G3)}
+              \begin{itemize}
+                  \item \textbf{13,117} Unique Users
+                  \item \textbf{3,645} Active Articles
+                  \item \textbf{38,505} Total Interactions
+                  \item \textbf{Sparsity: 99.919\%}
+              \end{itemize}
+          \end{block}
+      \end{column}
 
-            \vspace{0.15cm}
-            \begin{alertblock}{Key Takeaway}
-                \scriptsize
-                The dataset is highly sparse, typical of news domains where users read only a tiny fraction of daily content.
-            \end{alertblock}
+  \end{columns}
 
-        \end{column}
+  \vspace{0.2cm}
 
-        %---------------- Right: big figure ----------------
-        \begin{column}{0.62\textwidth}
-            \centering
-            \includegraphics[width=\textwidth]{../plots/eda_00_summary_dashboard.png}
+  %---------------- Bottom: image ----------------
+  \centering
+  \includegraphics[width=0.9\textwidth]{../plots/eda_00_summary_dashboard.png}
 
-            % Optional caption (keep tiny to avoid vbox overflow)
-            \vspace{0.1cm}
-            {\tiny Summary dashboard of dataset scale and interaction sparsity.}
-        \end{column}
-    \end{columns}
+  \vspace{0.1cm}
+  \begin{alertblock}{Key Takeaway}
+      \scriptsize
+      The dataset is highly sparse, typical of news domains where users read only a tiny fraction of daily content.
+  \end{alertblock}
+
 \end{frame}
+
 
 
 \begin{frame}
