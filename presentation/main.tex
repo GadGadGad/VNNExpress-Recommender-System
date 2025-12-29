@@ -861,8 +861,46 @@
       \bottomrule
     \end{tabular}
   \end{table}
-  \vspace{0.1cm}
-  \textbf{Result:} In Full Ranking evaluation, \textbf{Semantic Models (CB)} consistently outperform Graph models. However, advanced CL methods (LightGCL, XSimGCL) are closing the gap.
+\end{frame}
+
+\begin{frame}
+  \frametitle{Technical Analysis: Why CB Models Excel?}
+  \textbf{Question:} Why do Semantic Models (PhoBERT) consistently outperform Graph models in this task?
+
+  \vspace{0.3cm}
+  \begin{columns}[T]
+    \begin{column}{0.48\textwidth}
+      \begin{block}{1. Cold Start \& Item Turnover}
+        \begin{itemize}
+          \item \textbf{News Reality:} High article turnover. New items have zero interactions ($k=0$).
+          \item \textbf{Graph Limit:} GNNs require structural edges to represent items.
+          \item \textbf{CB Advantage:} Text is available at $t=0$. Zero-shot capability.
+        \end{itemize}
+      \end{block}
+
+      \begin{block}{2. Density Contrast}
+        \begin{itemize}
+          \item \textbf{Interactions:} 99.9\% Sparse.
+          \item \textbf{Text:} Denser semantic signal.
+        \end{itemize}
+      \end{block}
+    \end{column}
+
+    \begin{column}{0.48\textwidth}
+      \begin{block}{3. Linguistic Pre-training}
+        \begin{itemize}
+          \item \textbf{PhoBERT:} Leverages massive external Knowledge (LLM-style).
+          \item \textbf{Graph:} Must learn relationships from scratch using only local nodes.
+        \end{itemize}
+      \end{block}
+
+      \begin{block}{4. Stability \& Tail Items}
+        \begin{itemize}
+          \item CB performs identically on popular and long-tail (unseen) items.
+        \end{itemize}
+      \end{block}
+    \end{column}
+  \end{columns}
 \end{frame}
 
 \begin{frame}
@@ -1031,7 +1069,7 @@
   \begin{table}
     \centering
     \tiny
-    \setlength{\tabcolsep}{3pt}
+    \setlength{\tabcolsep}{5pt}
     \begin{tabular}{l|cccc|l}
       \toprule
       \textbf{Model} & \textbf{L=1}   & \textbf{L=2}   & \textbf{L=3}   & \textbf{L=4}     \\
@@ -1087,13 +1125,6 @@
     \caption{Comparison with Standard Benchmarks (LightGCN/SimGCL Results)}
   \end{table}
 
-  \vspace{0.1cm}
-  \textbf{Our Dataset vs. Amazon-Book:}
-  \begin{itemize}
-    \item Similar high sparsity ($\sim0.0X\%$).
-    \item News items have \textbf{shorter lifespans} than books/products, making "exact retrieval" (Recall) harder.
-    \item \textbf{Conclusion:} A Recall@10 of $\sim3.7\%$ on strict news data is competitive with industrial baselines on sparse datasets (Amazon ~5.8\% @20).
-  \end{itemize}
 \end{frame}
 
 
