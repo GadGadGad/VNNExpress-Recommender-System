@@ -263,12 +263,28 @@ except Exception as e:
     print(f"Could not load real data: {e}")
     print("Using dummy data for demonstration...")
     n_users, n_items = 1000, 500
-    # Dummy Bipartite Adjacency
-    adj = torch.rand(n_users + n_items, n_users + n_items).to_sparse().to(device)
+    # Dummy Bipartite Adjacency (Sparse)
+    # Generate ~1% density or fixed number of edges to be fast
+    n_nodes = n_users + n_items
+    n_edges = n_nodes * 10 # ~10 edges per node average
+    
+    indices = torch.randint(0, n_nodes, (2, n_edges))
+    values = torch.rand(n_edges)
+    adj = torch.sparse_coo_tensor(indices, values, (n_nodes, n_nodes)).to(device)
+    
+    # For MA-HGN, split indices roughly for demo
+    # Note: This is random structure, purely for checking code flow
     edge_index = adj.indices()
+    
+    # Randomly assign edges to types for heterogenous simulation
+    mask = torch.rand(edge_index.size(1)) < 0.5
+    edge_index_ui = edge_index[:, mask]
+    edge_index_social = edge_index[:, ~mask]
+    
     edge_index_dict = {
-        ('user', 'interacts', 'article'): edge_index,
-        ('article', 'interacted_by', 'user'): torch.stack([edge_index[1], edge_index[0]]),
+        ('user', 'interacts', 'article'): edge_index_ui,
+        ('article', 'interacted_by', 'user'): torch.stack([edge_index_ui[1], edge_index_ui[0]]),
+        ('user', 'social', 'user'): edge_index_social
     }
 
 # Initialize Models
