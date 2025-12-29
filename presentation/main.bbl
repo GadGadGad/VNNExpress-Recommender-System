@@ -1,0 +1,133 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.3 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated by
+% biber as required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+
+\refsection{0}
+  \datalist[entry]{none/global//global/global/global}
+    \entry{shi2020hgrec}{inproceedings}{}{}
+      \name{author}{6}{}{%
+        {{hash=6915348ef57457be2b9c87e7cb24d070}{%
+           family={Shi},
+           familyi={S\bibinitperiod},
+           given={Jinghan},
+           giveni={J\bibinitperiod}}}%
+        {{hash=f60a73a150296c43c185d9ea2826303f}{%
+           family={Ji},
+           familyi={J\bibinitperiod},
+           given={Houye},
+           giveni={H\bibinitperiod}}}%
+        {{hash=39bff1abfa3c4d5d73b840321218fad2}{%
+           family={Shi},
+           familyi={S\bibinitperiod},
+           given={Chuan},
+           giveni={C\bibinitperiod}}}%
+        {{hash=bd7d15d79ca36b953d99a1a0aaccb94a}{%
+           family={Wang},
+           familyi={W\bibinitperiod},
+           given={Xiao},
+           giveni={X\bibinitperiod}}}%
+        {{hash=187ef84bc4c49ed3713fb7484743a892}{%
+           family={Zhang},
+           familyi={Z\bibinitperiod},
+           given={Zhiqiang},
+           giveni={Z\bibinitperiod}}}%
+        {{hash=21b6969d672728cb4ea4381d1d8706b5}{%
+           family={Zhou},
+           familyi={Z\bibinitperiod},
+           given={Jun},
+           giveni={J\bibinitperiod}}}%
+      }
+      \strng{namehash}{ede5734b0643303a85841477290f4d39}
+      \strng{fullhash}{3b1101cd77e22bbc59cfaaca799754d3}
+      \strng{fullhashraw}{3b1101cd77e22bbc59cfaaca799754d3}
+      \strng{bibnamehash}{3b1101cd77e22bbc59cfaaca799754d3}
+      \strng{authorbibnamehash}{3b1101cd77e22bbc59cfaaca799754d3}
+      \strng{authornamehash}{ede5734b0643303a85841477290f4d39}
+      \strng{authorfullhash}{3b1101cd77e22bbc59cfaaca799754d3}
+      \strng{authorfullhashraw}{3b1101cd77e22bbc59cfaaca799754d3}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Proceedings of the 37th International Conference on Machine Learning (ICML)}
+      \field{title}{Heterogeneous Graph Neural Network for Recommendation}
+      \field{year}{2020}
+    \endentry
+    \entry{he2020lightgcnsimplifyingpoweringgraph}{inproceedings}{}{}
+      \name{author}{6}{}{%
+        {{hash=cf3f1b6bfe8e9131a8c719c1af0dce5d}{%
+           family={He},
+           familyi={H\bibinitperiod},
+           given={Xiangnan},
+           giveni={X\bibinitperiod}}}%
+        {{hash=fd3bea1dc164ea80fae7f6718b3bc874}{%
+           family={Deng},
+           familyi={D\bibinitperiod},
+           given={Kuan},
+           giveni={K\bibinitperiod}}}%
+        {{hash=8fde8559617f603b3e2b3cf30cb48e9b}{%
+           family={Wang},
+           familyi={W\bibinitperiod},
+           given={Xiang},
+           giveni={X\bibinitperiod}}}%
+        {{hash=92e14a8c19eb5a0c7c199c85db74f106}{%
+           family={Li},
+           familyi={L\bibinitperiod},
+           given={Yan},
+           giveni={Y\bibinitperiod}}}%
+        {{hash=b20f786926022139bb630b378300fe36}{%
+           family={Zhang},
+           familyi={Z\bibinitperiod},
+           given={Yongdong},
+           giveni={Y\bibinitperiod}}}%
+        {{hash=00b734eb3fb588e4c6c94e4271080d0b}{%
+           family={Wang},
+           familyi={W\bibinitperiod},
+           given={Meng},
+           giveni={M\bibinitperiod}}}%
+      }
+      \strng{namehash}{5288584512ef6ddfdb0f4e97d3bced50}
+      \strng{fullhash}{2af67127bcbe8e1d217d8ffeaee94eae}
+      \strng{fullhashraw}{2af67127bcbe8e1d217d8ffeaee94eae}
+      \strng{bibnamehash}{2af67127bcbe8e1d217d8ffeaee94eae}
+      \strng{authorbibnamehash}{2af67127bcbe8e1d217d8ffeaee94eae}
+      \strng{authornamehash}{5288584512ef6ddfdb0f4e97d3bced50}
+      \strng{authorfullhash}{2af67127bcbe8e1d217d8ffeaee94eae}
+      \strng{authorfullhashraw}{2af67127bcbe8e1d217d8ffeaee94eae}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{eprintclass}{cs.IR}
+      \field{eprinttype}{arXiv}
+      \field{title}{LightGCN: Simplifying and Powering Graph Convolution Network for Recommendation}
+      \field{year}{2020}
+      \verb{eprint}
+      \verb 2002.02126
+      \endverb
+      \verb{urlraw}
+      \verb https://arxiv.org/abs/2002.02126
+      \endverb
+      \verb{url}
+      \verb https://arxiv.org/abs/2002.02126
+      \endverb
+    \endentry
+  \enddatalist
+\endrefsection
+\endinput
+
