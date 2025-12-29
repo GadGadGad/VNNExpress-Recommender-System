@@ -22,7 +22,7 @@ from src.models.lightgcn import LightGCN
 from src.models.lightgcl import LightGCL
 from src.models.xsimgcl import XSimGCL
 from src.models.simgcl import SimGCL
-# from src.models.ma_hcl import MAHCL # Assuming MA-HCL exists
+from src.models.ma_hgn import MAHGN
 
 # Fix random seed
 def set_seed(seed=42):
@@ -66,7 +66,17 @@ def load_dataset(data_path='data'):
     adj_norm = build_sparse_graph(loader.n_users, loader.n_items, train_data)
     adj_norm = adj_norm.to(device)
     
-    return loader, adj_norm
+    # For MA-HGN, we need heterogenous graph structure (simulated from adj_norm for now)
+    # Ideally, we should load 'full_hetero_graph.pt' but for visualization we construct a basic one
+    edge_index = adj_norm.indices()
+    edge_index_dict = {
+        ('user', 'interacts', 'article'): edge_index,
+        ('article', 'interacted_by', 'user'): torch.stack([edge_index[1], edge_index[0]]),
+        # Dummy social/category edges for L1 visualization if full graph missing
+        ('user', 'social', 'user'): torch.stack([edge_index[0], edge_index[0]]), 
+    }
+    
+    return loader, adj_norm, edge_index_dict
 
 # %% [markdown]
 # ## 2. Layer Extraction Logic
@@ -74,15 +84,16 @@ def load_dataset(data_path='data'):
 # by replicating the model's forward pass logic up to that point.
 
 # %%
-def extract_layer1_lightgcn(model, adj):
+def extract_layer1_lightgcn(model, adj, **kwargs):
     """Effect of L=1 on LightGCN: E1 = A * E0"""
     with torch.no_grad():
-        all_emb = torch.cat([model.E_u_0, model.E_i_0], dim=0)
+        # LightGCN inherits from BaseGCL which uses nn.Embedding
+        all_emb = torch.cat([model.user_embedding.weight, model.item_embedding.weight], dim=0)
         layer1_emb = torch.sparse.mm(adj, all_emb)
         u, i = torch.split(layer1_emb, [model.n_users, model.n_items])
         return u, i
 
-def extract_layer1_lightgcl(model, adj):
+def extract_layer1_lightgcl(model, adj, **kwargs):
     """Effect of L=1 on LightGCL: Uses SVD q-rank + Norm"""
     with torch.no_grad():
         # Re-compute or use stored SVD components
@@ -106,7 +117,7 @@ def extract_layer1_lightgcl(model, adj):
         # Z is the GCN view, G is the SVD view. We'll take Z (Standard Graph View) for fair comparison
         return Z_u, Z_i
 
-def extract_layer1_xsimgcl(model, adj):
+def extract_layer1_xsimgcl(model, adj, **kwargs):
     """Effect of L=1 on XSimGCL: A * E0 (plus noise during train, but clean during eval)"""
     with torch.no_grad():
         u_emb = model.user_embedding.weight
@@ -118,7 +129,7 @@ def extract_layer1_xsimgcl(model, adj):
         u, i = torch.split(layer1_emb, [model.n_users, model.n_items])
         return u, i
 
-def extract_layer1_simgcl(model, adj):
+def extract_layer1_simgcl(model, adj, **kwargs):
     """Effect of L=1 on SimGCL: A * E0"""
     with torch.no_grad():
         u_emb = model.user_embedding.weight
@@ -129,6 +140,40 @@ def extract_layer1_simgcl(model, adj):
         layer1_emb = torch.sparse.mm(adj, all_emb)
         u, i = torch.split(layer1_emb, [model.n_users, model.n_items])
         return u, i
+
+def extract_layer1_mahgn(model, adj, edge_index_dict=None):
+    """Effect of L=1 on MA-HGN: HeteroConv"""
+    with torch.no_grad():
+        if edge_index_dict is None:
+            raise ValueError("Edge Index Dict required for MA-HGN")
+            
+        x_dict = {
+            'user': model.user_emb.weight,
+            'article': model.item_emb.weight
+        }
+        if model.category_emb is not None:
+             x_dict['category'] = model.category_emb.weight
+
+        # Move edges to device
+        device = x_dict['user'].device
+        edge_index_dict_gpu = {k: v.to(device) for k, v in edge_index_dict.items()}
+
+        # Layer 1 Conv (HeteroConv)
+        # We only take the first conv layer from the ModuleList
+        conv1 = model.convs[0]
+        
+        # Message Passing
+        h_dict_new = conv1(x_dict, edge_index_dict_gpu)
+        
+        # In MA-HGN code: 
+        # h_dict = {k: h_dict_new.get(k, h_dict_prev[k]) ...} (Residual/Keep old if no update)
+        # For L1 strictly, we look at the new embeddings. 
+        # If 'user' updated, use it. If not (isolated), use original.
+        
+        u_emb = h_dict_new.get('user', x_dict['user'])
+        i_emb = h_dict_new.get('article', x_dict['article'])
+        
+        return u_emb, i_emb
 
 # %% [markdown]
 # ## 3. Visualization Function
@@ -204,7 +249,8 @@ models = {
     'LightGCN': LightGCN(n_users, n_items).to(device),
     'LightGCL': LightGCL(n_users, n_items).to(device),
     'XSimGCL': XSimGCL(n_users, n_items).to(device),
-    'SimGCL': SimGCL(n_users, n_items).to(device)
+    'SimGCL': SimGCL(n_users, n_items).to(device),
+    'MA-HGN': MAHGN(n_users, n_items, n_categories=6).to(device)
 }
 
 # Extract Embeddings
@@ -215,6 +261,8 @@ results['LightGCN'] = extract_layer1_lightgcn(models['LightGCN'], adj)
 results['LightGCL'] = extract_layer1_lightgcl(models['LightGCL'], adj)
 results['XSimGCL'] = extract_layer1_xsimgcl(models['XSimGCL'], adj)
 results['SimGCL'] = extract_layer1_simgcl(models['SimGCL'], adj)
+# MA-HGN needs edge_index_dict
+results['MA-HGN'] = extract_layer1_mahgn(models['MA-HGN'], adj, edge_index_dict=edge_index_dict)
 
 # Visualize
 print("Visualizing...")
