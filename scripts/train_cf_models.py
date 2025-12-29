@@ -1195,8 +1195,7 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
                                                                   semantic_ids=semantic_ids, user_priors=user_priors)
                 elif isinstance(model, BIGCF):
                     loss, bpr, cl, reg = model.calculate_loss(graph_structure, users, pos_items, neg_items)
-                elif isinstance(model, IGCL):
-                    loss, bpr, ssl, reg = model.calculate_loss(graph_structure, users, pos_items, neg_items)
+
                 elif isinstance(model, MAHGN):
                     # MAHGN logic for heterogeneous graph structure
                     hetero_graph_structure = getattr(data, 'edge_index_dict', None)
