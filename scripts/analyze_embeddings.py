@@ -86,7 +86,7 @@ def visualize_tsne(embeddings_dict, output_path="tsne_comparison.png", n_samples
 
 def load_embedding(ckpt_path):
     print(f"Loading {ckpt_path}...")
-    checkpoint = torch.load(ckpt_path, map_location='cpu')
+    checkpoint = torch.load(ckpt_path, map_location='cpu', weights_only=False)
     state_dict = checkpoint['model_state_dict']
     
     # Extract user embeddings
