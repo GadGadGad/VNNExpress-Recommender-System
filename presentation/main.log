@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023/Debian) (preloaded format=xelatex 2025.6.18)  29 DEC 2025 23:09
+This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023/Debian) (preloaded format=xelatex 2025.6.18)  29 DEC 2025 23:16
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1824,7 +1824,7 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 
 ]
 LaTeX Font Info:    Font shape `TU/lmss/m/it' in size <6> not available
-(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 807.
+(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 808.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [25
@@ -1837,18 +1837,18 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 ]
 
 LaTeX Warning: Citation 'cai2023lightgcl' on page 27 undefined on input line 83
-5.
+6.
 
 
-LaTeX Warning: Citation 'yu2023xsimgcl' on page 27 undefined on input line 835.
+LaTeX Warning: Citation 'yu2023xsimgcl' on page 27 undefined on input line 836.
 
 
 
-LaTeX Warning: Citation 'he2020lightgcn' on page 27 undefined on input line 835
+LaTeX Warning: Citation 'he2020lightgcn' on page 27 undefined on input line 836
 .
 
 
-LaTeX Warning: Citation 'yu2022graph' on page 27 undefined on input line 835.
+LaTeX Warning: Citation 'yu2022graph' on page 27 undefined on input line 836.
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
@@ -1861,7 +1861,7 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 
 ]
 
-LaTeX Warning: Citation 'shi2020hgrec' on page 29 undefined on input line 889.
+LaTeX Warning: Citation 'shi2020hgrec' on page 29 undefined on input line 890.
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
@@ -1895,14 +1895,14 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 
 ]
 
-LaTeX Warning: Citation 'shi2020hgrec' on page 34 undefined on input line 995.
+LaTeX Warning: Citation 'shi2020hgrec' on page 34 undefined on input line 996.
 
 
-LaTeX Warning: Citation 'he2020lightgcn' on page 34 undefined on input line 995
+LaTeX Warning: Citation 'he2020lightgcn' on page 34 undefined on input line 996
 .
 
 
-Overfull \vbox (16.38152pt too high) detected at line 995
+Overfull \vbox (16.38152pt too high) detected at line 996
  []
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
@@ -1921,13 +1921,13 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 
 ]
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 10.00107pt on input line 1115.
+(Font)              scaled to size 10.00107pt on input line 1116.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 7.00075pt on input line 1115.
+(Font)              scaled to size 7.00075pt on input line 1116.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 9.99893pt on input line 1115.
+(Font)              scaled to size 9.99893pt on input line 1116.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 6.99925pt on input line 1115.
+(Font)              scaled to size 6.99925pt on input line 1116.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [37
@@ -1940,17 +1940,17 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 ]
 
 LaTeX Warning: Citation 'he2020lightgcn' on page 39 undefined on input line 115
-7.
+8.
 
 
 LaTeX Warning: Citation 'cai2023lightgcl' on page 39 undefined on input line 11
-57.
+58.
 
 
-LaTeX Warning: Citation 'yu2022graph' on page 39 undefined on input line 1157.
+LaTeX Warning: Citation 'yu2022graph' on page 39 undefined on input line 1158.
 
 
-LaTeX Warning: Citation 'yu2023xsimgcl' on page 39 undefined on input line 1157
+LaTeX Warning: Citation 'yu2023xsimgcl' on page 39 undefined on input line 1158
 .
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
@@ -1974,14 +1974,14 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 
 ]
 
-LaTeX Warning: Citation 'yu2022graph' on page 43 undefined on input line 1288.
+LaTeX Warning: Citation 'yu2022graph' on page 43 undefined on input line 1289.
 
 
 LaTeX Warning: Citation 'cai2023lightgcl' on page 43 undefined on input line 12
-88.
+89.
 
 
-Overfull \vbox (16.60228pt too high) detected at line 1288
+Overfull \vbox (16.60228pt too high) detected at line 1289
  []
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
@@ -1999,7 +1999,7 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
  [45
 
 ]
-Overfull \hbox (4.37463pt too wide) in paragraph at lines 1381--1381
+Overfull \hbox (4.37463pt too wide) in paragraph at lines 1382--1382
  [] 
  []
 
@@ -2009,11 +2009,11 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 
 ]
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 14.40152pt on input line 1420.
+(Font)              scaled to size 14.40152pt on input line 1421.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 14.39845pt on input line 1420.
+(Font)              scaled to size 14.39845pt on input line 1421.
 
-Overfull \vbox (5.2056pt too high) detected at line 1420
+Overfull \vbox (5.2056pt too high) detected at line 1421
  []
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
@@ -2023,17 +2023,17 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 ]
 
 LaTeX Warning: Citation 'he2020lightgcn' on page 48 undefined on input line 144
-8.
+9.
 
 
-LaTeX Warning: Citation 'yu2022graph' on page 48 undefined on input line 1448.
+LaTeX Warning: Citation 'yu2022graph' on page 48 undefined on input line 1449.
 
 
 LaTeX Warning: Citation 'he2020lightgcn' on page 48 undefined on input line 144
-8.
+9.
 
 
-LaTeX Warning: Citation 'yu2022graph' on page 48 undefined on input line 1448.
+LaTeX Warning: Citation 'yu2022graph' on page 48 undefined on input line 1449.
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
@@ -2061,7 +2061,7 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 
 ]
 
-LaTeX Warning: Empty bibliography on input line 1505.
+LaTeX Warning: Empty bibliography on input line 1506.
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
@@ -2077,7 +2077,7 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 \tf@snm=\write9
 \openout9 = `main.snm'.
 
- [54] (./main.aux)
+ (./main.aux)
  ***********
 LaTeX2e <2023-11-01> patch level 1
 L3 programming layer <2024-01-22>
@@ -2085,9 +2085,6 @@ L3 programming layer <2024-01-22>
 
 
 LaTeX Warning: There were undefined references.
-
-
-LaTeX Warning: Temporary extra page added at the end. Rerun to get it removed.
 
 Package rerunfilecheck Info: File `main.out' has not changed.
 (rerunfilecheck)             Checksum: E17DE1070BA22BAEBFDE8B4D350FD0F5;1455.
@@ -2109,4 +2106,4 @@ Here is how much of TeX's memory you used:
  1348 hyphenation exceptions out of 8191
  128i,15n,123p,1129b,3945s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on main.pdf (54 pages).
+Output written on main.pdf (53 pages).

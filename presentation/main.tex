@@ -625,34 +625,35 @@
   \framesubtitle{Enhancing Connectivity via Social Homophily}
   \centering
   \begin{tikzpicture}[scale=0.9, transform shape]
-    % 1. Nodes
-    \node[user] (u1) at (0, 3) {User 1};
-    \node[user] (u2) at (0, 1) {User 2};
-    \node[user] (u3) at (0, -1) {User 3};
+      % Nodes
+      \node[user] (u1) at (0, 3) {User 1};
+      \node[user] (u2) at (0, 1) {User 2};
+      \node[user] (u3) at (0, -1) {User 3};
 
-    \node[article] (a1) at (6, 3) {Art 1};
-    \node[article] (a2) at (6, 1) {Art 2};
-    \node[article] (a3) at (6, -1) {Art 3};
+      \node[article] (a1) at (6, 3) {Art 1};
+      \node[article] (a2) at (6, 1) {Art 2};
+      \node[article] (a3) at (6, -1) {Art 3};
 
-    % 2. Edges
-    \draw[interact] (u1) -- (a1);
-    \draw[interact] (u1) -- (a2);
-    \draw[interact] (u2) -- (a2);
-    \draw[interact] (u3) -- (a3);
+      % Old Edges
+      \draw[interact] (u1) -- (a1);
+      \draw[interact] (u1) -- (a2);
+      \draw[interact] (u2) -- (a2);
+      \draw[interact] (u3) -- (a3);
 
-    % 3. NEW SOCIAL EDGES
-    \draw[social] (u1) to node[midway, left=0.1cm, font=\tiny\bfseries, text=socialorange] {Reply} (u2);
-    \draw[social] (u2) to (u3);
+      % NEW SOCIAL EDGES
+      \draw[social] (u1) to node[midway, left=0.1cm, font=\tiny\bfseries, text=socialorange] {Reply} (u2);
+      \draw[social] (u2) to (u3);
 
-    % 4. Annotations
-    \node[infobox] at (3, -3) {
-      \textbf{Structure:} G1 + \textcolor{socialorange}{User-User Edges} \\
-      \textbf{Logic:} Users who reply to each other share interests (Homophily). \\
-      \textbf{Benefit:} Propagates information between users even without shared articles.
-    };
+      % Annotations
+      \node[infobox] at (3, -3) {
+          \textbf{Structure:} G1 + \textcolor{socialorange}{User-User Edges} \\
+          \textbf{Logic:} Users who reply to each other share interests (Homophily). \\
+          \textbf{Benefit:} Propagates information between users even without shared articles.
+      };
 
-    \node[above=0.2cm of u1, userblue, font=\bfseries] {SOCIAL NETWORK};
-    \node[above=0.2cm of a1, articlegreen, font=\bfseries] {CONTENT};
+      % CẬP NHẬT NHÃN Ở ĐÂY CHO ĐỒNG BỘ
+      \node[above=0.2cm of u1, userblue, font=\bfseries] {USERS (Socially Connected)};
+      \node[above=0.2cm of a1, articlegreen, font=\bfseries] {ARTICLES};
   \end{tikzpicture}
 \end{frame}
 
