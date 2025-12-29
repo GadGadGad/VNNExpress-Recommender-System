@@ -12,10 +12,52 @@
 \usepackage{multirow}
 \usepackage{graphicx}
 \usepackage[table]{xcolor}
+\usepackage{xcolor}
+
+\definecolor{headArticles}{HTML}{E8F1FA}   % xanh nhạt
+\definecolor{headMetadata}{HTML}{EAF7EA}   % xanh lá nhạt
+\definecolor{headReplies}{HTML}{FFF3E6}    % cam nhạt
+\definecolor{headUsers}{HTML}{F2ECFA} 
+
 \usepackage{colortbl}
 \usepackage{multirow}
 \usepackage{tikz}
-\usetikzlibrary{shapes.geometric, shapes.symbols, arrows.meta, positioning, shadows, calc, fit}
+\usetikzlibrary{shapes.geometric, shapes.symbols, arrows.meta, positioning, shadows, calc, fit, backgrounds}
+\definecolor{userblue}{RGB}{52, 152, 219}      % Blue
+\definecolor{articlegreen}{RGB}{46, 204, 113}   % Green
+\definecolor{socialorange}{RGB}{230, 126, 34}   % Orange
+\definecolor{cathub}{RGB}{155, 89, 182}         % Purple
+\tikzset{
+    % Node styles
+    basicnode/.style={
+        circle,
+        draw=white,
+        line width=1.5pt,
+        minimum size=1.2cm,
+        text=white,
+        font=\bfseries\footnotesize,
+        drop shadow={opacity=0.3},
+        align=center
+    },
+    user/.style={basicnode, fill=userblue},
+    article/.style={basicnode, rectangle, rounded corners=5pt, fill=articlegreen, minimum width=1.5cm, minimum height=1cm},
+    category/.style={basicnode, diamond, fill=cathub, minimum size=1.5cm, aspect=1.2},
+    % Edge styles
+    interact/.style={-, thick, draw=gray!60},
+    social/.style={-, dashed, ultra thick, draw=socialorange, bend left=45},
+    semantic/.style={-Stealth, thick, draw=cathub!80},
+    % Annotation box
+    infobox/.style={
+        rectangle,
+        draw=gray!30,
+        fill=gray!5,
+        rounded corners,
+        text width=9cm,
+        align=center,
+        font=\scriptsize,
+        inner sep=6pt
+    }
+}
 \usepackage{tabularx}
 \definecolor{dfhead}{HTML}{F2F2F2}
 \definecolor{dfgrid}{HTML}{DDDDDD}
@@ -269,64 +311,83 @@
 
 \begin{frame}
   \frametitle{Dataset Schema Overview}
-  
+
   \scriptsize
   \ttfamily
-  \setlength{\tabcolsep}{4pt}
-  \renewcommand{\arraystretch}{1.2}
-  
+  \setlength{\tabcolsep}{3pt}
+  \renewcommand{\arraystretch}{1.25}
+
   % ===================== Articles =====================
-  \textbf{Articles}
+  \begin{center}
+    \textbf{Articles}
+  \end{center}
   \vspace{0.3em}
-  
-  \begin{tabularx}{\linewidth}{l l X X l l X l}
-  \rowcolor{dfhead}
-  article\_id & url & title & short\_description & author & published\_at & content \\
-  56b.. & http:... & Đề ... & Dự thảo... & Sơn Hà & Thứ hai,... & Chiều ... \\ 
-  \end{tabularx}
-  
-  \vspace{0.8em}
-  
+
+  \centering
+  \begin{tabular}{|l|l|l|l|l|l|l|}
+    \hline
+    \rowcolor{headArticles}
+    \textbf{article\_id} & \textbf{url} & \textbf{title} & \textbf{short\_description} &
+    \textbf{author} & \textbf{published\_at} & \textbf{content} \\
+    \hline
+    56b.. & http:... & Đề ... & Dự thảo... & Sơn Hà & Thứ hai,... & Chiều ... \\
+    \hline
+  \end{tabular}
+
+  \vspace{0.9em}
+
   % ===================== Metadata =====================
-  \textbf{Metadata}
-  \vspace{0.3em}
-  
-  \begin{tabularx}{\linewidth}{X l X l}
-  \rowcolor{dfhead}
-  article\_url & category & tags \\
-  http:... & Khoa học công nghệ & \texttt{["công nghệ", ...]}\\
-  \end{tabularx}
-  
-  \vspace{0.8em}
-  
+  \textbf{Metadata}\par\vspace{0.3em}
+
+  \centering
+  \begin{tabular}{|l|l|l|}
+    \hline
+    \rowcolor{headMetadata}
+    \textbf{article\_url} & \textbf{category} & \textbf{tags} \\
+    \hline
+    https://vnexpress... & Khoa học công nghệ & \texttt{["công nghệ", ...]} \\
+    \hline
+  \end{tabular}
+
+  \vspace{0.9em}
+
   % ===================== Replies =====================
-  \textbf{Replies}
-  \vspace{0.3em}
-  
-  \begin{tabularx}{\linewidth}{X l X X l X}
-  \rowcolor{dfhead}
-  article\_url & parent\_user\_id & parent\_text & \dots & reply\_user\_id & reply\_text \\
-  http:... & 10... & Cũng ... & & 23... & Đúng... \\
-  \end{tabularx}
-  
-  \vspace{0.8em}
-  
+  \textbf{Replies}\par\vspace{0.3em}
+
+  \centering
+  \begin{tabular}{|l|l|l|c|l|l|}
+    \hline
+    \rowcolor{headReplies}
+    \textbf{article\_url} & \textbf{parent\_user\_id} & \textbf{parent\_text} &
+    \textbf{\dots} & \textbf{reply\_user\_id} & \textbf{reply\_text} \\
+    \hline
+    http:... & 1002635618 & Cũng ... &  & 1032087702 & Đúng rồi ... \\
+    \hline
+  \end{tabular}
+
+  \vspace{0.9em}
+
   % ===================== User Profiles =====================
-  \textbf{User Profiles}
-  \vspace{0.3em}
-  
-  \begin{tabularx}{\linewidth}{l X l l}
-  \rowcolor{dfhead}
-  user\_id & username & join\_date \\
-  25... & Mèo đi hia & texttt{11/2014} 
-  \end{tabularx}
-  
-  \end{frame}
+  \textbf{User Profiles}\par\vspace{0.3em}
+
+  \centering
+  \begin{tabular}{|l|l|l|}
+    \hline
+    \rowcolor{headUsers}
+    \textbf{user\_id} & \textbf{username} & \textbf{join\_date} \\
+    \hline
+    1002611525	 & Mèo đi hia & 11/2014 \\
+    \hline
+  \end{tabular}
+
+\end{frame}
+
+
 
 \begin{frame}
-  \frametitle{Dataset Overview (VnExpress)}
+  \frametitle{Dataset Summary}
 
-  \begin{block}{Dataset Scale \& Sparsity Summary}
+  \begin{block}{Dataset Summary}
       \begin{columns}[T,onlytextwidth]
 
           %------------ Left column ------------
@@ -359,46 +420,47 @@
 
 
 
+% \begin{frame}
+%     \frametitle{Data Sample: Interaction \& Content}
+%     \textbf{1. Content Sample (Article)} \\
+%     \textit{"Chinh phục loạt 'ông lớn' công nghệ sau hơn 500 lần bị từ chối"} \\
+%     $\rightarrow$ \textbf{Tags:} [ Meta, Amazon, Apple, Tesla, kĩ sư công nghệ ]
+
+%     \vspace{0.3cm}
+%     \textbf{2. Social Sample (Comment/Reply)} \\
+%     \begin{itemize}
+%         \item \textbf{User A:} "Nếu giỏi thì cố gắng mua lại mấy công ty này..."
+%         \item \textbf{User B:} (Reply to A) "Mua lại Meta chắc cần nghìn tỷ USD..." \\
+%               $\Rightarrow$ \color{red} Social Connection detected \color{black}
+%     \end{itemize}
+
+%     \vspace{0.3cm}
+%     \begin{block}{Feature Mapping}
+%         \scriptsize
+%         \begin{itemize}
+%             \item \textbf{Article} $\rightarrow$ PhoBERT Embedding ($d=64$) $\rightarrow$ Node Feature.
+%             \item \textbf{User} $\rightarrow$ Interaction aggregation $\rightarrow$ Node Embedding.
+%             \item \textbf{Reply} $\rightarrow$ User-User Edge in the Heterogeneous Graph.
+%         \end{itemize}
+%     \end{block}
+% \end{frame}
+
 \begin{frame}
-    \frametitle{Data Sample: Interaction \& Content}
-    \textbf{1. Content Sample (Article)} \\
-    \textit{"Chinh phục loạt 'ông lớn' công nghệ sau hơn 500 lần bị từ chối"} \\
-    $\rightarrow$ \textbf{Tags:} [ Meta, Amazon, Apple, Tesla, kĩ sư công nghệ ]
-
-    \vspace{0.3cm}
-    \textbf{2. Social Sample (Comment/Reply)} \\
-    \begin{itemize}
-        \item \textbf{User A:} "Nếu giỏi thì cố gắng mua lại mấy công ty này..."
-        \item \textbf{User B:} (Reply to A) "Mua lại Meta chắc cần nghìn tỷ USD..." \\
-              $\Rightarrow$ \color{red} Social Connection detected \color{black}
-    \end{itemize}
-
-    \vspace{0.3cm}
-    \begin{block}{Feature Mapping}
-        \scriptsize
-        \begin{itemize}
-            \item \textbf{Article} $\rightarrow$ PhoBERT Embedding ($d=64$) $\rightarrow$ Node Feature.
-            \item \textbf{User} $\rightarrow$ Interaction aggregation $\rightarrow$ Node Embedding.
-            \item \textbf{Reply} $\rightarrow$ User-User Edge in the Heterogeneous Graph.
-        \end{itemize}
-    \end{block}
-\end{frame}
-
-\begin{frame}
-    \frametitle{Category Distribution (VnExpress)}
+    \frametitle{Category Distribution}
     \centering
     \includegraphics[width=0.95\textwidth]{../plots/eda_09_metadata_categories.png}
     \vspace{0.2cm}
-    \begin{itemize}
-        \item \textbf{Thế giới} and \textbf{Thời sự} are the dominant categories.
-        \item Skewed distribution reflects editorial priorities.
-    \end{itemize}
+    \begin{block}{Category Balance Observation}
+      \begin{itemize}
+          \item The dataset is well-balanced across major news categories, with no single category dominating the article volume.
+      \end{itemize}
+  \end{block}  
 \end{frame}
 
 \begin{frame}
     \frametitle{User Engagement Patterns (1/2)}
     \centering
-    \includegraphics[width=0.95\textwidth]{../plots/eda_03_user_activity_top.png}
+    \includegraphics[width=0.98\textwidth]{../plots/eda_03_user_activity_top.png}
     \begin{block}{Distribution Analysis}
         Article popularity follows Zipf's law. Top 10 users account for 15\% of all interactions.
     \end{block}
@@ -407,7 +469,7 @@
 \begin{frame}
     \frametitle{User Engagement Patterns (2/2)}
     \centering
-    \includegraphics[width=0.95\textwidth]{../plots/eda_03_user_activity_bottom.png}
+    \includegraphics[width=0.98\textwidth]{../plots/eda_03_user_activity_bottom.png}
     \begin{block}{Power Law Observation}
         Long-tail distribution: 80\% of users have fewer than 10 interactions.
     \end{block}
@@ -447,6 +509,10 @@
     \frametitle{Engagement by Category}
     \centering
     \includegraphics[width=0.9\textwidth]{../plots/eda_11_engagement_by_category.png}
+    \begin{block}{Engagement Insight}
+      Categories such as \textbf{Sports} and \textbf{Technology} show the highest engagement, leading both in average comments per article and total comment volume.
+    \end{block}
+  
 \end{frame}
 
 %------------------------------------------------------------
@@ -456,7 +522,7 @@
 \begin{frame}
     \frametitle{Graph Degree Distribution}
     \centering
-    \includegraphics[width=0.95\textwidth]{../plots/graph_eda_01_degree_distribution.png}
+    \includegraphics[width=0.98\textwidth]{../plots/graph_eda_01_degree_distribution.png}
     \vspace{0.2cm}
     \begin{itemize}
         \item User degrees peak at very low values (high cold-start risk).
@@ -519,54 +585,167 @@
     \end{enumerate}
 \end{frame}
 
-
+% --- SLIDE 1: GRAPH G1 (BASELINE) ---
 \begin{frame}
-    \frametitle{Core Innovation: Social Fusion (Graph G2)}
-    \textbf{Idea:} Use the "Reply Network" to bridge gaps between users.
+  \frametitle{Method 1: Bipartite Graph (G1)}
+  \framesubtitle{Baseline Collaborative Filtering Structure}
+  \centering
+  \begin{tikzpicture}[scale=0.9, transform shape]
+      % 1. Nodes
+      \node[user] (u1) at (0, 3) {User 1};
+      \node[user] (u2) at (0, 1) {User 2};
+      \node[user] (u3) at (0, -1) {User 3};
 
-    \vspace{0.3cm}
-    \begin{columns}
-        \column{0.5\textwidth}
-        \centering
-        \begin{tikzpicture}[node distance=1.5cm, every node/.style={scale=0.7}]
-            \node[circle, draw, fill=blue!20] (U1) {User A};
-            \node[circle, draw, fill=blue!20, right of=U1, xshift=1cm] (U2) {User B};
-            \node[rectangle, draw, fill=green!20, below of=U1] (A1) {Article 1};
-            \node[rectangle, draw, fill=green!20, below of=U2] (A2) {Article 2};
+      \node[article] (a1) at (6, 3) {Art 1};
+      \node[article] (a2) at (6, 1) {Art 2};
+      \node[article] (a3) at (6, -1) {Art 3};
 
-            \draw[->, thick] (U1) -- (A1) node[midway, left] {Read};
-            \draw[->, thick, red, dashed] (U1) -- (U2) node[midway, above] {Reply};
-            \draw[->, thick] (U2) -- (A2) node[midway, right] {Read};
+      % 2. Edges
+      \draw[interact] (u1) -- (a1);
+      \draw[interact] (u1) -- (a2);
+      \draw[interact] (u2) -- (a2);
+      \draw[interact] (u3) -- (a3);
+      \draw[interact] (u3) -- (a2);
 
-            \draw[->, blue, dotted, bend left] (U1) to node[midway, below] {Suggest?} (A2);
-        \end{tikzpicture}
+      % 3. Annotations
+      \node[infobox] at (3, -3) {
+          \textbf{Structure:} Standard User-Item Bipartite Graph \\
+          \textbf{Edge:} Explicit interaction (Comment/View) \\
+          \textbf{Limitation:} Sparse connections, suffers from Cold-Start.
+      };
+      
+      \node[above=0.2cm of u1, userblue, font=\bfseries] {USERS};
+      \node[above=0.2cm of a1, articlegreen, font=\bfseries] {ARTICLES};
+  \end{tikzpicture}
+\end{frame}
 
-        \column{0.5\textwidth}
-        \textbf{The Logic:}
-        \begin{itemize}
-            \item \textbf{Direct:} User A likes Article 1.
-            \item \textbf{Social:} User A replies to User B $\rightarrow$ \textit{Shared Interest}.
-            \item \textbf{Inference:} User A is likely to enjoy Article 2 (read by B).
-        \end{itemize}
-    \end{columns}
+% --- SLIDE 2: GRAPH G2 (SOCIAL) ---
+\begin{frame}
+  \frametitle{Method 2: Heterogeneous Social Graph (G2)}
+  \framesubtitle{Enhancing Connectivity via Social Homophily}
+  \centering
+  \begin{tikzpicture}[scale=0.9, transform shape]
+      % 1. Nodes
+      \node[user] (u1) at (0, 3) {User 1};
+      \node[user] (u2) at (0, 1) {User 2};
+      \node[user] (u3) at (0, -1) {User 3};
 
-    \vspace{0.4cm}
-    \begin{block}{Impact on Sparsity}
-        By adding User-User edges (G2), the GNN can propagate "interests" even if User A has only read 1 article.
-    \end{block}
+      \node[article] (a1) at (6, 3) {Art 1};
+      \node[article] (a2) at (6, 1) {Art 2};
+      \node[article] (a3) at (6, -1) {Art 3};
+
+      % 2. Edges
+      \draw[interact] (u1) -- (a1);
+      \draw[interact] (u1) -- (a2);
+      \draw[interact] (u2) -- (a2);
+      \draw[interact] (u3) -- (a3);
+
+      % 3. NEW SOCIAL EDGES
+      \draw[social] (u1) to node[midway, left=0.1cm, font=\tiny\bfseries, text=socialorange] {Reply} (u2);
+      \draw[social] (u2) to (u3);
+
+      % 4. Annotations
+      \node[infobox] at (3, -3) {
+          \textbf{Structure:} G1 + \textcolor{socialorange}{User-User Edges} \\
+          \textbf{Logic:} Users who reply to each other share interests (Homophily). \\
+          \textbf{Benefit:} Propagates information between users even without shared articles.
+      };
+
+      \node[above=0.2cm of u1, userblue, font=\bfseries] {SOCIAL NETWORK};
+      \node[above=0.2cm of a1, articlegreen, font=\bfseries] {CONTENT};
+  \end{tikzpicture}
 \end{frame}
 
 \begin{frame}
-    \frametitle{Graph Topology: A Heterogeneous Network}
-    \centering
-    \includegraphics[height=0.9\textheight]{../plots/graph_network_topology.png}
-    \vspace{0.1cm}
-    % \begin{itemize}
-    %     \item \color{blue} \textbf{Blue Nodes:} \color{black} Active Users
-    %     \item \color{green!60!black} \textbf{Green Nodes:} \color{black} News Articles
-    %     \item \color{red} \textbf{Dashed Edges:} \color{black} Social Reply interactions
-    % \end{itemize}
+  \frametitle{Core Innovation: Social Fusion (Graph G2)}
+  \textbf{Idea:} Use the "Reply Network" to bridge gaps between users.
+
+  \vspace{0.3cm}
+  \begin{columns}
+      \column{0.5\textwidth}
+      \centering
+      \begin{tikzpicture}[node distance=1.5cm, every node/.style={scale=0.7}]
+          \node[circle, draw, fill=blue!20] (U1) {User A};
+          \node[circle, draw, fill=blue!20, right of=U1, xshift=1cm] (U2) {User B};
+          \node[rectangle, draw, fill=green!20, below of=U1] (A1) {Article 1};
+          \node[rectangle, draw, fill=green!20, below of=U2] (A2) {Article 2};
+
+          \draw[->, thick] (U1) -- (A1) node[midway, left] {Read};
+          \draw[->, thick, red, dashed] (U1) -- (U2) node[midway, above] {Reply};
+          \draw[->, thick] (U2) -- (A2) node[midway, right] {Read};
+
+          \draw[->, blue, dotted, bend left] (U1) to node[midway, below] {Suggest?} (A2);
+      \end{tikzpicture}
+
+      \column{0.5\textwidth}
+      \textbf{The Logic:}
+      \begin{itemize}
+          \item \textbf{Direct:} User A likes Article 1.
+          \item \textbf{Social:} User A replies to User B $\rightarrow$ \textit{Shared Interest}.
+          \item \textbf{Inference:} User A is likely to enjoy Article 2 (read by B).
+      \end{itemize}
+  \end{columns}
+
+  \vspace{0.4cm}
+  \begin{block}{Impact on Sparsity}
+      By adding User-User edges (G2), the GNN can propagate "interests" even if User A has only read 1 article.
+  \end{block}
 \end{frame}
+
+% --- SLIDE 3: GRAPH G3 (SEMANTIC) ---
+\begin{frame}
+  \frametitle{Method 3: Semantic Hub Graph (G3)}
+  \framesubtitle{Reducing Sparsity with Category Bridges}
+  \centering
+  \begin{tikzpicture}[scale=0.85, transform shape]
+      % 1. Nodes
+      \node[user] (u1) at (0, 3) {User 1};
+      \node[user] (u2) at (0, 0) {User 2};
+
+      \node[category] (c1) at (4, 3) {Sport};
+      \node[category] (c2) at (4, 0) {Tech};
+
+      \node[article] (a1) at (8, 3.5) {Art 1};
+      \node[article] (a2) at (8, 2.5) {Art 2};
+      \node[article] (a3) at (8, 0.5) {Art 3};
+      \node[article] (a4) at (8, -0.5) {Art 4};
+
+      % 2. Edges
+      \draw[semantic] (u1) -- (c1);
+      \draw[semantic] (u1) -- (c2);
+      \draw[semantic] (u2) -- (c2);
+
+      \draw[semantic] (c1) -- (a1);
+      \draw[semantic] (c1) -- (a2);
+      \draw[semantic] (c2) -- (a3);
+      \draw[semantic] (c2) -- (a4);
+      
+      \draw[interact, dotted, opacity=0.3] (u1) to[bend left=20] (a1);
+
+      % 3. Annotations
+      \node[infobox] at (4, -3) {
+          \textbf{Structure:} Tripartite-like (User $\to$ Category $\to$ Article) \\
+          \textbf{Logic:} Categories act as \textit{dense hubs}, shortening the path distance. \\
+          \textbf{Benefit:} Extreme connectivity; connects users to ALL articles in a topic.
+      };
+
+      \node[above=0.2cm of u1, userblue, font=\bfseries] {USERS};
+      \node[above=0.2cm of c1, cathub, font=\bfseries] {CATEGORIES};
+      \node[above=0.2cm of a1, articlegreen, font=\bfseries] {ARTICLES};
+  \end{tikzpicture}
+\end{frame}
+
+% \begin{frame}
+%     \frametitle{Graph Topology: A Heterogeneous Network}
+%     \centering
+%     \includegraphics[height=0.9\textheight]{../plots/graph_network_topology.png}
+%     \vspace{0.1cm}
+%     % \begin{itemize}
+%     %     \item \color{blue} \textbf{Blue Nodes:} \color{black} Active Users
+%     %     \item \color{green!60!black} \textbf{Green Nodes:} \color{black} News Articles
+%     %     \item \color{red} \textbf{Dashed Edges:} \color{black} Social Reply interactions
+%     % \end{itemize}
+% \end{frame}
 
 %------------------------------------------------------------
 \section{State-of-the-Art (SOTA) Baselines}

@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023/Debian) (preloaded format=xelatex 2025.6.18)  29 DEC 2025 21:47
+This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023/Debian) (preloaded format=xelatex 2025.6.18)  29 DEC 2025 22:33
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -955,6 +955,12 @@ File: tikzlibrarycalc.code.tex 2023-01-15 v3.1.10 (3.1.10)
 zlibraryfit.code.tex
 File: tikzlibraryfit.code.tex 2023-01-15 v3.1.10 (3.1.10)
 )
+(/usr/share/texlive/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tik
+zlibrarybackgrounds.code.tex
+File: tikzlibrarybackgrounds.code.tex 2023-01-15 v3.1.10 (3.1.10)
+\pgf@layerbox@background=\box85
+\pgf@layerboxsaved@background=\box86
+)
 (/usr/share/texlive/texmf-dist/tex/latex/tools/tabularx.sty
 Package: tabularx 2023/07/08 v2.11c `tabularx' package (DPC)
 \TX@col@width=\dimen331
@@ -1015,8 +1021,8 @@ Package zref Info: New property: abspage on input line 67.
 Package: ocgbase 2022/08/04 v0.22 support package for ocgx2.sty
 \g_ocgbase_nd_int=\count378
 )
-\@anim@box=\box85
-\@anim@measbox=\box86
+\@anim@box=\box87
+\@anim@measbox=\box88
 \@anim@tmpdima=\dimen338
 \@anim@tmpdimb=\dimen339
 \@anim@num=\count379
@@ -1314,29 +1320,30 @@ Package biblatex Warning: 'babel/polyglossia' detected but 'csquotes' missing.
 
 \@quotelevel=\count521
 \@quotereset=\count522
-No file main.aux.
+(./main.aux)
 \openout1 = `main.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 55.
-LaTeX Font Info:    ... okay on input line 55.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 55.
-LaTeX Font Info:    ... okay on input line 55.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 55.
-LaTeX Font Info:    ... okay on input line 55.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 55.
-LaTeX Font Info:    ... okay on input line 55.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 55.
-LaTeX Font Info:    ... okay on input line 55.
-LaTeX Font Info:    Checking defaults for TU/lmr/m/n on input line 55.
-LaTeX Font Info:    ... okay on input line 55.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 55.
-LaTeX Font Info:    ... okay on input line 55.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 55.
-LaTeX Font Info:    ... okay on input line 55.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 55.
-LaTeX Font Info:    ... okay on input line 55.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 55.
-LaTeX Font Info:    ... okay on input line 55.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 97.
+LaTeX Font Info:    ... okay on input line 97.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 97.
+LaTeX Font Info:    ... okay on input line 97.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 97.
+LaTeX Font Info:    ... okay on input line 97.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 97.
+LaTeX Font Info:    ... okay on input line 97.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 97.
+LaTeX Font Info:    ... okay on input line 97.
+LaTeX Font Info:    Checking defaults for TU/lmr/m/n on input line 97.
+LaTeX Font Info:    ... okay on input line 97.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 97.
+LaTeX Font Info:    ... okay on input line 97.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 97.
+LaTeX Font Info:    ... okay on input line 97.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 97.
+LaTeX Font Info:    ... okay on input line 97.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 97.
+LaTeX Font Info:    ... okay on input line 97.
+
 *geometry* driver: auto-detecting
 *geometry* detected driver: xetex
 *geometry* verbose mode - [ preamble ] result:
@@ -1371,12 +1378,10 @@ LaTeX Font Info:    ... okay on input line 55.
 * \@reversemarginfalse
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
-Package hyperref Info: Link coloring OFF on input line 55.
+Package hyperref Info: Link coloring OFF on input line 97.
+(./main.out) (./main.out)
 \@outlinefile=\write6
 \openout6 = `main.out'.
-
-
-Package hyperref Warning: Rerun to get /PageLabels entry.
 
 
 (/usr/share/texlive/texmf-dist/tex/latex/translator/translator-basic-dictionary
@@ -1404,19 +1409,19 @@ ry-English.dict
 Dictionary: translator-theorem-dictionary, Language: English 
 )
 LaTeX Font Info:    Overwriting math alphabet `\mathrm' in version `normal'
-(Font)                  OT1/cmr/m/n --> TU/lmr/m/n on input line 55.
+(Font)                  OT1/cmr/m/n --> TU/lmr/m/n on input line 97.
 LaTeX Font Info:    Overwriting math alphabet `\mathit' in version `normal'
-(Font)                  OT1/cmr/m/it --> TU/lmr/m/it on input line 55.
+(Font)                  OT1/cmr/m/it --> TU/lmr/m/it on input line 97.
 LaTeX Font Info:    Overwriting math alphabet `\mathbf' in version `normal'
-(Font)                  OT1/cmr/bx/n --> TU/lmr/bx/n on input line 55.
+(Font)                  OT1/cmr/bx/n --> TU/lmr/bx/n on input line 97.
 LaTeX Font Info:    Overwriting math alphabet `\mathsf' in version `normal'
-(Font)                  OT1/cmss/m/n --> TU/lmss/m/n on input line 55.
+(Font)                  OT1/cmss/m/n --> TU/lmss/m/n on input line 97.
 LaTeX Font Info:    Overwriting math alphabet `\mathsf' in version `bold'
-(Font)                  OT1/cmss/bx/n --> TU/lmss/bx/n on input line 55.
+(Font)                  OT1/cmss/bx/n --> TU/lmss/bx/n on input line 97.
 LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `normal'
-(Font)                  OT1/cmtt/m/n --> TU/lmtt/m/n on input line 55.
+(Font)                  OT1/cmtt/m/n --> TU/lmtt/m/n on input line 97.
 LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `bold'
-(Font)                  OT1/cmtt/m/n --> TU/lmtt/bx/n on input line 55.
+(Font)                  OT1/cmtt/m/n --> TU/lmtt/bx/n on input line 97.
 
 Package fontspec Info: Font family 'latinmodern-math.otf(0)' created for font
 (fontspec)             'latinmodern-math.otf' with options
@@ -1457,15 +1462,15 @@ Style=MathScript},{Size=-6.57,Font=latinmodern-math.otf,Style=MathScriptScript}
 (fontspec)             - 'bold small caps'  (b/sc) with NFSS spec.: 
 
 LaTeX Font Info:    Encoding `OT1' has changed to `TU' for symbol font
-(Font)              `operators' in the math version `normal' on input line 55.
+(Font)              `operators' in the math version `normal' on input line 97.
 LaTeX Font Info:    Overwriting symbol font `operators' in version `normal'
 (Font)                  OT1/cmr/m/n --> TU/latinmodern-math.otf(1)/m/n on input
- line 55.
+ line 97.
 LaTeX Font Info:    Encoding `OT1' has changed to `TU' for symbol font
-(Font)              `operators' in the math version `bold' on input line 55.
+(Font)              `operators' in the math version `bold' on input line 97.
 LaTeX Font Info:    Overwriting symbol font `operators' in version `bold'
 (Font)                  OT1/cmr/bx/n --> TU/latinmodern-math.otf(1)/b/n on inpu
-t line 55.
+t line 97.
 
 Package fontspec Info: latinmodern-math scale = 1.0001.
 
@@ -1536,15 +1541,15 @@ uage=dflt;"
 (fontspec)             =0pt\relax \fontdimen 21\font =0pt\relax 
 
 LaTeX Font Info:    Encoding `OMS' has changed to `TU' for symbol font
-(Font)              `symbols' in the math version `normal' on input line 55.
+(Font)              `symbols' in the math version `normal' on input line 97.
 LaTeX Font Info:    Overwriting symbol font `symbols' in version `normal'
 (Font)                  OMS/cmsy/m/n --> TU/latinmodern-math.otf(2)/m/n on inpu
-t line 55.
+t line 97.
 LaTeX Font Info:    Encoding `OMS' has changed to `TU' for symbol font
-(Font)              `symbols' in the math version `bold' on input line 55.
+(Font)              `symbols' in the math version `bold' on input line 97.
 LaTeX Font Info:    Overwriting symbol font `symbols' in version `bold'
 (Font)                  OMS/cmsy/b/n --> TU/latinmodern-math.otf(2)/b/n on inpu
-t line 55.
+t line 97.
 
 Package fontspec Info: latinmodern-math scale = 0.9999.
 
@@ -1597,17 +1602,17 @@ uage=dflt;"
 (fontspec)             =6.56999pt\relax \fontdimen 13\font =0pt\relax 
 
 LaTeX Font Info:    Encoding `OMX' has changed to `TU' for symbol font
-(Font)              `largesymbols' in the math version `normal' on input line 5
-5.
+(Font)              `largesymbols' in the math version `normal' on input line 9
+7.
 LaTeX Font Info:    Overwriting symbol font `largesymbols' in version `normal'
 (Font)                  OMX/cmex/m/n --> TU/latinmodern-math.otf(3)/m/n on inpu
-t line 55.
+t line 97.
 LaTeX Font Info:    Encoding `OMX' has changed to `TU' for symbol font
-(Font)              `largesymbols' in the math version `bold' on input line 55.
+(Font)              `largesymbols' in the math version `bold' on input line 97.
 
 LaTeX Font Info:    Overwriting symbol font `largesymbols' in version `bold'
 (Font)                  OMX/cmex/m/n --> TU/latinmodern-math.otf(3)/b/n on inpu
-t line 55.
+t line 97.
 Package biblatex Info: Trying to load language 'english'...
 Package biblatex Info: ... file 'english.lbx' found.
 
@@ -1628,60 +1633,59 @@ Package biblatex Warning: File 'main.bbl' is wrong format version - expected 3.
 
 Package biblatex Info: ... file 'main.bbl' found.
 (./main.bbl)
-Package biblatex Info: Reference section=0 on input line 55.
-Package biblatex Info: Reference segment=0 on input line 55.
+Package biblatex Info: Reference section=0 on input line 97.
+Package biblatex Info: Reference segment=0 on input line 97.
  (./main.nav)
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 10.95116pt on input line 57.
+(Font)              scaled to size 10.95116pt on input line 99.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 7.6658pt on input line 57.
+(Font)              scaled to size 7.6658pt on input line 99.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 5.47559pt on input line 57.
+(Font)              scaled to size 5.47559pt on input line 99.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 10.94882pt on input line 57.
+(Font)              scaled to size 10.94882pt on input line 99.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 7.66417pt on input line 57.
+(Font)              scaled to size 7.66417pt on input line 99.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 5.47441pt on input line 57.
-LaTeX Font Info:    Trying to load font information for U+msa on input line 57.
+(Font)              scaled to size 5.47441pt on input line 99.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 99.
 
 
 (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 57.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 99.
 
 
 (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 8.00085pt on input line 57.
+(Font)              scaled to size 8.00085pt on input line 99.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 6.00064pt on input line 57.
+(Font)              scaled to size 6.00064pt on input line 99.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 5.00053pt on input line 57.
+(Font)              scaled to size 5.00053pt on input line 99.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 7.99915pt on input line 57.
+(Font)              scaled to size 7.99915pt on input line 99.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 5.99936pt on input line 57.
+(Font)              scaled to size 5.99936pt on input line 99.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 4.99947pt on input line 57.
+(Font)              scaled to size 4.99947pt on input line 99.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [1
 
-]
-No file main.toc.
+] (./main.toc)
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
+
 [2
 
-]
-No file main.toc.
+] (./main.toc)
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
-[3
+ [3
 
 ]
 File: assets/images/uit-logo.png Graphic file (type bmp)
@@ -1693,53 +1697,37 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [5
 
-]
-No file main.toc.
+] (./main.toc)
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
-[6
+ [6
 
 ]
 LaTeX Font Info:    Font shape `TU/lmss/m/it' in size <10.95> not available
-(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 167.
+(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 209.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [7
 
 ]
 LaTeX Font Info:    Font shape `TU/lmss/m/it' in size <8> not available
-(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 268.
+(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 310.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [8
 
 ]
 LaTeX Font Info:    Font shape `TU/lmtt/bx/n' in size <8> not available
-(Font)              Font shape `TU/lmtt/b/n' tried instead on input line 324.
-
-Overfull \hbox (27.76021pt too wide) in paragraph at lines 324--324
-[]|\TU/lmtt/m/n/8 short_description| 
- []
-
-
-Overfull \hbox (1.82816pt too wide) in paragraph at lines 324--324
-[]|\TU/lmtt/m/n/8 article_url| 
- []
-
-
-Overfull \hbox (1.82816pt too wide) in paragraph at lines 324--324
-[]|\TU/lmtt/m/n/8 parent_text| 
- []
-
+(Font)              Font shape `TU/lmtt/b/n' tried instead on input line 383.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
-[9
+ [9
 
 ]
 File: ../plots/eda_00_summary_dashboard.png Graphic file (type bmp)
 <../plots/eda_00_summary_dashboard.png>
 
-Overfull \vbox (1.13776pt too high) detected at line 357
+Overfull \vbox (1.13776pt too high) detected at line 418
  []
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
@@ -1747,69 +1735,68 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 [10
 
 ]
-File: assets/images/uit-logo.png Graphic file (type bmp)
-<assets/images/uit-logo.png>
- [11
-
-]
 File: ../plots/eda_09_metadata_categories.png Graphic file (type bmp)
 <../plots/eda_09_metadata_categories.png>
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [12
+ [11
 
 ]
 File: ../plots/eda_03_user_activity_top.png Graphic file (type bmp)
 <../plots/eda_03_user_activity_top.png>
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [13
+ [12
 
 ]
 File: ../plots/eda_03_user_activity_bottom.png Graphic file (type bmp)
 <../plots/eda_03_user_activity_bottom.png>
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [14
+ [13
 
 ]
 File: ../plots/eda_11_engagement_by_category.png Graphic file (type bmp)
 <../plots/eda_11_engagement_by_category.png>
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [15
+ [14
 
 ]
 File: ../plots/graph_eda_01_degree_distribution.png Graphic file (type bmp)
 <../plots/graph_eda_01_degree_distribution.png>
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [16
+ [15
 
 ]
 File: ../plots/graph_eda_03_connectivity.png Graphic file (type bmp)
 <../plots/graph_eda_03_connectivity.png>
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
+ [16
+
+] (./main.toc)
+File: assets/images/uit-logo.png Graphic file (type bmp)
+<assets/images/uit-logo.png>
  [17
 
 ]
-No file main.toc.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
-[18
+ [18
 
 ]
+LaTeX Font Info:    Font shape `TU/lmss/m/it' in size <10> not available
+(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 586.
+LaTeX Font Info:    Font shape `TU/lmss/bx/it' in size <10.95> not available
+(Font)              Font shape `TU/lmss/bx/sl' tried instead on input line 586.
+
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [19
 
 ]
-LaTeX Font Info:    Font shape `TU/lmss/m/it' in size <10> not available
-(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 520.
-LaTeX Font Info:    Font shape `TU/lmss/bx/it' in size <10.95> not available
-(Font)              Font shape `TU/lmss/bx/sl' tried instead on input line 520.
-
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [20
@@ -1820,23 +1807,17 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
  [21
 
 ]
-File: ../plots/graph_network_topology.png Graphic file (type bmp)
-<../plots/graph_network_topology.png>
-
-Overfull \vbox (8.21713pt too high) detected at line 569
- []
-
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
+
 [22
 
 ]
-No file main.toc.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
-[23
+ [23
 
-]
+] (./main.toc)
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [24
@@ -1847,60 +1828,59 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
  [25
 
 ]
+File: assets/images/uit-logo.png Graphic file (type bmp)
+<assets/images/uit-logo.png>
+ [26
 
-LaTeX Warning: Citation 'shi2020hgrec' on page 26 undefined on input line 652.
+]
+
+LaTeX Warning: Citation 'shi2020hgrec' on page 27 undefined on input line 831.
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
-[26
+[27
 
 ]
 File: assets/images/content-based.png Graphic file (type bmp)
 <assets/images/content-based.png>
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [27
+ [28
 
 ]
 File: assets/images/user-user-cf-2.png Graphic file (type bmp)
 <assets/images/user-user-cf-2.png>
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [28
+ [29
 
 ]
 File: assets/images/item-item.drawio.png Graphic file (type bmp)
 <assets/images/item-item.drawio.png>
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [29
+ [30
 
-]
-No file main.toc.
+] (./main.toc)
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
-[30
+ [31
 
 ]
 
-LaTeX Warning: Citation 'shi2020hgrec' on page 31 undefined on input line 758.
+LaTeX Warning: Citation 'shi2020hgrec' on page 32 undefined on input line 937.
 
 
-LaTeX Warning: Citation 'he2020lightgcn' on page 31 undefined on input line 758
+LaTeX Warning: Citation 'he2020lightgcn' on page 32 undefined on input line 937
 .
 
 
-Overfull \vbox (16.38152pt too high) detected at line 758
+Overfull \vbox (16.38152pt too high) detected at line 937
  []
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
-[31
-
-]
-File: assets/images/uit-logo.png Graphic file (type bmp)
-<assets/images/uit-logo.png>
- [32
+[32
 
 ]
 File: assets/images/uit-logo.png Graphic file (type bmp)
@@ -1908,25 +1888,24 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
  [33
 
 ]
-LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 10.00107pt on input line 878.
-LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 7.00075pt on input line 878.
-LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 9.99893pt on input line 878.
-LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 6.99925pt on input line 878.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [34
 
 ]
-No file main.toc.
+LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
+(Font)              scaled to size 10.00107pt on input line 1057.
+LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
+(Font)              scaled to size 7.00075pt on input line 1057.
+LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
+(Font)              scaled to size 9.99893pt on input line 1057.
+LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
+(Font)              scaled to size 6.99925pt on input line 1057.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
-[35
+ [35
 
-]
+] (./main.toc)
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [36
@@ -1937,76 +1916,76 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
  [37
 
 ]
-LaTeX Font Info:    Font shape `TU/lmss/m/it' in size <6> not available
-(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 987.
-LaTeX Font Info:    Font shape `TU/lmss/bx/it' in size <6> not available
-(Font)              Font shape `TU/lmss/bx/sl' tried instead on input line 987.
-
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [38
 
 ]
-Overfull \vbox (33.16792pt too high) detected at line 1027
+LaTeX Font Info:    Font shape `TU/lmss/m/it' in size <6> not available
+(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 1166.
+
+LaTeX Font Info:    Font shape `TU/lmss/bx/it' in size <6> not available
+(Font)              Font shape `TU/lmss/bx/sl' tried instead on input line 1166
+.
+File: assets/images/uit-logo.png Graphic file (type bmp)
+<assets/images/uit-logo.png>
+ [39
+
+]
+Overfull \vbox (33.16792pt too high) detected at line 1206
  []
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
-[39
+[40
 
 ]
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [40
+ [41
 
 ]
-Overfull \vbox (3.00227pt too high) detected at line 1090
+Overfull \vbox (3.00227pt too high) detected at line 1269
  []
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
-[41
+[42
 
 ]
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [42
+ [43
 
 ]
-Overfull \hbox (4.37463pt too wide) in paragraph at lines 1151--1151
+Overfull \hbox (4.37463pt too wide) in paragraph at lines 1330--1330
  [] 
  []
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
-[43
+[44
 
 ]
-File: assets/images/uit-logo.png Graphic file (type bmp)
-<assets/images/uit-logo.png>
- [44
-
-]
-LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 14.40152pt on input line 1223.
-LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 14.39845pt on input line 1223.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [45
 
 ]
+LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
+(Font)              scaled to size 14.40152pt on input line 1402.
+LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
+(Font)              scaled to size 14.39845pt on input line 1402.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [46
 
 ]
-No file main.toc.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
-[47
+ [47
 
-]
+] (./main.toc)
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [48
@@ -2022,12 +2001,17 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
  [50
 
 ]
+File: assets/images/uit-logo.png Graphic file (type bmp)
+<assets/images/uit-logo.png>
+ [51
 
-LaTeX Warning: Empty bibliography on input line 1308.
+]
+
+LaTeX Warning: Empty bibliography on input line 1487.
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
-[51
+[52
 
 ]
 \tf@nav=\write7
@@ -2039,7 +2023,7 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 \tf@snm=\write9
 \openout9 = `main.snm'.
 
- [52] (./main.aux)
+ (./main.aux)
  ***********
 LaTeX2e <2023-11-01> patch level 1
 L3 programming layer <2024-01-22>
@@ -2048,17 +2032,8 @@ L3 programming layer <2024-01-22>
 
 LaTeX Warning: There were undefined references.
 
-
-LaTeX Warning: Temporary extra page added at the end. Rerun to get it removed.
-
-
-Package rerunfilecheck Warning: File `main.out' has changed.
-(rerunfilecheck)                Rerun to get outlines right
-(rerunfilecheck)                or use package `bookmark'.
-
-Package rerunfilecheck Info: Checksums for `main.out':
-(rerunfilecheck)             Before: <no file>
-(rerunfilecheck)             After:  E17DE1070BA22BAEBFDE8B4D350FD0F5;1455.
+Package rerunfilecheck Info: File `main.out' has not changed.
+(rerunfilecheck)             Checksum: E17DE1070BA22BAEBFDE8B4D350FD0F5;1455.
 
 Package biblatex Warning: Please (re)run Biber on the file:
 (biblatex)                main
@@ -2069,12 +2044,12 @@ Package logreq Info: Writing requests to 'main.run.xml'.
 
  ) 
 Here is how much of TeX's memory you used:
- 43065 strings out of 474878
- 897931 string characters out of 5762516
+ 43336 strings out of 474878
+ 904015 string characters out of 5762516
  1945627 words of memory out of 5000000
- 64340 multiletter control sequences out of 15000+600000
- 566534 words of font info for 127 fonts, out of 8000000 for 9000
+ 64586 multiletter control sequences out of 15000+600000
+ 566542 words of font info for 128 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
- 128i,15n,123p,1129b,3858s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 128i,15n,123p,1129b,3945s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
 Output written on main.pdf (52 pages).
