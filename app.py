@@ -1157,514 +1157,301 @@ CF_GRAPHS = {
 }
 
 def main():
+    st.set_page_config(page_title="News RecSys Portal", page_icon="📰", layout="wide")
+    
+    # --- CSS TÙY CHỈNH ---
+    st.markdown("""
+    <style>
+        .block-container {padding-top: 1rem;}
+        
+        /* Tab và Expander */
+        div[data-testid="stExpander"] div[role="button"] p {font-size: 1.1rem; font-weight: bold;}
+        div.stMarkdown h2, div.stMarkdown h3 {border-bottom: 2px solid #f0f2f6; padding-bottom: 10px;}
+        
+        /* Link Style */
+        a.article-link {color: #2c3e50 !important; text-decoration: none; font-weight: bold; font-size: 1.1em;}
+        a.article-link:hover {color: #e74c3c !important;}
+        a.article-link:visited {color: #663399 !important;} /* Màu tím cho bài đã click */
 
-    st.title("📰 Comprehensive RecSys Dashboard")
-    # Session State for Paths
+        /* Button 'Bình luận' */
+        .stButton>button {
+            width: 100%; border-radius: 8px; background-color: #f0f2f6; 
+            color: #31333F; border: 1px solid #d2d2d2;
+        }
+        .stButton>button:hover {border-color: #28a745; color: #28a745;}
+        
+        /* Badge & Search UI */
+        .source-badge {font-size: 0.75em; padding: 2px 6px; border-radius: 4px; color: white;}
+        div[data-testid="stVerticalBlock"] > div[style*="flex-direction: column;"] > div[data-testid="stTextInput"] {
+            margin-bottom: -15px;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # 1. INIT STATE
     if 'data_dir' not in st.session_state: st.session_state['data_dir'] = DATA_DIR
-    if 'raw_dir' not in st.session_state: st.session_state['raw_dir'] = RAW_DIR
-    
-    # --- 1. CHỈ KHỞI TẠO STATE Ở ĐÂY (KHÔNG KIỂM TRA selected_user) ---
-    if 'session_likes' not in st.session_state:
-        st.session_state['session_likes'] = []
-    if 'last_selected_user' not in st.session_state:
-        st.session_state['last_selected_user'] = None
-    
-    # --- SIDEBAR: GLOBAL CONFIG ---
-    st.sidebar.title("📊 Experiment Dashboard")
-    
-    # 1. Graph Topology Selector
-    topology_options = {
-        "strict_g2": "🔥 Deep Social (Strict G2)",
-        "strict_g3": "📂 Category Hubs (Strict G3)",
-        "strict_g1": "🔗 Bipartite (Strict G1)",
-        "g2": "🌊 Dense Social (Regular G2)"
-    }
-    available_variants = [v for v in topology_options.keys() if os.path.exists(os.path.join(DATA_DIR, v)) or v in MODEL_OPTIONS["graph_variants"]]
-    if not available_variants: available_variants = ["strict_g2"]
-    
-    selected_variant = st.sidebar.selectbox("Graph Topology", available_variants, 
-                                            format_func=lambda x: topology_options.get(x, x),
-                                            index=0, help="Select the graph variant for and models.")
-    
-    # 2. CF Model Selection (Global)
-    cf_model_choice = st.sidebar.selectbox("Recommendation Model", MODEL_OPTIONS["CF"], 
-                                          help="Choose the GNN architecture to test")
+    if 'session_interactions' not in st.session_state: st.session_state['session_interactions'] = []
+    if 'user_mode' not in st.session_state: st.session_state['user_mode'] = 'existing'
+    if 'guest_profile' not in st.session_state: st.session_state['guest_profile'] = None
+    if 'last_selected_user' not in st.session_state: st.session_state['last_selected_user'] = None
 
-    # Auto-align DATA_DIR based on variant
+    # --- SIDEBAR ---
+    st.sidebar.title("🎛️ Control Panel")
+    
+    mode_select = st.sidebar.radio("Chế độ:", ["🔑 Thành viên", "🆕 Khách (Cold Start)"], 
+                                   index=0 if st.session_state['user_mode'] == 'existing' else 1)
+    
+    # Load Data
+    selected_variant = "strict_g2"
     active_data_dir = os.path.join(DATA_DIR, selected_variant) if os.path.exists(os.path.join(DATA_DIR, selected_variant)) else DATA_DIR
+    res = load_resources(data_dir=active_data_dir, raw_dir=RAW_DIR, specific_graph_path=os.path.join(active_data_dir, "cf_cache.pt"))
+    articles_df, user_map_cf, article_map_cf, user_history, adj_norm, user_priors, status = res
     
-    res = load_resources(
-        data_dir=active_data_dir,
-        raw_dir=RAW_DIR,
-        specific_graph_path=os.path.join(active_data_dir, "cf_cache.pt")
-    )
-    articles_df, user_map_cf, article_map_cf, user_history, adj_norm, user_priors, data_status = res
+    selected_user = None
+    is_cold_start_user = False
     
-    # --- GLOBAL MODEL LOADING ---
-    # Load model once for use in all tabs
-    cf_model = load_cf_model(cf_model_choice, len(user_map_cf), len(article_map_cf), graph_name=selected_variant)
-    
-    semantic_ids = None
-    if 'xsimgcl' in [m.lower() for m in MODEL_OPTIONS["CF"]]:
-        try:
-             emb_path = Path(st.session_state['data_dir']) / "article_embeddings.pt"
-             if emb_path.exists():
-                 pretrained = torch.load(emb_path, map_location='cpu', weights_only=False)
-                 semantic_ids = generate_semantic_ids(pretrained, bits=3)
-        except: pass
-    
-    # Sidebar Controls
-    st.sidebar.divider()
-    
-    with st.sidebar.expander("🔍 User Search & Filtering", expanded=True):
-        min_interactions = st.slider("Min Interactions", 1, 20, 2, help="Filter users by reading history length")
-        user_type_filter = st.selectbox("Market Segment", ["All Users", "Warm Start (Trained)", "Cold Start (New)"],
-                                       help="Warm: In training set, Cold: New users")
-        
-        # user_ids MUST be defined here
-        user_ids = sorted([uid for uid, hist in user_history.items() if len(hist) >= min_interactions])
-        
-        # Apply Market Segment filter
-        if user_type_filter == "Warm Start (Trained)":
-            user_ids = [uid for uid in user_ids if uid in user_map_cf]
-        elif user_type_filter == "Cold Start (New)":
-            user_ids = [uid for uid in user_ids if uid not in user_map_cf]
-            
-        search_query = st.text_input("🔍 Search ID", placeholder="User ID...", label_visibility="collapsed")
-        if search_query:
-            user_ids = [uid for uid in user_ids if search_query.lower() in str(uid).lower()]
-
-    col_s1, col_s2 = st.sidebar.columns([3, 1])
-    with col_s1:
-        st.markdown(f"**Found:** {len(user_ids)} users")
-    with col_s2:
-        if st.button("🎲", help="Randomize from filtered list"):
-            import random
-            if user_ids:
-                rand_u = random.choice(user_ids)
-                st.session_state['selected_user_id_manual'] = rand_u
-                st.rerun()
-            else:
-                st.toast("No users match filters!")
-    
-    # Format user options with cold-start indicator
-    def format_user_option(uid):
-        hist_len = len(user_history.get(uid, []))
-        is_cold = uid not in user_map_cf  # Not in training set
-        indicator = "❄️" if is_cold else "✅"
-        return f"{indicator} {uid} ({hist_len} articles)"
-    
-    user_options = ["📊 All Users (Overview)"] + [format_user_option(uid) for uid in user_ids]
-    
-    # Handle manual selection from random button
-    default_idx = 0
-    if st.session_state.get('selected_user_id_manual'):
-        target_uid = st.session_state['selected_user_id_manual']
-        for i, uid in enumerate(user_ids):
-            if uid == target_uid:
-                default_idx = i + 1
-                break
-        # Clear it so it doesn't stick forever
-        st.session_state['selected_user_id_manual'] = None
-
-    selected_idx = st.sidebar.selectbox("Select User", list(range(len(user_options))), 
-                                        format_func=lambda i: user_options[i], index=default_idx)
-    
-    # Determine if we're in "All Users" mode
-    all_users_mode = (selected_idx == 0)
-    
-    # Get actual user ID from index (index 0 is "All Users", so subtract 1)
-    if all_users_mode:
-        selected_user = user_ids[0] if user_ids else None
+    if mode_select == "🔑 Thành viên":
+        st.session_state['user_mode'] = 'existing'
+        user_ids = sorted([uid for uid, hist in user_history.items() if len(hist) >= 5 and uid in user_map_cf])
+        selected_user = st.sidebar.selectbox("Chọn ID:", user_ids)
+        if selected_user != st.session_state['last_selected_user']:
+            st.session_state['session_interactions'] = []
+            st.session_state['last_selected_user'] = selected_user
     else:
-        selected_user = user_ids[int(selected_idx) - 1]
-    
-    if selected_user != st.session_state['last_selected_user']:
-        st.session_state['session_likes'] = []
-        st.session_state['last_selected_user'] = selected_user
-
-    # Persistent Tabs (Radio styled as tabs)
-    tabs = ["🚀 Recommendations", "⚔️ Comparison", "🆕 Cold Start"]
-    nav = st.radio("Navigation", tabs, key="main_nav", horizontal=True, label_visibility="collapsed")
-    
-    # Internal flag for advanced features (hidden but can be toggled by query param if needed)
-    show_advanced = st.query_params.get("dev", "false").lower() == "true"
-    st.divider()
-
-
-    
-    # --- PAGE 1: RECOMMENDATIONS ---
-    if nav == "🚀 Recommendations":
-        st.header("🚀 Personalized Recommendations")
-        st.caption("Hybrid System: Combining Social Patterns (CF) + Content Similarity (CB)")
-        
-        col_L, col_R = st.columns([1, 2])
-        
-        with col_L:
-            st.subheader("🛠️ Engine Config")
-            
-            # Recommendation Strategy Toggle
-            strategy = st.radio("Primary Strategy", ["Hybrid (Recommended)", "Pure Social (CF)", "Pure Content (CB)"], 
-                                help="Hybrid blends social structure with text similarity.")
-            
-            # Auto-set Alpha based on strategy
-            if strategy == "Pure Social (CF)": alpha_default = 1.0
-            elif strategy == "Pure Content (CB)": alpha_default = 0.0
-            else: alpha_default = 0.5
-            
-            alpha = st.slider("Social vs Content Weight (α)", 0.0, 1.0, alpha_default, 0.1, 
-                             help="1.0 = Social only, 0.0 = Content only")
-            
-            with st.expander("⚙️ Content & Display Settings", expanded=False):
-                st.markdown("**📝 Content Models**")
-                selected_cb = st.multiselect("Active Embedders", MODEL_OPTIONS["CB"], 
-                                             default=[m for m in ["tf-idf", "vn-sbert", "bge-m3"] if m in MODEL_OPTIONS["CB"]],
-                                             key="rec_cb_multi")
-                
-                k_rec = st.slider("Top K", 5, 20, 10, key="k_rec")
-                
-                # Score normalization options
-                score_type = st.selectbox("Score Display", ["Normalized (0-1)", "Raw Scores", "Sigmoid"], 
-                                         help="How to display recommendation scores")
-            
-            # Freshness Boost (Important for News)
-            use_freshness = st.checkbox("🕐 Boost Recent News", value=True)
-            freshness_weight = st.slider("Freshness Intensity", 0.0, 0.5, 0.2, 0.05) if use_freshness else 0.0
-            
-            if selected_user:
-                real_history = list(dict.fromkeys(user_history.get(selected_user, [])))
-                
-                # Gộp với các bài vừa bấm Like trong phiên này
-                session_likes = st.session_state['session_likes']
-                
-                # Tạo lịch sử tổng hợp (Dùng set để loại bỏ trùng lặp nếu có)
-                history = list(dict.fromkeys(real_history + session_likes))
-                # --------------------
-                
-                is_cold = selected_user not in user_map_cf
-                
-                status_color = "blue" if not is_cold else "cyan"
-                status_text = "Warm Start (Social Enabled)" if not is_cold else "Cold Start (Content Only)"
-                st.markdown(f"**User Status:** :{status_color}[{status_text}]")
-                
-                with st.expander(f"📚 Recent History ({len(history)})", expanded=True):
-                    if history:
-                        url_to_meta = articles_df.set_index('url')[['title', 'source_category']].to_dict('index')
-                        for i, u in enumerate(history[:5], 1):
-                            meta = url_to_meta.get(u, {})
-                            title = str(meta.get('title', 'Unknown'))
-                            st.markdown(f"<small>**#{i}** {title[:50]}...</small>", unsafe_allow_html=True)
-                        if len(history) > 5: st.caption(f"... +{len(history)-5} more")
-                        st.markdown("---")
-                        st.markdown("**☁️ Gu đọc của bạn**")
-                        wc_fig = generate_user_wordcloud(history, articles_df)
-                        if wc_fig:
-                            st.pyplot(wc_fig, use_container_width=True)
-                            st.caption("Các từ khóa xuất hiện nhiều trong lịch sử đọc.")
-
-        with col_R:
-            st.subheader("📊 Recommended for You")
-            if selected_user:
-                with st.spinner("Analyzing patterns..."):
-                    # 1. CF Scores
-                    cf_scores = {}
-                    actual_alpha = 0.0 if is_cold else alpha
-                    
-                    if actual_alpha > 0:
-                        if cf_model:
-                            recs = get_recs(cf_model, cf_model_choice, user_map_cf[selected_user], [], article_map_cf, articles_df, 100,
-                                         adj_norm=adj_norm, user_priors=user_priors, semantic_ids=semantic_ids, score_type=score_type)
-                            cf_scores = {u: s for u, s in recs}
-
-                    # 2. CB Scores
-                    cb_scores = {}
-                    if (1 - actual_alpha) > 0 and selected_cb:
-                        cb_results = []
-                        weight_per_cb = 1.0 / len(selected_cb)
-                        
-                        for cb_name in selected_cb:
-                            m = load_cb_model(cb_name, articles_df)
-                            if m:
-                                recs = get_recs(m, cb_name.upper() if cb_name in ["tf-idf", "lsa", "naivebayes"] else "PhoBERT", 
-                                               0, history, {}, articles_df, 100, score_type=score_type)
-                                cb_results.append((recs, weight_per_cb))
-                        
-                        for rec_list, w in cb_results:
-                            for u, s in rec_list:
-                                cb_scores[u] = cb_scores.get(u, 0) + s * w
-                    
-                    # 3. Merge and Rerank
-                    all_urls = set(cf_scores.keys()) | set(cb_scores.keys())
-                    hybrid_scores = []
-                    for url in all_urls:
-                        s_cf = cf_scores.get(url, 0)
-                        s_cb = cb_scores.get(url, 0)
-                        combined = actual_alpha * s_cf + (1 - actual_alpha) * s_cb
-                        source = "Hybrid" if url in cf_scores and url in cb_scores else ("Social" if url in cf_scores else "Content")
-                        hybrid_scores.append((url, combined, s_cf, s_cb, source))
-                    
-                    # Freshness Boost
-                    if use_freshness and freshness_weight > 0:
-                        url_to_date = dict(zip(articles_df['url'], articles_df.get('crawled_at', pd.Series([None]*len(articles_df)))))
-                        if any(url_to_date.values()):
-                            scores_arr = np.array([h[1] for h in hybrid_scores])
-                            dates_arr = [url_to_date.get(h[0]) for h in hybrid_scores]
-                            reranker = CalibratedReRanker(np.zeros(len(hybrid_scores)), freshness_lambda=0.1)
-                            boosted = reranker.freshness_boost(scores_arr, dates_arr, boost_weight=freshness_weight)
-                            hybrid_scores = [(h[0], float(boosted[i]), h[2], h[3], h[4]) for i, h in enumerate(hybrid_scores)]
-
-                    hybrid_scores.sort(key=lambda x: -x[1])
-                    top_recs = hybrid_scores[:k_rec]
-                    
-                    # Display Results
-                    if not top_recs:
-                        st.warning("No recommendations found. Try a different strategy.")
-                    else:
-                        url_to_meta = articles_df.set_index('url')[['title', 'short_description', 'source_category']].to_dict('index')
-                        # ... (Code cũ phần tiêu đề bảng kết quả) ...
-                        
-                        # --- VÒNG LẶP HIỂN THỊ ĐÃ FIX LỖI INDENTATION ---
-                        for i, (url, score, cf_s, cb_s, source) in enumerate(top_recs):
-                            # Bỏ qua bài đã nằm trong lịch sử
-                            if url in history: continue
-                            
-                            meta = url_to_meta.get(url, {})
-                            title = str(meta.get('title', 'Unknown'))[:80]
-                            desc = str(meta.get('short_description', ''))[:120]
-                            cat = CATEGORY_MAP.get(meta.get('source_category', ''), meta.get('source_category', 'N/A'))
-                            
-                            source_colors = {"Hybrid": "#9c27b0", "Social": "#2196f3", "Content": "#4caf50"}
-                            s_color = source_colors.get(source, "#888")
-                            
-                            explanation_text = explain_recommendation(url, history, articles_df, source)
-                            
-                            col_btn, col_content = st.columns([0.1, 0.9])
-                            
-                            with col_btn:
-                                st.write("") 
-                                st.write("")
-                                if st.button("💬", key=f"like_{i}_{url}", help="Thích & Xem thêm bài tương tự"):
-                                    st.session_state['session_likes'].append(url)
-                                    st.toast(f"Đã thêm bài viết vào sở thích!", icon="✅")
-                                    st.rerun()
-                            
-                            with col_content:
-                                # LƯU Ý: Chuỗi HTML bên dưới phải nằm sát lề trái (không thụt vào)
-                                html_content = f"""
-<div style="padding:15px; margin:5px 0; border-radius:12px; background:#fff; border-left:5px solid {s_color}; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-        <span style="color:#888; font-weight:bold;">#{i+1}</span>
-        <span style="background:{s_color}; color:white; padding:2px 8px; border-radius:10px; font-size:0.75em;">{source} • {score:.3f}</span>
-    </div>
-    <div style="font-weight:bold; margin:6px 0; font-size:1.1em; color:#2c3e50;">
-        <a href="{url}" target="_blank" style="text-decoration:none; color:inherit;">{title}</a>
-    </div>
-    <div style="margin-bottom:8px; font-size:0.9em; color:#57606f; background:#f1f2f6; padding:5px 10px; border-radius:6px;">
-        {explanation_text}
-    </div>
-    <div style="font-size:0.9em; color:#666; margin-bottom:10px;">{desc}...</div>
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-        <span style="background:#f0f2f6; padding:2px 8px; border-radius:5px; font-size:0.8em; color:#555;">{cat}</span>
-        <a href="{url}" target="_blank" style="font-size:0.85em; color:{s_color}; text-decoration:none; font-weight:bold;">Đọc ngay →</a>
-    </div>
-</div>
-"""
-                                st.markdown(html_content, unsafe_allow_html=True)
-                        
-                        # Trực quan hóa nếu đang dùng mô hình CF (Social) hoặc Hybrid
-                        if cf_model and selected_user in user_map_cf and actual_alpha > 0:
-                            st.markdown("---")
-                            with st.expander("🗺️ Giải thích bằng Không gian Vector (Beta)", expanded=True):
-                                st.caption("Biểu đồ thể hiện sự tương đồng giữa User (Đỏ), Lịch sử đọc (Xanh dương) và Bài được gợi ý (Xanh lá). Khoảng cách càng gần nghĩa là mô hình đánh giá chúng càng liên quan.")
-                                
-                                # Lấy danh sách URL gợi ý (chỉ lấy top 10 để vẽ cho đẹp)
-                                rec_urls_for_viz = [r[0] for r in top_recs[:15]]
-                                
-                                fig_viz = plot_embedding_space(
-                                    model=cf_model,
-                                    user_idx=user_map_cf[selected_user],
-                                    history_urls=history,
-                                    recommended_urls=rec_urls_for_viz,
-                                    article_map=article_map_cf,
-                                    articles_df=articles_df
-                                )
-                                
-                                if fig_viz:
-                                    # Cấu hình config tại đây để ẩn bớt nút và tự động ẩn thanh công cụ
-                                    st.plotly_chart(
-                                        fig_viz, 
-                                        use_container_width=True,
-                                        config={
-                                            'displayModeBar': 'hover',  # Chỉ hiện khi rê chuột vào (giải quyết vấn đề che nút)
-                                            'displaylogo': False,       # Ẩn logo Plotly
-                                            'modeBarButtonsToRemove': ['lasso2d', 'select2d'] # Bỏ nút thừa
-                                        }
-                                    )
-                                else:
-                                    st.info("Mô hình hiện tại không hỗ trợ trích xuất Vector User/Item để vẽ biểu đồ.")
-            else:
-                st.info("👈 Select a user to generate recommendations")
-
-    # --- PAGE 4: COMPARISON ---
-    if nav == "⚔️ Comparison":
-        st.header("⚔️ A/B Model Comparison")
-        st.caption("Compare two models side-by-side on the same user")
-        
-        col_config, col_a, col_b = st.columns([1, 1.5, 1.5])
-        
-        with col_config:
-            st.subheader("⚙️ Config")
-            model_a = st.selectbox("Model A", MODEL_OPTIONS["CF"], key="ab_model_a")
-            model_b = st.selectbox("Model B", MODEL_OPTIONS["CF"], index=1 if len(MODEL_OPTIONS["CF"]) > 1 else 0, key="ab_model_b")
-            k_compare = st.slider("Top K", 5, 15, 10, key="ab_k")
-            
-            if st.button("🔄 Compare Models", type="primary"):
-                st.session_state['ab_compare_run'] = True
-        
-        if st.session_state.get('ab_compare_run') and selected_user in user_map_cf:
-            user_idx = user_map_cf[selected_user]
-            url_to_meta = articles_df.set_index('url')[['title', 'source_category']].to_dict('index')
-            
-            # Model A
-            with col_a:
-                st.subheader(f"🅰️ {model_a}")
-                model_obj_a = load_cf_model(model_a, len(user_map_cf), len(article_map_cf), graph_name=selected_variant)
-                if model_obj_a:
-                    recs_a = get_recs(model_obj_a, model_a, user_idx, [], article_map_cf, articles_df, k_compare,
-                                     adj_norm=adj_norm, user_priors=user_priors, semantic_ids=semantic_ids)
-                    for i, (url, score) in enumerate(recs_a):
-                        meta = url_to_meta.get(url, {})
-                        title = str(meta.get('title', 'Unknown'))[:50]
-                        cat = CATEGORY_MAP.get(meta.get('source_category', ''), 'N/A')
-                        st.markdown(f"**{i+1}.** {title}... `{score:.3f}` {cat}")
-                else:
-                    st.warning(f"Model {model_a} not trained yet")
-            
-            # Model B
-            with col_b:
-                st.subheader(f"🅱️ {model_b}")
-                model_obj_b = load_cf_model(model_b, len(user_map_cf), len(article_map_cf), graph_name=selected_variant)
-                if model_obj_b:
-                    recs_b = get_recs(model_obj_b, model_b, user_idx, [], article_map_cf, articles_df, k_compare,
-                                     adj_norm=adj_norm, user_priors=user_priors, semantic_ids=semantic_ids)
-                    for i, (url, score) in enumerate(recs_b):
-                        meta = url_to_meta.get(url, {})
-                        title = str(meta.get('title', 'Unknown'))[:50]
-                        cat = CATEGORY_MAP.get(meta.get('source_category', ''), 'N/A')
-                        st.markdown(f"**{i+1}.** {title}... `{score:.3f}` {cat}")
-                else:
-                    st.warning(f"Model {model_b} not trained yet")
-            
-            # Overlap Analysis
-            if 'recs_a' in dir() and 'recs_b' in dir():
-                urls_a = set([u for u, s in recs_a])
-                urls_b = set([u for u, s in recs_b])
-                overlap = len(urls_a & urls_b)
-                st.info(f"📊 Overlap: {overlap}/{k_compare} items ({overlap/k_compare*100:.0f}%) appear in both lists")
-        
-        elif st.session_state.get('ab_compare_run'):
-            st.warning("User not found in CF data. Please select a valid user.")
-
-    # --- PAGE 3: COLD START (NEW USER) ---
-    if nav == "🆕 Cold Start":
-        st.header("❄️ Cold Start Simulation")
-        st.caption("Giả lập người dùng mới chưa có lịch sử (Cold Start) bằng cách chọn sở thích.")
-        
-        col_input, col_result = st.columns([1, 2])
-        
-        with col_input:
-            st.subheader("1. Tạo hồ sơ sở thích")
-            
-            # Lấy danh sách chuyên mục
+        st.session_state['user_mode'] = 'guest'
+        is_cold_start_user = True
+        selected_user = "GUEST"
+        with st.sidebar.expander("📝 Hồ sơ Khách hàng", expanded=True):
             all_cats = sorted(articles_df['source_category'].dropna().unique().tolist())
-            cat_options = [c for c in all_cats if c in CATEGORY_MAP] # Chỉ lấy các mục có trong map
-            
-            # Form nhập liệu
-            selected_cats = st.multiselect("Chủ đề quan tâm:", cat_options, 
-                                          format_func=lambda x: CATEGORY_MAP.get(x, x))
-            
-            keywords = st.text_input("Từ khóa cụ thể (tùy chọn):", 
-                                    placeholder="Ví dụ: AI, bóng đá, đầu tư...")
-            
-            st.info("Hệ thống sẽ tổng hợp 'User Vector' từ các bài viết khớp với sở thích của bạn để tìm gợi ý tương đồng.")
-            
-            run_cold_start = st.button("🚀 Tạo hồ sơ & Gợi ý", type="primary")
-
-        with col_result:
-            if run_cold_start:
-                if not selected_cats and not keywords:
-                    st.warning("⚠️ Vui lòng chọn ít nhất một chủ đề hoặc nhập từ khóa!")
+            selected_cats = st.multiselect("Chủ đề:", [c for c in all_cats if c in CATEGORY_MAP], format_func=lambda x: CATEGORY_MAP.get(x, x))
+            if st.button("🚀 Tạo Profile"):
+                mask = pd.Series([True] * len(articles_df))
+                if selected_cats: mask &= articles_df['source_category'].isin(selected_cats)
+                matched = np.flatnonzero(mask)
+                if len(matched) > 0:
+                    samples = articles_df.iloc[np.random.choice(matched, min(5, len(matched)), replace=False)]['url'].tolist()
+                    st.session_state['guest_profile'] = samples
+                    st.session_state['session_interactions'] = []
+                    st.success(f"Đã tạo profile với {len(samples)} bài mẫu!")
+                    st.rerun()
                 else:
-                    with st.spinner("Đang khởi tạo User Vector và tìm kiếm..."):
-                        # 1. Lọc các bài viết
-                        mask = pd.Series([True] * len(articles_df))
-                        
-                        if selected_cats:
-                            mask &= articles_df['source_category'].isin(selected_cats)
-                        
-                        if keywords:
-                            kw_mask = (articles_df['title'].str.contains(keywords, case=False, na=False)) | \
-                                      (articles_df['short_description'].str.contains(keywords, case=False, na=False))
-                            mask &= kw_mask
-                        
-                        matched_indices = np.flatnonzero(mask)
-                        
-                        if len(matched_indices) == 0:
-                            st.error("Không tìm thấy bài viết nào khớp với tiêu chí. Hãy thử từ khóa khác.")
-                        else:
-                            # Random lấy mẫu nếu quá nhiều
-                            if len(matched_indices) > 20:
-                                matched_indices = np.random.choice(matched_indices, 20, replace=False)
-                            
-                            st.success(f"✅ Đã tìm thấy {len(matched_indices)} bài viết mẫu để định hình sở thích.")
-                            
-                            # 2. Load Model
-                            preferred_models = ["vn-sbert", "bge-m3", "tf-idf"]
-                            best_model_name = next((m for m in preferred_models if m in MODEL_OPTIONS["CB"]), "tf-idf")
-                            
-                            model = load_cb_model(best_model_name, articles_df)
-                            
-                            if model:
-                                try:
-                                    # --- SỬA Ở ĐÂY: Thêm .tolist() để chuyển numpy array thành list ---
-                                    rec_indices, rec_scores = model.recommend(matched_indices.tolist(), k=15)
-                                    
-                                    st.subheader(f"🎯 Gợi ý cho bạn (theo {best_model_name})")
-                                    
-                                    for i, (idx, score) in enumerate(zip(rec_indices, rec_scores)):
-                                        if idx in matched_indices: continue
-                                        
-                                        row = articles_df.iloc[idx]
-                                        title = row.get('title', 'No Title')
-                                        desc = row.get('short_description', '')
-                                        cat = CATEGORY_MAP.get(row.get('source_category', ''), 'Khác')
-                                        url = row.get('url', '#')
-                                        
-                                        st.markdown(f"""
-                                        <div style="background: white; padding: 10px; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid #ff4b4b; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                                            <div style="font-weight: bold; font-size: 1.05em;">
-                                                <a href="{url}" target="_blank" style="text-decoration: none; color: #31333F;">{title}</a>
-                                            </div>
-                                            <div style="font-size: 0.85em; color: #666; margin: 4px 0;">{desc[:100]}...</div>
-                                            <div style="font-size: 0.8em; color: #888;">
-                                                <span style="background: #f0f2f6; padding: 2px 6px; border-radius: 4px;">{cat}</span> 
-                                                • Độ phù hợp: {score:.2f}
-                                            </div>
-                                        </div>
-                                        """, unsafe_allow_html=True)
-                                        
-                                except Exception as e:
-                                    st.error(f"Lỗi khi gợi ý: {e}")
-                            else:
-                                st.error(f"Không thể tải model {best_model_name}.")
+                    st.error("Không tìm thấy bài phù hợp!")
+
+    # Config Dev
+    with st.sidebar.expander("⚙️ Cấu hình Thuật toán", expanded=False):
+        cf_model_choice = st.selectbox("Model CF:", MODEL_OPTIONS["CF"])
+        alpha = st.slider("Trọng số Social (Alpha)", 0.0, 1.0, 0.5, 0.1)
+        k_rec = st.slider("Số lượng hiển thị", 5, 50, 10) # Tăng max lên 50 để search cho sướng
+    
+    # Load Models
+    cf_model = load_cf_model(cf_model_choice, len(user_map_cf), len(article_map_cf), graph_name=selected_variant)
+    cb_model = load_cb_model("vn-sbert", articles_df) 
+
+    # --- MAIN TABS ---
+    tab_feed, tab_analytics = st.tabs(["📰 News Feed & Tìm kiếm", "🛠️ Dev & Analytics"])
+
+    # ================= TAB 1: NEWS FEED & SEARCH =================
+    with tab_feed:
+        base_history = st.session_state.get('guest_profile', []) if is_cold_start_user else user_history.get(selected_user, [])
+        if not base_history and is_cold_start_user:
+            st.info("👈 Vui lòng tạo hồ sơ khách hàng ở cột bên trái!")
+            st.stop()
+            
+        full_history = list(base_history) + list(st.session_state['session_interactions'])
+        
+        # --- THANH TÌM KIẾM & BỘ LỌC (ĐẶT TRÊN CÙNG) ---
+        with st.container():
+            col_search, col_filter = st.columns([3, 1])
+            with col_search:
+                search_query = st.text_input("🔍 Tìm kiếm bài viết:", placeholder="Nhập từ khóa (VD: công nghệ, bóng đá...)...")
+            with col_filter:
+                # Lấy danh sách category unique
+                unique_cats = sorted(articles_df['source_category'].dropna().unique().tolist())
+                # Map tên đẹp để hiển thị
+                filter_cats = st.multiselect("🏷️ Lọc danh mục:", unique_cats, format_func=lambda x: CATEGORY_MAP.get(x, x))
+        
+        st.divider()
+
+        # Layout Chính
+        col_content, col_info = st.columns([0.75, 0.25])
+        
+        # LOG BÊN PHẢI (GIỮ NGUYÊN)
+        with col_info:
+            st.markdown("### 📊 Log Hoạt động")
+            with st.container(border=True):
+                if st.session_state['session_interactions']:
+                    st.write("💬 **Vừa bình luận:**")
+                    for u in reversed(st.session_state['session_interactions']):
+                        row = articles_df[articles_df['url'] == u]
+                        if not row.empty:
+                            title = row.iloc[0]['title']
+                            st.markdown(f"• <a href='{u}' target='_blank' class='article-link'>{title}</a>", unsafe_allow_html=True)
+                    if st.button("🔄 Reset phiên"):
+                        st.session_state['session_interactions'] = []
+                        st.rerun()
+                else:
+                    st.caption("Chưa có tương tác mới.")
+            st.divider()
+            wc_fig = generate_user_wordcloud(full_history, articles_df)
+            if wc_fig: st.pyplot(wc_fig, use_container_width=True)
+
+        # NỘI DUNG CHÍNH (FEED HOẶC KẾT QUẢ TÌM KIẾM)
+        with col_content:
+            final_display_list = [] # List chứa các tuples (url, score, source) để hiển thị
+            mode_display = "" # "search" hoặc "rec"
+
+            # TRƯỜNG HỢP 1: CÓ TỪ KHÓA TÌM KIẾM -> CHẠY CHẾ ĐỘ SEARCH
+            if search_query.strip():
+                mode_display = "search"
+                st.markdown(f"### 🔎 Kết quả tìm kiếm: '{search_query}'")
+                
+                # Logic tìm kiếm đơn giản (Keyword Matching)
+                # 1. Lọc theo từ khóa (Title hoặc Description)
+                mask = articles_df['title'].str.contains(search_query, case=False, na=False) | \
+                       articles_df['short_description'].str.contains(search_query, case=False, na=False)
+                
+                # 2. Lọc theo Category (nếu có chọn)
+                if filter_cats:
+                    mask &= articles_df['source_category'].isin(filter_cats)
+                
+                search_results = articles_df[mask].head(k_rec) # Lấy top K
+                
+                if search_results.empty:
+                    st.warning("Không tìm thấy bài viết nào phù hợp.")
+                else:
+                    # Chuyển đổi format để render chung
+                    for _, row in search_results.iterrows():
+                        final_display_list.append((row['url'], 1.0, "Kết quả tìm kiếm"))
+
+            # TRƯỜNG HỢP 2: KHÔNG TÌM KIẾM -> CHẠY CHẾ ĐỘ RECSYS (SESSION MIXER)
             else:
-                # Màn hình chờ
-                st.markdown("""
-                <div style="text-align: center; color: #888; padding: 50px;">
-                    <h3>👈 Hãy nhập sở thích bên trái để bắt đầu</h3>
-                    <p>Hệ thống sẽ phân tích ngữ nghĩa để tìm nội dung phù hợp nhất cho bạn.</p>
-                </div>
-                """, unsafe_allow_html=True)
+                mode_display = "rec"
+                st.markdown(f"### 🔥 Tin dành cho {'Khách' if is_cold_start_user else selected_user}")
+                if filter_cats:
+                    st.caption(f"Đang lọc theo danh mục: {', '.join([CATEGORY_MAP.get(c,c) for c in filter_cats])}")
+
+                with st.spinner("Đang tổng hợp tin tức..."):
+                    candidate_scores = {}
+                    
+                    # [Logic RecSys cũ: Long-term + Session Mixer]
+                    # ... (Logic RecSys giữ nguyên như cũ để đảm bảo chất lượng) ...
+                    active_alpha = 0.0 if is_cold_start_user else alpha
+                    # 1. CF
+                    if active_alpha > 0 and cf_model:
+                        raw_recs = get_recs(cf_model, cf_model_choice, user_map_cf[selected_user], [], article_map_cf, articles_df, 200, adj_norm=adj_norm)
+                        for u, s in raw_recs: candidate_scores[u] = {'score': s * active_alpha, 'source': 'Gợi ý cho bạn'}
+                    # 2. CB
+                    if (1 - active_alpha) > 0 and cb_model:
+                        hist_sample = full_history[-10:]
+                        h_indices = [article_map_cf.get(u, -1) if u in article_map_cf else articles_df[articles_df['url']==u].index[0] for u in hist_sample if u in articles_df['url'].values]
+                        h_indices = [i for i in h_indices if i >= 0]
+                        if h_indices:
+                            cb_idx, cb_val = cb_model.recommend(h_indices, k=150)
+                            max_v = max(cb_val) if cb_val else 1
+                            for idx, val in zip(cb_idx, cb_val):
+                                u = articles_df.iloc[idx]['url']
+                                norm = (val/max_v) * (1 - active_alpha)
+                                curr = candidate_scores.get(u, {'score': 0, 'source': 'Nội dung tương đồng'})
+                                candidate_scores[u] = {'score': curr['score'] + norm, 'source': curr['source']}
+                    # 3. Session Mixer
+                    if st.session_state['session_interactions'] and cb_model:
+                        last_url = st.session_state['session_interactions'][-1]
+                        last_row = articles_df[articles_df['url'] == last_url]
+                        if not last_row.empty:
+                            sim_idx, sim_val = cb_model.recommend([last_row.index[0]], k=50)
+                            max_s = max(sim_val) if sim_val else 1
+                            for idx, val in zip(sim_idx, sim_val):
+                                u = articles_df.iloc[idx]['url']
+                                boost = (val/max_s) * 0.6
+                                if u in candidate_scores:
+                                    candidate_scores[u]['score'] += boost
+                                    if boost > 0.3: candidate_scores[u]['source'] = '⚡ Liên quan bài vừa comment'
+                                else:
+                                    candidate_scores[u] = {'score': boost, 'source': '⚡ Liên quan bài vừa comment'}
+
+                    # Lọc & Sort
+                    temp_recs = []
+                    for u, data in candidate_scores.items():
+                        if u not in full_history:
+                            # --- ĐÂY LÀ CHỖ THÊM LOGIC LỌC DANH MỤC CHO RECSYS ---
+                            # Nếu user chọn danh mục, ta chỉ giữ lại bài thuộc danh mục đó
+                            if filter_cats:
+                                row_chk = articles_df[articles_df['url'] == u]
+                                if not row_chk.empty and row_chk.iloc[0]['source_category'] not in filter_cats:
+                                    continue # Bỏ qua nếu không đúng danh mục
+                            
+                            temp_recs.append((u, data['score'], data['source']))
+                    
+                    temp_recs.sort(key=lambda x: x[1], reverse=True)
+                    final_display_list = temp_recs[:k_rec]
+
+            # --- RENDER CHUNG CHO CẢ 2 CHẾ ĐỘ ---
+            if not final_display_list:
+                st.info("Chưa có kết quả nào phù hợp.")
+            else:
+                for i, (url, score, src) in enumerate(final_display_list):
+                    row = articles_df[articles_df['url'] == url].iloc[0]
+                    badge_color = "#28a745" if "⚡" in src else ("#17a2b8" if "Tìm kiếm" in src else ("#007bff" if "Gợi ý" in src else "#6c757d"))
+                    
+                    with st.container():
+                        c1, c2 = st.columns([0.85, 0.15])
+                        with c1:
+                            st.markdown(f"""
+                            <div style="margin-bottom: 4px;">
+                                <span class="source-badge" style="background-color: {badge_color}">{src}</span>
+                                {f'<span style="color: #bbb; font-size: 0.8em;">• Score: {score:.2f}</span>' if mode_display == 'rec' else ''}
+                            </div>
+                            <a href="{url}" target="_blank" class="article-link">{row['title']}</a>
+                            """, unsafe_allow_html=True)
+                            
+                            desc = row['short_description'] if not pd.isna(row['short_description']) else "Không có mô tả."
+                            st.markdown(f"<div style='color: #555; font-size: 0.95em; margin-top: 5px;'>{desc}</div>", unsafe_allow_html=True)
+                            st.caption(f"📂 {CATEGORY_MAP.get(row['source_category'], 'Tin tức')}")
+
+                        with c2:
+                            st.write("")
+                            st.write("")
+                            # Nút Bình luận vẫn hoạt động kể cả khi Tìm kiếm
+                            if st.button("💬 Bình luận", key=f"btn_{mode_display}_{i}_{url}", help="Bình luận để nhận gợi ý tương tự"):
+                                st.session_state['session_interactions'].append(url)
+                                st.toast("Đã ghi nhận bình luận!", icon="✅")
+                                st.rerun()
+                        st.divider()
+
+            # PCA chỉ hiện khi KHÔNG tìm kiếm và là User cũ
+            if not search_query.strip() and not is_cold_start_user and cf_model:
+                with st.expander("🗺️ Phân tích Không gian Vector (Visualization)", expanded=False):
+                     rec_urls_viz = [x[0] for x in final_display_list[:15]]
+                     fig = plot_embedding_space(cf_model, user_map_cf[selected_user], full_history, rec_urls_viz, article_map_cf, articles_df)
+                     if fig: st.plotly_chart(fig, use_container_width=True)
+
+    # ================= TAB 2: DEV (GIỮ NGUYÊN) =================
+    with tab_analytics:
+        st.header("⚔️ So sánh & Đánh giá Mô hình")
+        col_conf, col_a, col_b = st.columns([1, 1.5, 1.5])
+        with col_conf:
+            m_a = st.selectbox("Model A", MODEL_OPTIONS["CF"], key="ma")
+            m_b = st.selectbox("Model B", MODEL_OPTIONS["CF"], index=1, key="mb")
+            if st.button("Chạy so sánh"): st.session_state['run_compare'] = True
+        
+        if st.session_state.get('run_compare') and not is_cold_start_user:
+            with st.spinner("Đang chạy đối sánh..."):
+                ma = load_cf_model(m_a, len(user_map_cf), len(article_map_cf))
+                mb = load_cf_model(m_b, len(user_map_cf), len(article_map_cf))
+                ra = get_recs(ma, m_a, user_map_cf[selected_user], [], article_map_cf, articles_df, 10) if ma else []
+                rb = get_recs(mb, m_b, user_map_cf[selected_user], [], article_map_cf, articles_df, 10) if mb else []
+                
+                with col_a:
+                    st.subheader(f"{m_a}")
+                    for u, s in ra: st.write(f"- {articles_df[articles_df['url']==u]['title'].values[0][:40]}... ({s:.2f})")
+                with col_b:
+                    st.subheader(f"{m_b}")
+                    for u, s in rb: st.write(f"- {articles_df[articles_df['url']==u]['title'].values[0][:40]}... ({s:.2f})")
+                
+                overlap = len(set([x[0] for x in ra]) & set([x[0] for x in rb]))
+                st.success(f"Độ trùng lặp (Overlap): {overlap}/10 bài")
+        elif is_cold_start_user:
+            st.warning("Chức năng so sánh CF Model chỉ dành cho User cũ (Warm Start).")
 
 if __name__ == "__main__":
-    main()
+    main()  
