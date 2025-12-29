@@ -752,7 +752,7 @@ def main():
     """Main entry point."""
     eda = CrawledDataEDA(
         data_dir='data/raw',
-        output_dir='plots'
+        output_dir='plots1'
     )
     eda.run_all()
 
