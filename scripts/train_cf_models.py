@@ -697,12 +697,14 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
                          print(f"  ✅ Using explicit articles file: {articles_path}")
                      else:
                          print(f"  ⚠️ Warning: Explicit articles path not found: {articles_path}")
-                         print(f"  ... Falling back to auto-search in: {search_dirs}")
+                     print(f"  ... Falling back to auto-search in: {search_dirs}")
+                     if not articles_path:
                          articles_path = resolve_path('articles.csv', search_dirs)
-                         if (not articles_path) and data_path: articles_path = Path(data_path).parent / 'articles.csv'
-                         if not articles_path: articles_path = Path('data/raw/articles.csv')
+                     if (not articles_path) and data_path: articles_path = Path(data_path).parent / 'articles.csv'
+                     if not articles_path: articles_path = Path('data/raw/articles.csv')
                  else:
-                     articles_path = resolve_path('articles.csv', search_dirs)
+                     if not articles_path:
+                         articles_path = resolve_path('articles.csv', search_dirs)
                      if (not articles_path) and data_path: articles_path = Path(data_path).parent / 'articles.csv'
                      if not articles_path: articles_path = Path('data/raw/articles.csv')
 
@@ -770,7 +772,9 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
             
             # Load articles CSV để lấy nội dung text
             # Load articles CSV
-            articles_path = resolve_path('articles.csv', search_dirs)
+            # Load articles CSV
+            if not articles_path:
+                articles_path = resolve_path('articles.csv', search_dirs)
             
             if not articles_path:
                  # Last resort fallback
