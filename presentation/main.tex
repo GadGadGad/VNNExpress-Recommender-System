@@ -720,13 +720,19 @@
             \multicolumn{5}{l}{\textit{\textbf{Graph G1 (Bipartite)}}}                                                \\
 
             LightGCL                            & Graph CL        & 0.3081          & 0.2021          & -29.4\%       \\
+            XSimGCL                             & Graph CL        & 0.3009          & 0.1972          & -31.0\%       \\
             LightGCN                            & GNN             & 0.2812          & 0.1739          & -35.6\%       \\
+            SimGCL                              & Graph CL        & 0.2129          & 0.1324          & -51.2\%       \\
             \midrule
             \multicolumn{5}{l}{\textit{\textbf{Graph G2 (Hetero - User-User)}}}                                       \\
             \rowcolor{green!15} \textbf{MA-HGN} & \textbf{Hetero} & \textbf{0.4364} & \textbf{0.2636} & \textbf{Best} \\
             XSimGCL                             & Graph CL        & 0.3036          & 0.2002          & -30.4\%       \\
+            LightGCL                            & Graph CL        & 0.3017          & 0.1986          & -30.9\%       \\
+            SimGCL                              & Graph CL        & 0.2132          & 0.1322          & -51.1\%       \\
             \midrule
             \multicolumn{5}{l}{\textit{\textbf{Graph G3 (Full Hetero)}}}                                              \\
+            LightGCL                            & Graph CL        & 0.3024          & 0.1988          & -30.7\%       \\
+            XSimGCL                             & Graph CL        & 0.2969          & 0.1957          & -32.0\%       \\
             MA-HCL                              & Hetero CL       & 0.2260          & 0.1491          & -48.2\%       \\
             SimGCL                              & Graph CL        & 0.2181          & 0.1333          & -50.0\%       \\
             \bottomrule
