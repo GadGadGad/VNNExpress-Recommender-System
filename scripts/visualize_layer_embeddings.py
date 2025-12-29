@@ -131,6 +131,117 @@ def extract_layer1_lightgcl(model, adj, **kwargs):
         # So we return Z_u, Z_i.
         return Z_u, Z_i
 
+def extract_layer1_xsimgcl(model, adj, **kwargs):
+    """Effect of L=1 on XSimGCL: A * E0 (plus noise during train, but clean during eval)"""
+    with torch.no_grad():
+        u_emb = model.user_embedding.weight
+        i_emb = model.item_embedding.weight
+        all_emb = torch.cat([u_emb, i_emb], dim=0)
+        
+        # Layer 1
+        layer1_emb = torch.sparse.mm(adj, all_emb)
+        u, i = torch.split(layer1_emb, [model.n_users, model.n_items])
+        return u, i
+
+def extract_layer1_simgcl(model, adj, **kwargs):
+    """Effect of L=1 on SimGCL: A * E0"""
+    with torch.no_grad():
+        u_emb = model.user_embedding.weight
+        i_emb = model.item_embedding.weight
+        all_emb = torch.cat([u_emb, i_emb], dim=0)
+        
+        # Layer 1
+        layer1_emb = torch.sparse.mm(adj, all_emb)
+        u, i = torch.split(layer1_emb, [model.n_users, model.n_items])
+        return u, i
+
+def extract_layer1_mahgn(model, adj, edge_index_dict=None):
+    """Effect of L=1 on MA-HGN: HeteroConv"""
+    with torch.no_grad():
+        if edge_index_dict is None:
+            raise ValueError("Edge Index Dict required for MA-HGN")
+            
+        x_dict = {
+            'user': model.user_emb.weight,
+            'article': model.item_emb.weight
+        }
+        if model.category_emb is not None:
+             x_dict['category'] = model.category_emb.weight
+
+        # Move edges to device
+        device = x_dict['user'].device
+        edge_index_dict_gpu = {k: v.to(device) for k, v in edge_index_dict.items()}
+
+        # Layer 1 Conv (HeteroConv)
+        # We only take the first conv layer from the ModuleList
+        conv1 = model.convs[0]
+        
+        # Message Passing
+        h_dict_new = conv1(x_dict, edge_index_dict_gpu)
+        
+        # In MA-HGN code: 
+        # h_dict = {k: h_dict_new.get(k, h_dict_prev[k]) ...} (Residual/Keep old if no update)
+        # For L1 strictly, we look at the new embeddings. 
+        # If 'user' updated, use it. If not (isolated), use original.
+        
+        u_emb = h_dict_new.get('user', x_dict['user'])
+        i_emb = h_dict_new.get('article', x_dict['article'])
+        
+        return u_emb, i_emb
+
+# %% [markdown]
+# ## 3. Visualization Function
+
+# %%
+def visualize_layer1(embeddings_dict, title="Layer 1 Embeddings", n_samples=500):
+    """
+    Plots PCA of embeddings.
+    embeddings_dict: {'ModelName': (user_emb, item_emb)}
+    """
+    plt.figure(figsize=(15, 6))
+    
+    # 1. User Embeddings Comparison
+    plt.subplot(1, 2, 1)
+    for model_name, (u_emb, _) in embeddings_dict.items():
+        # Sample random users
+        indices = np.random.choice(len(u_emb), n_samples, replace=False)
+        u_sample = u_emb[indices].cpu().numpy()
+        
+        pca = PCA(n_components=2)
+        u_pca = pca.fit_transform(u_sample)
+        
+        # Normalize for easier overlay comparison
+        u_pca = (u_pca - u_pca.mean(0)) / u_pca.std(0)
+        
+        plt.scatter(u_pca[:, 0], u_pca[:, 1], label=model_name, alpha=0.5, s=10)
+        
+    plt.title(f"User Embeddings (PCA) - {title}")
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    
+    # 2. Item Embeddings Comparison
+    plt.subplot(1, 2, 2)
+    for model_name, (_, i_emb) in embeddings_dict.items():
+        # Sample random items
+        indices = np.random.choice(len(i_emb), n_samples, replace=False)
+        i_sample = i_emb[indices].cpu().numpy()
+        
+        pca = PCA(n_components=2)
+        i_pca = pca.fit_transform(i_sample)
+        
+        # Normalize
+        i_pca = (i_pca - i_pca.mean(0)) / i_pca.std(0)
+        
+        plt.scatter(i_pca[:, 0], i_pca[:, 1], label=model_name, alpha=0.5, s=10)
+        
+    plt.title(f"Item Embeddings (PCA) - {title}")
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig('layer1_comparison.png')
+    plt.show()
+
 # Main Execution
 try:
     if args.dummy:
