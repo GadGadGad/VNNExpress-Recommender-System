@@ -22,6 +22,7 @@ import plotly.express as px
 from src.inference.re_ranker import CalibratedReRanker
 import random
 import shutil
+from rank_bm25 import BM25Plus
 from src.models.semantic_id import generate_semantic_ids
 
 
@@ -84,6 +85,24 @@ st.markdown("""
 DATA_DIR = "data/processed"
 RAW_DIR = "data/raw"
 MODELS_DIR = "models"
+
+@st.cache_resource
+def build_search_engine(df):
+    """
+    Xây dựng chỉ mục BM25+ từ dữ liệu bài báo.
+    Cache lại để không phải build lại mỗi lần reload.
+    """
+    # 1. Chuẩn bị dữ liệu: Gộp Tiêu đề + Mô tả để tìm cho chính xác
+    # (Có thể dùng hàm tách từ tiếng Việt ở đây nếu muốn xịn hơn)
+    corpus = (df['title'].fillna("") + " " + df['short_description'].fillna("")).astype(str).tolist()
+    
+    # 2. Tokenize đơn giản (Tách theo khoảng trắng và lowercase)
+    # Lưu ý: Nếu bạn có hàm 'word_tokenize' của pyvi hay underthesea thì dùng ở đây sẽ tốt hơn
+    tokenized_corpus = [doc.lower().split() for doc in corpus]
+    
+    # 3. Khởi tạo BM25+
+    bm25 = BM25Plus(tokenized_corpus)
+    return bm25
 
 def discover_trained_models():
     """Scan models/ and checkpoints/ to find which models have available weights."""
@@ -1159,53 +1178,76 @@ CF_GRAPHS = {
 def main():
     st.set_page_config(page_title="News RecSys Portal", page_icon="📰", layout="wide")
     
+    # --- 1. LOGIC MỞ LINK ---
+    if 'open_url' in st.session_state and st.session_state['open_url']:
+        url_to_open = st.session_state['open_url']
+        st.session_state['open_url'] = None
+        st.components.v1.html(f"""<script>window.open("{url_to_open}", "_blank");</script>""", height=0)
+
     # --- CSS TÙY CHỈNH ---
     st.markdown("""
     <style>
         .block-container {padding-top: 1rem;}
-        
-        /* Tab và Expander */
         div[data-testid="stExpander"] div[role="button"] p {font-size: 1.1rem; font-weight: bold;}
-        div.stMarkdown h2, div.stMarkdown h3 {border-bottom: 2px solid #f0f2f6; padding-bottom: 10px;}
         
-        /* Link Style */
-        a.article-link {color: #2c3e50 !important; text-decoration: none; font-weight: bold; font-size: 1.1em;}
-        a.article-link:hover {color: #e74c3c !important;}
-        a.article-link:visited {color: #663399 !important;} /* Màu tím cho bài đã click */
+        /* [UPDATED] CSS CHO TIÊU ĐỀ (BUTTON GIẢ LINK) */
+        /* Chỉ chỉnh cấu trúc (size, font), KHÔNG chỉnh màu ở đây để Python tự xử lý */
+        div[data-testid="stButton"] > button[kind="secondary"] {
+            border: none !important;
+            background: none !important;
+            padding: 0 !important;
+            text-align: left !important;
+            box-shadow: none !important;
+            height: auto !important;
+            white-space: normal !important;
+            line-height: 1.3 !important;
+            font-family: 'Source Sans Pro', sans-serif !important;
+        }
+        
+        /* Chỉnh font size cho text bên trong */
+        div[data-testid="stButton"] > button[kind="secondary"] p {
+            font-size: 1.4em !important; /* To và rõ */
+            font-weight: 700 !important;  /* Đậm */
+            padding-top: 5px !important;
+        }
 
-        /* Button 'Bình luận' */
-        .stButton>button {
+        /* Hover vẫn giữ gạch chân */
+        div[data-testid="stButton"] > button[kind="secondary"]:hover p {
+            text-decoration: underline !important;
+        }
+
+        /* Nút Bình luận (Primary) */
+        div.stButton > button[kind="primary"] {
             width: 100%; border-radius: 8px; background-color: #f0f2f6; 
             color: #31333F; border: 1px solid #d2d2d2;
         }
-        .stButton>button:hover {border-color: #28a745; color: #28a745;}
+        div.stButton > button[kind="primary"]:hover {border-color: #28a745; color: #28a745;}
         
-        /* Badge & Search UI */
         .source-badge {font-size: 0.75em; padding: 2px 6px; border-radius: 4px; color: white;}
-        div[data-testid="stVerticalBlock"] > div[style*="flex-direction: column;"] > div[data-testid="stTextInput"] {
-            margin-bottom: -15px;
-        }
+        a.article-link {color: #2c3e50 !important; text-decoration: none; font-weight: bold; font-size: 0.95em;}
+        a.article-link:visited {color: #663399 !important;}
     </style>
     """, unsafe_allow_html=True)
 
-    # 1. INIT STATE
+    # 2. INIT STATE
     if 'data_dir' not in st.session_state: st.session_state['data_dir'] = DATA_DIR
     if 'session_interactions' not in st.session_state: st.session_state['session_interactions'] = []
+    if 'viewed_posts' not in st.session_state: st.session_state['viewed_posts'] = set()
     if 'user_mode' not in st.session_state: st.session_state['user_mode'] = 'existing'
     if 'guest_profile' not in st.session_state: st.session_state['guest_profile'] = None
     if 'last_selected_user' not in st.session_state: st.session_state['last_selected_user'] = None
+    if 'open_url' not in st.session_state: st.session_state['open_url'] = None
 
     # --- SIDEBAR ---
     st.sidebar.title("🎛️ Control Panel")
+    mode_select = st.sidebar.radio("Chế độ:", ["🔑 Thành viên", "🆕 Khách (Cold Start)"], index=0 if st.session_state['user_mode'] == 'existing' else 1)
     
-    mode_select = st.sidebar.radio("Chế độ:", ["🔑 Thành viên", "🆕 Khách (Cold Start)"], 
-                                   index=0 if st.session_state['user_mode'] == 'existing' else 1)
-    
-    # Load Data
     selected_variant = "strict_g2"
     active_data_dir = os.path.join(DATA_DIR, selected_variant) if os.path.exists(os.path.join(DATA_DIR, selected_variant)) else DATA_DIR
     res = load_resources(data_dir=active_data_dir, raw_dir=RAW_DIR, specific_graph_path=os.path.join(active_data_dir, "cf_cache.pt"))
     articles_df, user_map_cf, article_map_cf, user_history, adj_norm, user_priors, status = res
+    
+    search_engine = build_search_engine(articles_df)
     
     selected_user = None
     is_cold_start_user = False
@@ -1216,6 +1258,7 @@ def main():
         selected_user = st.sidebar.selectbox("Chọn ID:", user_ids)
         if selected_user != st.session_state['last_selected_user']:
             st.session_state['session_interactions'] = []
+            st.session_state['viewed_posts'] = set()
             st.session_state['last_selected_user'] = selected_user
     else:
         st.session_state['user_mode'] = 'guest'
@@ -1232,25 +1275,20 @@ def main():
                     samples = articles_df.iloc[np.random.choice(matched, min(5, len(matched)), replace=False)]['url'].tolist()
                     st.session_state['guest_profile'] = samples
                     st.session_state['session_interactions'] = []
-                    st.success(f"Đã tạo profile với {len(samples)} bài mẫu!")
+                    st.session_state['viewed_posts'] = set()
                     st.rerun()
-                else:
-                    st.error("Không tìm thấy bài phù hợp!")
 
-    # Config Dev
     with st.sidebar.expander("⚙️ Cấu hình Thuật toán", expanded=False):
         cf_model_choice = st.selectbox("Model CF:", MODEL_OPTIONS["CF"])
         alpha = st.slider("Trọng số Social (Alpha)", 0.0, 1.0, 0.5, 0.1)
-        k_rec = st.slider("Số lượng hiển thị", 5, 50, 10) # Tăng max lên 50 để search cho sướng
+        k_rec = st.slider("Số lượng hiển thị", 5, 50, 10)
     
-    # Load Models
     cf_model = load_cf_model(cf_model_choice, len(user_map_cf), len(article_map_cf), graph_name=selected_variant)
     cb_model = load_cb_model("vn-sbert", articles_df) 
 
     # --- MAIN TABS ---
     tab_feed, tab_analytics = st.tabs(["📰 News Feed & Tìm kiếm", "🛠️ Dev & Analytics"])
 
-    # ================= TAB 1: NEWS FEED & SEARCH =================
     with tab_feed:
         base_history = st.session_state.get('guest_profile', []) if is_cold_start_user else user_history.get(selected_user, [])
         if not base_history and is_cold_start_user:
@@ -1259,23 +1297,18 @@ def main():
             
         full_history = list(base_history) + list(st.session_state['session_interactions'])
         
-        # --- THANH TÌM KIẾM & BỘ LỌC (ĐẶT TRÊN CÙNG) ---
+        # Search UI
         with st.container():
             col_search, col_filter = st.columns([3, 1])
-            with col_search:
-                search_query = st.text_input("🔍 Tìm kiếm bài viết:", placeholder="Nhập từ khóa (VD: công nghệ, bóng đá...)...")
+            with col_search: search_query = st.text_input("🔍 Tìm kiếm bài viết:", placeholder="Nhập từ khóa...")
             with col_filter:
-                # Lấy danh sách category unique
                 unique_cats = sorted(articles_df['source_category'].dropna().unique().tolist())
-                # Map tên đẹp để hiển thị
                 filter_cats = st.multiselect("🏷️ Lọc danh mục:", unique_cats, format_func=lambda x: CATEGORY_MAP.get(x, x))
-        
         st.divider()
 
-        # Layout Chính
         col_content, col_info = st.columns([0.75, 0.25])
         
-        # LOG BÊN PHẢI (GIỮ NGUYÊN)
+        # LOG UI
         with col_info:
             st.markdown("### 📊 Log Hoạt động")
             with st.container(border=True):
@@ -1285,62 +1318,57 @@ def main():
                         row = articles_df[articles_df['url'] == u]
                         if not row.empty:
                             title = row.iloc[0]['title']
-                            st.markdown(f"• <a href='{u}' target='_blank' class='article-link'>{title}</a>", unsafe_allow_html=True)
+                            raw_t = str(row.iloc[0].get('published_at', ''))
+                            if raw_t == 'nan': raw_t = ""
+                            if raw_t and raw_t[0].isdigit(): pub_time = raw_t.split('T')[0] 
+                            else: pub_time = raw_t
+                            st.markdown(f"<div style='line-height:1.2;'><a href='{u}' target='_blank' class='article-link' style='font-size:0.95em'>{title}</a><div style='color:gray;font-size:0.75em'>📅 {pub_time}</div></div>", unsafe_allow_html=True)
+                            st.write("")
                     if st.button("🔄 Reset phiên"):
                         st.session_state['session_interactions'] = []
+                        st.session_state['viewed_posts'] = set()
                         st.rerun()
-                else:
-                    st.caption("Chưa có tương tác mới.")
+                else: st.caption("Chưa có tương tác mới.")
             st.divider()
             wc_fig = generate_user_wordcloud(full_history, articles_df)
             if wc_fig: st.pyplot(wc_fig, use_container_width=True)
 
-        # NỘI DUNG CHÍNH (FEED HOẶC KẾT QUẢ TÌM KIẾM)
+        # CONTENT
         with col_content:
-            final_display_list = [] # List chứa các tuples (url, score, source) để hiển thị
-            mode_display = "" # "search" hoặc "rec"
+            final_display_list = []
+            mode_display = "" 
 
-            # TRƯỜNG HỢP 1: CÓ TỪ KHÓA TÌM KIẾM -> CHẠY CHẾ ĐỘ SEARCH
+            # SEARCH
             if search_query.strip():
                 mode_display = "search"
-                st.markdown(f"### 🔎 Kết quả tìm kiếm: '{search_query}'")
+                st.markdown(f"### 🔎 Kết quả cho: '{search_query}'")
+                tokenized_query = search_query.lower().split()
+                doc_scores = search_engine.get_scores(tokenized_query)
+                top_indices = np.argsort(doc_scores)[::-1][:100]
                 
-                # Logic tìm kiếm đơn giản (Keyword Matching)
-                # 1. Lọc theo từ khóa (Title hoặc Description)
-                mask = articles_df['title'].str.contains(search_query, case=False, na=False) | \
-                       articles_df['short_description'].str.contains(search_query, case=False, na=False)
-                
-                # 2. Lọc theo Category (nếu có chọn)
-                if filter_cats:
-                    mask &= articles_df['source_category'].isin(filter_cats)
-                
-                search_results = articles_df[mask].head(k_rec) # Lấy top K
-                
-                if search_results.empty:
-                    st.warning("Không tìm thấy bài viết nào phù hợp.")
-                else:
-                    # Chuyển đổi format để render chung
-                    for _, row in search_results.iterrows():
-                        final_display_list.append((row['url'], 1.0, "Kết quả tìm kiếm"))
+                count = 0
+                for idx in top_indices:
+                    if count >= k_rec: break
+                    if doc_scores[idx] <= 0: continue
+                    row = articles_df.iloc[idx]
+                    if filter_cats and row['source_category'] not in filter_cats: continue
+                    final_display_list.append((row['url'], doc_scores[idx], "Kết quả tìm kiếm"))
+                    count += 1
+                if not final_display_list: st.warning(f"Không tìm thấy kết quả.")
 
-            # TRƯỜNG HỢP 2: KHÔNG TÌM KIẾM -> CHẠY CHẾ ĐỘ RECSYS (SESSION MIXER)
+            # RECSYS
             else:
                 mode_display = "rec"
                 st.markdown(f"### 🔥 Tin dành cho {'Khách' if is_cold_start_user else selected_user}")
-                if filter_cats:
-                    st.caption(f"Đang lọc theo danh mục: {', '.join([CATEGORY_MAP.get(c,c) for c in filter_cats])}")
-
+                
                 with st.spinner("Đang tổng hợp tin tức..."):
                     candidate_scores = {}
-                    
-                    # [Logic RecSys cũ: Long-term + Session Mixer]
-                    # ... (Logic RecSys giữ nguyên như cũ để đảm bảo chất lượng) ...
                     active_alpha = 0.0 if is_cold_start_user else alpha
-                    # 1. CF
+                    
                     if active_alpha > 0 and cf_model:
                         raw_recs = get_recs(cf_model, cf_model_choice, user_map_cf[selected_user], [], article_map_cf, articles_df, 200, adj_norm=adj_norm)
                         for u, s in raw_recs: candidate_scores[u] = {'score': s * active_alpha, 'source': 'Gợi ý cho bạn'}
-                    # 2. CB
+                    
                     if (1 - active_alpha) > 0 and cb_model:
                         hist_sample = full_history[-10:]
                         h_indices = [article_map_cf.get(u, -1) if u in article_map_cf else articles_df[articles_df['url']==u].index[0] for u in hist_sample if u in articles_df['url'].values]
@@ -1353,7 +1381,7 @@ def main():
                                 norm = (val/max_v) * (1 - active_alpha)
                                 curr = candidate_scores.get(u, {'score': 0, 'source': 'Nội dung tương đồng'})
                                 candidate_scores[u] = {'score': curr['score'] + norm, 'source': curr['source']}
-                    # 3. Session Mixer
+                    
                     if st.session_state['session_interactions'] and cb_model:
                         last_url = st.session_state['session_interactions'][-1]
                         last_row = articles_df[articles_df['url'] == last_url]
@@ -1369,28 +1397,28 @@ def main():
                                 else:
                                     candidate_scores[u] = {'score': boost, 'source': '⚡ Liên quan bài vừa comment'}
 
-                    # Lọc & Sort
                     temp_recs = []
                     for u, data in candidate_scores.items():
                         if u not in full_history:
-                            # --- ĐÂY LÀ CHỖ THÊM LOGIC LỌC DANH MỤC CHO RECSYS ---
-                            # Nếu user chọn danh mục, ta chỉ giữ lại bài thuộc danh mục đó
                             if filter_cats:
                                 row_chk = articles_df[articles_df['url'] == u]
-                                if not row_chk.empty and row_chk.iloc[0]['source_category'] not in filter_cats:
-                                    continue # Bỏ qua nếu không đúng danh mục
-                            
+                                if not row_chk.empty and row_chk.iloc[0]['source_category'] not in filter_cats: continue
                             temp_recs.append((u, data['score'], data['source']))
-                    
                     temp_recs.sort(key=lambda x: x[1], reverse=True)
                     final_display_list = temp_recs[:k_rec]
 
-            # --- RENDER CHUNG CHO CẢ 2 CHẾ ĐỘ ---
-            if not final_display_list:
-                st.info("Chưa có kết quả nào phù hợp.")
+            # RENDER LIST
+            if not final_display_list: st.info("Chưa có kết quả.")
             else:
                 for i, (url, score, src) in enumerate(final_display_list):
                     row = articles_df[articles_df['url'] == url].iloc[0]
+                    
+                    raw_time = str(row.get('published_at', ''))
+                    if raw_time == 'nan': raw_time = ""
+                    if raw_time and raw_time[0].isdigit(): pub_time = raw_time.replace('T', ' ').split('.')[0]
+                    else: pub_time = raw_time
+                    if pub_time == '': pub_time = "Vừa xong"
+
                     badge_color = "#28a745" if "⚡" in src else ("#17a2b8" if "Tìm kiếm" in src else ("#007bff" if "Gợi ý" in src else "#6c757d"))
                     
                     with st.container():
@@ -1399,33 +1427,48 @@ def main():
                             st.markdown(f"""
                             <div style="margin-bottom: 4px;">
                                 <span class="source-badge" style="background-color: {badge_color}">{src}</span>
+                                <span style="color: #888; font-size: 0.8em; margin-left: 5px;">🕒 {pub_time}</span> 
                                 {f'<span style="color: #bbb; font-size: 0.8em;">• Score: {score:.2f}</span>' if mode_display == 'rec' else ''}
-                            </div>
-                            <a href="{url}" target="_blank" class="article-link">{row['title']}</a>
-                            """, unsafe_allow_html=True)
+                            </div>""", unsafe_allow_html=True)
+                            
+                            # --- [QUAN TRỌNG] LOGIC MÀU SẮC DỰA TRÊN TRẠNG THÁI ---
+                            is_visited = url in st.session_state.get('viewed_posts', set())
+                            
+                            # Nếu đã xem -> Dùng :violet[] (Tím)
+                            # Nếu chưa xem -> Dùng :blue[] (Xanh - màu mặc định của link)
+                            if is_visited:
+                                label = f":violet[{row['title']}]"
+                            else:
+                                label = f":blue[{row['title']}]"
+
+                            # Nút bấm hiển thị title
+                            if st.button(label, key=f"title_{i}_{url}", type="secondary"):
+                                st.session_state['viewed_posts'].add(url)
+                                st.session_state['open_url'] = url
+                                st.rerun()
                             
                             desc = row['short_description'] if not pd.isna(row['short_description']) else "Không có mô tả."
-                            st.markdown(f"<div style='color: #555; font-size: 0.95em; margin-top: 5px;'>{desc}</div>", unsafe_allow_html=True)
+                            st.markdown(f"<div style='color: #555; font-size: 0.95em; margin-top: 2px;'>{desc}</div>", unsafe_allow_html=True)
                             st.caption(f"📂 {CATEGORY_MAP.get(row['source_category'], 'Tin tức')}")
 
                         with c2:
                             st.write("")
                             st.write("")
-                            # Nút Bình luận vẫn hoạt động kể cả khi Tìm kiếm
-                            if st.button("💬 Bình luận", key=f"btn_{mode_display}_{i}_{url}", help="Bình luận để nhận gợi ý tương tự"):
-                                st.session_state['session_interactions'].append(url)
-                                st.toast("Đã ghi nhận bình luận!", icon="✅")
-                                st.rerun()
+                            if st.button("💬 Bình luận", key=f"btn_{i}_{url}", type="primary", help="Tương tác mạnh"):
+                                if url in st.session_state.get('viewed_posts', set()):
+                                    st.session_state['session_interactions'].append(url)
+                                    st.toast("Đã ghi nhận bình luận! Đề xuất đang thay đổi...", icon="✅")
+                                    st.rerun()
+                                else:
+                                    st.toast("⚠️ Mời bạn click vào tiêu đề để đọc bài trước khi bình luận!", icon="🚫")
                         st.divider()
 
-            # PCA chỉ hiện khi KHÔNG tìm kiếm và là User cũ
             if not search_query.strip() and not is_cold_start_user and cf_model:
                 with st.expander("🗺️ Phân tích Không gian Vector (Visualization)", expanded=False):
                      rec_urls_viz = [x[0] for x in final_display_list[:15]]
                      fig = plot_embedding_space(cf_model, user_map_cf[selected_user], full_history, rec_urls_viz, article_map_cf, articles_df)
                      if fig: st.plotly_chart(fig, use_container_width=True)
 
-    # ================= TAB 2: DEV (GIỮ NGUYÊN) =================
     with tab_analytics:
         st.header("⚔️ So sánh & Đánh giá Mô hình")
         col_conf, col_a, col_b = st.columns([1, 1.5, 1.5])
@@ -1450,8 +1493,7 @@ def main():
                 
                 overlap = len(set([x[0] for x in ra]) & set([x[0] for x in rb]))
                 st.success(f"Độ trùng lặp (Overlap): {overlap}/10 bài")
-        elif is_cold_start_user:
-            st.warning("Chức năng so sánh CF Model chỉ dành cho User cũ (Warm Start).")
+        elif is_cold_start_user: st.warning("Chức năng so sánh chỉ dành cho User cũ.")
 
 if __name__ == "__main__":
-    main()  
+    main()
