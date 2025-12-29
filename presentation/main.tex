@@ -778,10 +778,9 @@
     \end{column}
 
     \begin{column}{0.48\textwidth}
-      \textbf{Data Protocols:}
+      \textbf{Evaluation Protocols:}
       \begin{itemize}
         \item \textbf{Full (Cold-Start):} 80/20 random user split.
-        \item \textbf{LOO (Mainstream):} Temporal Leave-One-Out.
       \end{itemize}
 
       \vspace{0.2cm}
@@ -1057,9 +1056,8 @@
             \item \textit{NDCG@10}: Rewards models that rank true items higher.
             \item \textbf{MRR}: Standard for single-target news retrieval.
           \end{itemize}
-    \item \textbf{Dual Protocol Strategy:}
+    \item \textbf{Evaluation Strategy:}
           \begin{itemize}
-            \item \textbf{Mainstream (LOO):} Temporal Leave-One-Out. Test on the \textit{latest} interaction to prevent future leakage.
             \item \textbf{Cold-Start (80/20):} Random user split. Train on 80\% of users, test on 20\% unseen users to measure zero-shot capability.
           \end{itemize}
   \end{itemize}
