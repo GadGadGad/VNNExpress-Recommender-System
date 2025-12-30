@@ -403,7 +403,7 @@
         \begin{itemize}
           \item Avg Interactions/User:  2.55
           \item Avg Interactions/Item:  10.99
-          \item $< 3$ interactions: 12489 users (79.6\%)
+          % \item $< 3$ interactions: 12489 users (79.6\%)
         \end{itemize}
       \end{column}
 
@@ -462,7 +462,7 @@
   \centering
   \includegraphics[width=0.98\textwidth]{../plots/eda_03_user_activity_top.png}
   \begin{block}{Distribution Analysis}
-    Article popularity follows Zipf's law. Top 10 users account for 15\% of all interactions.
+    The large disparity in user interaction levels results in highly imbalanced and sparse data, which challenges traditional recommendation approaches.
   \end{block}
 \end{frame}
 
@@ -471,7 +471,7 @@
   \centering
   \includegraphics[width=0.98\textwidth]{../plots/eda_03_user_activity_bottom.png}
   \begin{block}{Power Law Observation}
-    Long-tail distribution: 80\% of users have fewer than 10 interactions.
+    Approximately 20\% of users account for nearly 80\% of the total interactions.
   \end{block}
 \end{frame}
 
@@ -530,11 +530,11 @@
   \end{itemize}
 \end{frame}
 
-\begin{frame}
-  \frametitle{Graph Connectivity \& Density}
-  \centering
-  \includegraphics[height=0.75\textheight,keepaspectratio]{../plots/graph_eda_03_connectivity.png}
-\end{frame}
+% \begin{frame}
+%   \frametitle{Graph Connectivity \& Density}
+%   \centering
+%   \includegraphics[height=0.75\textheight,keepaspectratio]{../plots/graph_eda_03_connectivity.png}
+% \end{frame}
 
 %------------------------------------------------------------
 \section{Motivation: Graph Expansion Strategy}
