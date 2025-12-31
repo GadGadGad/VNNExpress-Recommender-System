@@ -1,0 +1,278 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.3 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated by
+% biber as required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+
+\refsection{0}
+  \datalist[entry]{none/global//global/global/global}
+    \entry{cai2023lightgcl}{inproceedings}{}{}
+      \name{author}{4}{}{%
+        {{hash=5eda4a17d85f6719cc457714b798c570}{%
+           family={Cai},
+           familyi={C\bibinitperiod},
+           given={Xuheu},
+           giveni={X\bibinitperiod}}}%
+        {{hash=085ba9203d469ee85e0630e569da3d12}{%
+           family={Huang},
+           familyi={H\bibinitperiod},
+           given={Chao},
+           giveni={C\bibinitperiod}}}%
+        {{hash=ede8d3ecc3ccb0f363d631d25535a170}{%
+           family={Xia},
+           familyi={X\bibinitperiod},
+           given={Lianghao},
+           giveni={L\bibinitperiod}}}%
+        {{hash=a85223e195195f52cde55f5a95ca5cb1}{%
+           family={Ren},
+           familyi={R\bibinitperiod},
+           given={Xubin},
+           giveni={X\bibinitperiod}}}%
+      }
+      \strng{namehash}{813f78654d9834d8180fdf96ed892533}
+      \strng{fullhash}{92cbb1c6e348e3b898985e7d986d0c1c}
+      \strng{fullhashraw}{92cbb1c6e348e3b898985e7d986d0c1c}
+      \strng{bibnamehash}{92cbb1c6e348e3b898985e7d986d0c1c}
+      \strng{authorbibnamehash}{92cbb1c6e348e3b898985e7d986d0c1c}
+      \strng{authornamehash}{813f78654d9834d8180fdf96ed892533}
+      \strng{authorfullhash}{92cbb1c6e348e3b898985e7d986d0c1c}
+      \strng{authorfullhashraw}{92cbb1c6e348e3b898985e7d986d0c1c}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{International Conference on Learning Representations (ICLR)}
+      \field{title}{LightGCL: Simple Yet Effective Graph Contrastive Learning for Recommendation}
+      \field{year}{2023}
+    \endentry
+    \entry{yu2023xsimgcl}{article}{}{}
+      \name{author}{6}{}{%
+        {{hash=2f77368a25dacefba7f868b398b1c2da}{%
+           family={Yu},
+           familyi={Y\bibinitperiod},
+           given={Junliang},
+           giveni={J\bibinitperiod}}}%
+        {{hash=389bc525f2088642cfd16749beb3312e}{%
+           family={Xia},
+           familyi={X\bibinitperiod},
+           given={Xin},
+           giveni={X\bibinitperiod}}}%
+        {{hash=84e53870b10b90866b8483be8fe5a60e}{%
+           family={Chen},
+           familyi={C\bibinitperiod},
+           given={Tong},
+           giveni={T\bibinitperiod}}}%
+        {{hash=375f79f434e65b63f3750a03a388ed99}{%
+           family={Cui},
+           familyi={C\bibinitperiod},
+           given={Lizhen},
+           giveni={L\bibinitperiod}}}%
+        {{hash=788d1f0cd454e1118bc96b95dbe8fcf6}{%
+           family={Hung},
+           familyi={H\bibinitperiod},
+           given={Nguyen\bibnamedelimb Quoc\bibnamedelima Viet},
+           giveni={N\bibinitperiod\bibinitdelim Q\bibinitperiod\bibinitdelim V\bibinitperiod}}}%
+        {{hash=684a7485a58d733155967691eae9a57f}{%
+           family={Yin},
+           familyi={Y\bibinitperiod},
+           given={Hongzhi},
+           giveni={H\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {IEEE}%
+      }
+      \strng{namehash}{4110d32e948c870f2121f9775141c5c9}
+      \strng{fullhash}{f81263a7db5bd933f4534ae7340b987a}
+      \strng{fullhashraw}{f81263a7db5bd933f4534ae7340b987a}
+      \strng{bibnamehash}{f81263a7db5bd933f4534ae7340b987a}
+      \strng{authorbibnamehash}{f81263a7db5bd933f4534ae7340b987a}
+      \strng{authornamehash}{4110d32e948c870f2121f9775141c5c9}
+      \strng{authorfullhash}{f81263a7db5bd933f4534ae7340b987a}
+      \strng{authorfullhashraw}{f81263a7db5bd933f4534ae7340b987a}
+      \field{extraname}{1}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{IEEE Transactions on Knowledge and Data Engineering (TKDE)}
+      \field{title}{XSimGCL: Towards Extremely Simple Graph Contrastive Learning for Recommendation}
+      \field{year}{2023}
+    \endentry
+    \entry{he2020lightgcn}{inproceedings}{}{}
+      \name{author}{6}{}{%
+        {{hash=cf3f1b6bfe8e9131a8c719c1af0dce5d}{%
+           family={He},
+           familyi={H\bibinitperiod},
+           given={Xiangnan},
+           giveni={X\bibinitperiod}}}%
+        {{hash=fd3bea1dc164ea80fae7f6718b3bc874}{%
+           family={Deng},
+           familyi={D\bibinitperiod},
+           given={Kuan},
+           giveni={K\bibinitperiod}}}%
+        {{hash=8fde8559617f603b3e2b3cf30cb48e9b}{%
+           family={Wang},
+           familyi={W\bibinitperiod},
+           given={Xiang},
+           giveni={X\bibinitperiod}}}%
+        {{hash=92e14a8c19eb5a0c7c199c85db74f106}{%
+           family={Li},
+           familyi={L\bibinitperiod},
+           given={Yan},
+           giveni={Y\bibinitperiod}}}%
+        {{hash=b63b81cfb08482419493a6590a74cdb7}{%
+           family={Zhang},
+           familyi={Z\bibinitperiod},
+           given={Yong-Dong},
+           giveni={Y\bibinithyphendelim D\bibinitperiod}}}%
+        {{hash=00b734eb3fb588e4c6c94e4271080d0b}{%
+           family={Wang},
+           familyi={W\bibinitperiod},
+           given={Meng},
+           giveni={M\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {ACM}%
+      }
+      \strng{namehash}{5288584512ef6ddfdb0f4e97d3bced50}
+      \strng{fullhash}{12b20ff8201a14d0bd8a5d3035833b2a}
+      \strng{fullhashraw}{12b20ff8201a14d0bd8a5d3035833b2a}
+      \strng{bibnamehash}{12b20ff8201a14d0bd8a5d3035833b2a}
+      \strng{authorbibnamehash}{12b20ff8201a14d0bd8a5d3035833b2a}
+      \strng{authornamehash}{5288584512ef6ddfdb0f4e97d3bced50}
+      \strng{authorfullhash}{12b20ff8201a14d0bd8a5d3035833b2a}
+      \strng{authorfullhashraw}{12b20ff8201a14d0bd8a5d3035833b2a}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Proceedings of the 43rd International ACM SIGIR Conference on Research and Development in Information Retrieval (SIGIR ’20)}
+      \field{title}{LightGCN: Simplifying and Powering Graph Convolution Network for Recommendation}
+      \field{year}{2020}
+      \field{pages}{639\bibrangedash 648}
+      \range{pages}{10}
+      \verb{doi}
+      \verb 10.1145/3397271.3401063
+      \endverb
+    \endentry
+    \entry{yu2022graph}{inproceedings}{}{}
+      \name{author}{6}{}{%
+        {{hash=2f77368a25dacefba7f868b398b1c2da}{%
+           family={Yu},
+           familyi={Y\bibinitperiod},
+           given={Junliang},
+           giveni={J\bibinitperiod}}}%
+        {{hash=684a7485a58d733155967691eae9a57f}{%
+           family={Yin},
+           familyi={Y\bibinitperiod},
+           given={Hongzhi},
+           giveni={H\bibinitperiod}}}%
+        {{hash=389bc525f2088642cfd16749beb3312e}{%
+           family={Xia},
+           familyi={X\bibinitperiod},
+           given={Xin},
+           giveni={X\bibinitperiod}}}%
+        {{hash=84e53870b10b90866b8483be8fe5a60e}{%
+           family={Chen},
+           familyi={C\bibinitperiod},
+           given={Tong},
+           giveni={T\bibinitperiod}}}%
+        {{hash=e65a1a296c495b084e18c6871049b59e}{%
+           family={Li},
+           familyi={L\bibinitperiod},
+           given={Jundong},
+           giveni={J\bibinitperiod}}}%
+        {{hash=bbead5d4b952a01fb4a47ceb3e05a235}{%
+           family={Huang},
+           familyi={H\bibinitperiod},
+           given={Zi},
+           giveni={Z\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {ACM}%
+      }
+      \strng{namehash}{4110d32e948c870f2121f9775141c5c9}
+      \strng{fullhash}{2ef11ffd3227836183badd57cabdf5f8}
+      \strng{fullhashraw}{2ef11ffd3227836183badd57cabdf5f8}
+      \strng{bibnamehash}{2ef11ffd3227836183badd57cabdf5f8}
+      \strng{authorbibnamehash}{2ef11ffd3227836183badd57cabdf5f8}
+      \strng{authornamehash}{4110d32e948c870f2121f9775141c5c9}
+      \strng{authorfullhash}{2ef11ffd3227836183badd57cabdf5f8}
+      \strng{authorfullhashraw}{2ef11ffd3227836183badd57cabdf5f8}
+      \field{extraname}{2}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Proceedings of the 45th International ACM SIGIR Conference on Research and Development in Information Retrieval (SIGIR ’22)}
+      \field{title}{Are Graph Augmentations Necessary? Simple Graph Contrastive Learning for Recommendation}
+      \field{year}{2022}
+      \field{pages}{1294\bibrangedash 1303}
+      \range{pages}{10}
+    \endentry
+    \entry{shi2020hgrec}{inproceedings}{}{}
+      \name{author}{6}{}{%
+        {{hash=6915348ef57457be2b9c87e7cb24d070}{%
+           family={Shi},
+           familyi={S\bibinitperiod},
+           given={Jinghan},
+           giveni={J\bibinitperiod}}}%
+        {{hash=f60a73a150296c43c185d9ea2826303f}{%
+           family={Ji},
+           familyi={J\bibinitperiod},
+           given={Houye},
+           giveni={H\bibinitperiod}}}%
+        {{hash=39bff1abfa3c4d5d73b840321218fad2}{%
+           family={Shi},
+           familyi={S\bibinitperiod},
+           given={Chuan},
+           giveni={C\bibinitperiod}}}%
+        {{hash=bd7d15d79ca36b953d99a1a0aaccb94a}{%
+           family={Wang},
+           familyi={W\bibinitperiod},
+           given={Xiao},
+           giveni={X\bibinitperiod}}}%
+        {{hash=187ef84bc4c49ed3713fb7484743a892}{%
+           family={Zhang},
+           familyi={Z\bibinitperiod},
+           given={Zhiqiang},
+           giveni={Z\bibinitperiod}}}%
+        {{hash=21b6969d672728cb4ea4381d1d8706b5}{%
+           family={Zhou},
+           familyi={Z\bibinitperiod},
+           given={Jun},
+           giveni={J\bibinitperiod}}}%
+      }
+      \strng{namehash}{ede5734b0643303a85841477290f4d39}
+      \strng{fullhash}{3b1101cd77e22bbc59cfaaca799754d3}
+      \strng{fullhashraw}{3b1101cd77e22bbc59cfaaca799754d3}
+      \strng{bibnamehash}{3b1101cd77e22bbc59cfaaca799754d3}
+      \strng{authorbibnamehash}{3b1101cd77e22bbc59cfaaca799754d3}
+      \strng{authornamehash}{ede5734b0643303a85841477290f4d39}
+      \strng{authorfullhash}{3b1101cd77e22bbc59cfaaca799754d3}
+      \strng{authorfullhashraw}{3b1101cd77e22bbc59cfaaca799754d3}
+      \field{sortinit}{5}
+      \field{sortinithash}{20e9b4b0b173788c5dace24730f47d8c}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Proceedings of the 37th International Conference on Machine Learning (ICML)}
+      \field{title}{Heterogeneous Graph Neural Network for Recommendation}
+      \field{year}{2020}
+    \endentry
+  \enddatalist
+\endrefsection
+\endinput
+
