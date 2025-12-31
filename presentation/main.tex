@@ -418,33 +418,6 @@
 \end{frame}
 
 
-
-
-% \begin{frame}
-%     \frametitle{Data Sample: Interaction \& Content}
-%     \textbf{1. Content Sample (Article)} \\
-%     \textit{"Chinh phục loạt 'ông lớn' công nghệ sau hơn 500 lần bị từ chối"} \\
-%     $\rightarrow$ \textbf{Tags:} [ Meta, Amazon, Apple, Tesla, kĩ sư công nghệ ]
-
-%     \vspace{0.3cm}
-%     \textbf{2. Social Sample (Comment/Reply)} \\
-%     \begin{itemize}
-%         \item \textbf{User A:} "Nếu giỏi thì cố gắng mua lại mấy công ty này..."
-%         \item \textbf{User B:} (Reply to A) "Mua lại Meta chắc cần nghìn tỷ USD..." \\
-%               $\Rightarrow$ \color{red} Social Connection detected \color{black}
-%     \end{itemize}
-
-%     \vspace{0.3cm}
-%     \begin{block}{Feature Mapping}
-%         \scriptsize
-%         \begin{itemize}
-%             \item \textbf{Article} $\rightarrow$ PhoBERT Embedding ($d=64$) $\rightarrow$ Node Feature.
-%             \item \textbf{User} $\rightarrow$ Interaction aggregation $\rightarrow$ Node Embedding.
-%             \item \textbf{Reply} $\rightarrow$ User-User Edge in the Heterogeneous Graph.
-%         \end{itemize}
-%     \end{block}
-% \end{frame}
-
 \begin{frame}
   \frametitle{Category Distribution}
   \centering
@@ -474,36 +447,6 @@
     Long-tail distribution: 80\% of users have fewer than 10 interactions.
   \end{block}
 \end{frame}
-
-% \begin{frame}
-%     \frametitle{Reaction Patterns}
-%     \centering
-%     \includegraphics[width=0.9\textwidth]{../plots/eda_04_reactions.png}
-% \end{frame}
-
-% \begin{frame}
-%     \frametitle{Text Length Distributions}
-%     \centering
-%     \includegraphics[width=0.9\textwidth]{../plots/eda_05_text_lengths.png}
-% \end{frame}
-
-% \begin{frame}
-%     \frametitle{Reply Patterns}
-%     \centering
-%     \includegraphics[width=0.9\textwidth]{../plots/eda_06_reply_patterns.png}
-% \end{frame}
-
-% \begin{frame}
-%     \frametitle{Author Productivity}
-%     \centering
-%     \includegraphics[width=0.9\textwidth]{../plots/eda_07_author_productivity.png}
-% \end{frame}
-
-% \begin{frame}
-%     \frametitle{Top Engaged Articles}
-%     \centering
-%     \includegraphics[width=0.9\textwidth]{../plots/eda_08_engagement_patterns.png}
-% \end{frame}
 
 \begin{frame}
   \frametitle{Engagement by Category}
@@ -662,28 +605,30 @@
 
   \vspace{0.3cm}
   \begin{columns}
-    \column{0.5\textwidth}
-    \centering
-    \begin{tikzpicture}[node distance=1.5cm, every node/.style={scale=0.7}]
-      \node[circle, draw, fill=blue!20] (U1) {User A};
-      \node[circle, draw, fill=blue!20, right of=U1, xshift=1cm] (U2) {User B};
-      \node[rectangle, draw, fill=green!20, below of=U1] (A1) {Article 1};
-      \node[rectangle, draw, fill=green!20, below of=U2] (A2) {Article 2};
+    \begin{column}{0.5\textwidth}
+      \centering
+      \begin{tikzpicture}[node distance=1.5cm, every node/.style={scale=0.7}]
+        \node[circle, draw, fill=blue!20] (U1) {User A};
+        \node[circle, draw, fill=blue!20, right of=U1, xshift=1cm] (U2) {User B};
+        \node[rectangle, draw, fill=green!20, below of=U1] (A1) {Article 1};
+        \node[rectangle, draw, fill=green!20, below of=U2] (A2) {Article 2};
 
-      \draw[->, thick] (U1) -- (A1) node[midway, left] {Read};
-      \draw[->, thick, red, dashed] (U1) -- (U2) node[midway, above] {Reply};
-      \draw[->, thick] (U2) -- (A2) node[midway, right] {Read};
+        \draw[->, thick] (U1) -- (A1) node[midway, left, font=\footnotesize] {Read};
+        \draw[->, thick, red, dashed] (U1) -- (U2) node[midway, above, font=\footnotesize] {Reply};
+        \draw[->, thick] (U2) -- (A2) node[midway, right, font=\footnotesize] {Read};
 
-      \draw[->, blue, dotted, bend left] (U1) to node[midway, below] {Suggest?} (A2);
-    \end{tikzpicture}
+        \draw[->, blue, dotted, bend left] (U1) to node[midway, below, font=\footnotesize] {Suggest?} (A2);
+      \end{tikzpicture}
 
-    \column{0.5\textwidth}
-    \textbf{The Logic:}
-    \begin{itemize}
-      \item \textbf{Direct:} User A likes Article 1.
-      \item \textbf{Social:} User A replies to User B $\rightarrow$ \textit{Shared Interest}.
-      \item \textbf{Inference:} User A is likely to enjoy Article 2 (read by B).
-    \end{itemize}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \textbf{The Logic:}
+      \begin{itemize}
+        \item \textbf{Direct:} User A likes Article 1.
+        \item \textbf{Social:} User A replies to User B $\rightarrow$ \textit{Shared Interest}.
+        \item \textbf{Inference:} User A is likely to enjoy Article 2 (read by B).
+      \end{itemize}
+    \end{column}
   \end{columns}
 
   \vspace{0.4cm}
@@ -734,18 +679,6 @@
     \node[above=0.2cm of a1, articlegreen, font=\bfseries] {ARTICLES};
   \end{tikzpicture}
 \end{frame}
-
-% \begin{frame}
-%     \frametitle{Graph Topology: A Heterogeneous Network}
-%     \centering
-%     \includegraphics[height=0.9\textheight]{../plots/graph_network_topology.png}
-%     \vspace{0.1cm}
-%     % \begin{itemize}
-%     %     \item \color{blue} \textbf{Blue Nodes:} \color{black} Active Users
-%     %     \item \color{green!60!black} \textbf{Green Nodes:} \color{black} News Articles
-%     %     \item \color{red} \textbf{Dashed Edges:} \color{black} Social Reply interactions
-%     % \end{itemize}
-% \end{frame}
 
 %------------------------------------------------------------
 \section{State-of-the-Art (SOTA) Baselines}
@@ -903,7 +836,7 @@
 %------------------------------------------------------------
 
 \begin{frame}
-  \frametitle{Inspiration \& Theoretical Foundation}
+  \frametitle{Inspiration & Theoretical Foundation}
   \textbf{Where did this idea come from?}
   Our architecture is an adaptation of the \textbf{HGRec} framework \cite{shi2020hgrec}, optimized with LightGCN \cite{he2020lightgcn} mechanics.
 
@@ -1061,41 +994,41 @@
 
 %------------------------------------------------------------
 \begin{frame}
-  \frametitle{Experimental Setup}
-  \begin{columns}
-    \begin{column}{0.48\textwidth}
-      \textbf{Models ($N=6$):}
-      \begin{itemize}
-        \item \textbf{Baselines:} LightGCN \cite{he2020lightgcn}, HGN
-        \item \textbf{Contrastive:} LightGCL \cite{cai2023lightgcl}, SimGCL \cite{yu2022graph}, XSimGCL \cite{yu2023xsimgcl} (SOTA), HCL (Ours)
-      \end{itemize}
+\frametitle{Experimental Setup}
+\begin{columns}
+\begin{column}{0.48\textwidth}
+  \textbf{Models ($N=6$):}
+  \begin{itemize}
+    \item \textbf{Baselines:} LightGCN \cite{he2020lightgcn}, HGN
+    \item \textbf{Contrastive:} LightGCL \cite{cai2023lightgcl}, SimGCL \cite{yu2022graph}, XSimGCL \cite{yu2023xsimgcl} (SOTA), HCL (Ours)
+  \end{itemize}
 
-      \vspace{0.2cm}
-      \textbf{Training config:}
-      \begin{itemize}
-        \item \textbf{Epochs:} 100
-        \item \textbf{Batch Size:} 2048
-        \item \textbf{Loss:} BPR + InfoNCE (for CL models)
-      \end{itemize}
-    \end{column}
+  \vspace{0.2cm}
+  \textbf{Training config:}
+  \begin{itemize}
+    \item \textbf{Epochs:} 100
+    \item \textbf{Batch Size:} 2048
+    \item \textbf{Loss:} BPR + InfoNCE (for CL models)
+  \end{itemize}
+\end{column}
 
-    \begin{column}{0.48\textwidth}
-      \textbf{Evaluation Protocols:}
-      \begin{itemize}
-        \item \textbf{Full (Cold-Start):} 80/20 random user split.
-      \end{itemize}
+\begin{column}{0.48\textwidth}
+  \textbf{Evaluation Protocols:}
+  \begin{itemize}
+    \item \textbf{Full (Cold-Start):} 80/20 random user split.
+  \end{itemize}
 
-      \vspace{0.2cm}
-      \textbf{Graph Tiers:}
-      \begin{itemize}
-        \item \textbf{Strict G1:} Bipartite (User-Art)
-        \item \textbf{Strict G2:} Hetero (+ Social)
-        \item \textbf{Strict G3:} Hetero (+ Category)
-      \end{itemize}
-    \end{column}
-  \end{columns}
+  \vspace{0.2cm}
+  \textbf{Graph Tiers:}
+  \begin{itemize}
+    \item \textbf{Strict G1:} Bipartite (User-Art)
+    \item \textbf{Strict G2:} Hetero (+ Social)
+    \item \textbf{Strict G3:} Hetero (+ Category)
+  \end{itemize}
+\end{column}
+</columns}
 
-  \vspace{0.3cm}
+\vspace{0.3cm}
 \end{frame}
 
 \begin{frame}
@@ -1122,6 +1055,27 @@
           \end{itemize}
   \end{itemize}
 \end{frame}
+
+\begin{frame}
+  \frametitle{Understanding Evaluation Protocols}
+  We employ two distinct benchmarks to assess model robustness:
+
+  \vspace{0.3cm}
+  \begin{itemize}
+    \item \textbf{Full Ranking Benchmark (Global Capability):}
+          \begin{itemize}
+            \item \textbf{Setup:} Rank \textbf{all} candidate articles ($\approx$ 13,000+) for each test user.
+            \item \textbf{Challenge:} Extremely high noise; measures the model's ability to discriminate the relevant article from the entire corpus.
+            \item \textbf{Goal:} Real-world production performance (Cold-start \& Discovery).
+          \end{itemize}
+    \item \textbf{Loo100 Benchmark (Leave-One-Out):}
+          \begin{itemize}
+            \item \textbf{Setup:} 1 relevant item + 99 random negative items for each test user.
+            \item \textbf{Challenge:} Localized selection; measures the model's sensitivity to distinguishing ground truth from standard noise.
+            \item \textbf{Goal:} Stability and fine-grained ranking precision (Sensitivity Analysis).
+          \end{itemize}
+  \end{itemize}
+\end{frame}
 \begin{frame}
   \frametitle{Benchmark Results: Full Ranking}
   \textbf{Protocol:} 80/20 Split (Random). \\
@@ -1143,6 +1097,7 @@
       \midrule
       \multicolumn{6}{l}{\textit{\textbf{Graph G1 (Bipartite)}}}                                                                    \\
       LightGCL                              & Graph CL      & 0.0398          & 0.0249          & 0.0685          & 0.0313          \\
+      LightGCN                              & Graph GNN     & 0.0263          & 0.0145          & 0.0400          & 0.0174          \\
       XSimGCL                               & Graph CL      & \textbf{0.0439} & \textbf{0.0253} & \textbf{0.0694} & \textbf{0.0289} \\
       HGN                                   & Hetero GNN    & 0.0262          & 0.0147          & 0.0451          & 0.0182          \\
       HCL                                   & Hetero CL     & 0.0259          & 0.0164          & 0.0471          & 0.0214          \\
@@ -1150,6 +1105,7 @@
       \midrule
       \multicolumn{6}{l}{\textit{\textbf{Graph G2 (Hetero - User-User)}}}                                                           \\
       LightGCL                              & Graph CL      & \textbf{0.0436} & \textbf{0.0261} & \textbf{0.0739} & \textbf{0.0313} \\
+      LightGCN                              & Graph GNN     & 0.0272          & 0.0156          & 0.0404          & 0.0186          \\
       XSimGCL                               & Graph CL      & 0.0432          & 0.0260          & 0.0688          & 0.0303          \\
       HGN                                   & Hetero GNN    & 0.0369          & 0.0201          & 0.0596          & 0.0250          \\
       HCL                                   & Hetero CL     & 0.0320          & 0.0192          & 0.0520          & 0.0233          \\
@@ -1157,6 +1113,7 @@
       \midrule
       \multicolumn{6}{l}{\textit{\textbf{Graph G3 (Category Hubs)}}}                                                                \\
       LightGCL                              & Graph CL      & \textbf{0.0413} & \textbf{0.0256} & \textbf{0.0710} & \textbf{0.0311} \\
+      LightGCN                              & Graph GNN     & 0.0258          & 0.0145          & 0.0388          & 0.0175          \\
       XSimGCL                               & Graph CL      & 0.0379          & 0.0232          & 0.0643          & 0.0289          \\
       HGN                                   & Hetero GNN    & 0.0299          & 0.0167          & 0.0464          & 0.0198          \\
       HCL                                   & Hetero CL     & 0.0250          & 0.0152          & 0.0471          & 0.0205          \\
@@ -1165,6 +1122,48 @@
     \end{tabularx}
   \end{table}
 \end{frame}
+
+\begin{frame}
+\frametitle{Benchmark Results: Leave-One-Out (Loo100)}
+\textbf{Protocol:} Loo Ranking (99 random + 1 relevant). \\
+\textbf{Focus:} Higher density evaluation for sequential/top-K accuracy.
+
+\vspace{-0.15cm}
+\begin{table}
+  \centering
+  \tiny
+  \setlength{\tabcolsep}{1.5pt}
+  \renewcommand{\arraystretch}{0.95}
+  \begin{tabularx}{\textwidth}{l|c|*4{>{\centering\arraybackslash}X}}
+    \toprule
+    \textbf{Model}                    & \textbf{Type}       & \textbf{R@10}   & \textbf{N@10}   & \textbf{H@10}   & \textbf{MRR}    \\
+    \midrule
+    \multicolumn{6}{l}{\textit{\textbf{Graph G1 (Bipartite)}}}                                                                      \\
+    LightGCL                          & Graph CL            & \textbf{0.3081} & \textbf{0.2021} & \textbf{0.3822} & \textbf{0.2060} \\
+    LightGCN                          & Graph GNN           & 0.2818          & 0.1743          & 0.3595          & 0.1782          \\
+    XSimGCL                           & Graph CL            & 0.3009          & 0.1972          & 0.3787          & 0.2063          \\
+    HGN                               & Hetero GNN          & 0.2740          & 0.1668          & 0.3570          & 0.1750          \\
+    HCL                               & Hetero CL           & 0.2047          & 0.1324          & 0.2802          & 0.1487          \\
+    SimGCL                            & Graph CL            & 0.2129          & 0.1324          & 0.2920          & 0.1426          \\
+    \midrule
+    \multicolumn{6}{l}{\textit{\textbf{Graph G2 (Hetero - User-User)}}}                                                             \\
+    LightGCL                          & Graph CL            & 0.3017          & 0.1986          & 0.3762          & 0.2034          \\
+    LightGCN                          & Graph GNN           & 0.2784          & 0.1727          & 0.3559          & 0.1778          \\
+    XSimGCL                           & Graph CL            & 0.3036          & 0.2002          & 0.3827          & 0.2072          \\
+    \rowcolor{yellow!20} \textbf{HGN} & \textbf{Hetero GNN} & \textbf{0.4364} & \textbf{0.2636} & \textbf{0.5155} & \textbf{0.2518} \\
+    HCL                               & Hetero CL           & 0.2075          & 0.1355          & 0.2838          & 0.1546          \\
+    SimGCL                            & Graph CL            & 0.2132          & 0.1322          & 0.2927          & 0.1434          \\
+    \midrule
+    \multicolumn{6}{l}{\textit{\textbf{Graph G3 (Category Hubs)}}}                                                                  \\
+    LightGCL                          & Graph CL            & 0.3024          & 0.1988          & 0.3753          & 0.2022          \\
+    LightGCN                          & Graph GNN           & 0.2790          & 0.1697          & 0.3588          & 0.1733          \\
+    XSimGCL                           & Graph CL            & 0.2969          & 0.1957          & 0.3726          & 0.2035          \\
+    HGN                               & Hetero GNN          & \textbf{0.3127} & \textbf{0.1957} & \textbf{0.3896} & \textbf{0.1962} \\
+    HCL                               & Hetero CL           & 0.2260          & 0.1492          & 0.2998          & 0.1631          \\
+    SimGCL                            & Graph CL            & 0.2181          & 0.1333          & 0.2998          & 0.1435          \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
 
 \begin{frame}
   \frametitle{Impact of Graph Structure}
