@@ -148,7 +148,7 @@
   \begin{block}{Key Challenges}
     \begin{enumerate}
       \item \textbf{Cold Start:} New users and articles have no interaction history.
-      \item \textbf{Sparse Data:} Most users read very few articles (99.9\% sparsity).
+      \item \textbf{Sparse Data:} Most users read very few articles.
       \item \textbf{Vietnamese Content Processing:} Limited resources and challenges in processing Vietnamese textual content.
       \item \textbf{Temporal Nature of News:} News articles are highly time-sensitive with a short lifespan.
     \end{enumerate}
@@ -403,7 +403,7 @@
         \begin{itemize}
           \item Avg Interactions/User:  2.55
           \item Avg Interactions/Item:  10.99
-          \item $< 3$ interactions: 12489 users (79.6\%)
+                % \item $< 3$ interactions: 12489 users (79.6\%)
         \end{itemize}
       \end{column}
 
@@ -435,7 +435,7 @@
   \centering
   \includegraphics[width=0.98\textwidth]{../plots/eda_03_user_activity_top.png}
   \begin{block}{Distribution Analysis}
-    Article popularity follows Zipf's law. Top 10 users account for 15\% of all interactions.
+    The large disparity in user interaction levels results in highly imbalanced and sparse data, which challenges traditional recommendation approaches.
   \end{block}
 \end{frame}
 
@@ -444,7 +444,7 @@
   \centering
   \includegraphics[width=0.98\textwidth]{../plots/eda_03_user_activity_bottom.png}
   \begin{block}{Power Law Observation}
-    Long-tail distribution: 80\% of users have fewer than 10 interactions.
+    Approximately 20\% of users account for nearly 80\% of the total interactions.
   \end{block}
 \end{frame}
 
@@ -473,11 +473,11 @@
   \end{itemize}
 \end{frame}
 
-\begin{frame}
-  \frametitle{Graph Connectivity \& Density}
-  \centering
-  \includegraphics[height=0.75\textheight,keepaspectratio]{../plots/graph_eda_03_connectivity.png}
-\end{frame}
+% \begin{frame}
+%   \frametitle{Graph Connectivity \& Density}
+%   \centering
+%   \includegraphics[height=0.75\textheight,keepaspectratio]{../plots/graph_eda_03_connectivity.png}
+% \end{frame}
 
 %------------------------------------------------------------
 \section{Motivation: Graph Expansion Strategy}
@@ -485,11 +485,11 @@
 
 \begin{frame}
   \frametitle{The Sparsity Challenge}
-  \textbf{Problem:} Interactions are extremely sparse (99.919\%), making it hard for models to learn.
+  \textbf{Problem:} Interactions are extremely sparse (99.93\%), making it hard for models to learn.
 
   \vspace{0.3cm}
   \begin{block}{Sparsity Calculation}
-    \[ \text{Sparsity} = 1 - \frac{38,505 \text{ (Interactions)}}{13,117 \text{ (Users)} \times 3,645 \text{ (Articles)}} = \mathbf{99.919\%} \]
+    \[ \text{Sparsity} = 1 - \frac{40,045 \text{ (Interactions)}}{15,693 \text{ (Users)} \times 3,645 \text{ (Articles)}} = \mathbf{99.93\%} \]
   \end{block}
 \end{frame}
 
@@ -568,7 +568,7 @@
   \framesubtitle{Enhancing Connectivity via Social Homophily}
   \centering
   \begin{tikzpicture}[scale=0.9, transform shape]
-    % 1. Nodes
+    % Nodes
     \node[user] (u1) at (0, 3) {User 1};
     \node[user] (u2) at (0, 1) {User 2};
     \node[user] (u3) at (0, -1) {User 3};
@@ -577,25 +577,26 @@
     \node[article] (a2) at (6, 1) {Art 2};
     \node[article] (a3) at (6, -1) {Art 3};
 
-    % 2. Edges
+    % Old Edges
     \draw[interact] (u1) -- (a1);
     \draw[interact] (u1) -- (a2);
     \draw[interact] (u2) -- (a2);
     \draw[interact] (u3) -- (a3);
 
-    % 3. NEW SOCIAL EDGES
+    % NEW SOCIAL EDGES
     \draw[social] (u1) to node[midway, left=0.1cm, font=\tiny\bfseries, text=socialorange] {Reply} (u2);
     \draw[social] (u2) to (u3);
 
-    % 4. Annotations
+    % Annotations
     \node[infobox] at (3, -3) {
       \textbf{Structure:} G1 + \textcolor{socialorange}{User-User Edges} \\
       \textbf{Logic:} Users who reply to each other share interests (Homophily). \\
       \textbf{Benefit:} Propagates information between users even without shared articles.
     };
 
-    \node[above=0.2cm of u1, userblue, font=\bfseries] {SOCIAL NETWORK};
-    \node[above=0.2cm of a1, articlegreen, font=\bfseries] {CONTENT};
+    % CẬP NHẬT NHÃN Ở ĐÂY CHO ĐỒNG BỘ
+    \node[above=0.2cm of u1, userblue, font=\bfseries] {USERS (Socially Connected)};
+    \node[above=0.2cm of a1, articlegreen, font=\bfseries] {ARTICLES};
   \end{tikzpicture}
 \end{frame}
 
@@ -1051,7 +1052,7 @@
           \end{itemize}
     \item \textbf{Evaluation Strategy:}
           \begin{itemize}
-            \item \textbf{Full ranking (80/20):} Random user split. Train on 80\% of users, test on 20\% unseen users to measure zero-shot capability.
+            \item \textbf{Full ranking (80/20):} Time user split. Train on 80\% of users, test on 20\% unseen users to measure zero-shot capability.
           \end{itemize}
   \end{itemize}
 \end{frame}
