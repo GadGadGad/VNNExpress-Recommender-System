@@ -1,0 +1,597 @@
+% Compile with XeLaTeX or LuaLaTeX
+% Recommended:
+%   latexmk -xelatex -interaction=nonstopmode -file-line-error report_acl.tex
+% (BibTeX will be run automatically by latexmk)
+
+\documentclass[11pt]{article}
+
+% =========================
+% ACL style (2-column)
+% =========================
+\usepackage[final]{acl}
+
+% =========================
+% Language & Fonts (VN/EN)
+% =========================
+\usepackage[english,bidi=default]{babel}
+\babelprovide[import]{vietnamese}
+
+% Times-like fonts similar to ACL papers; safe mono font (avoid JetBrainsMono missing)
+\babelfont{rm}{TeXGyreTermesX}
+\babelfont{sf}{TeXGyreHeros}
+\babelfont{tt}{Latin Modern Mono}
+\babelfont[*vietnamese]{rm}{TeXGyreTermesX}
+
+% =========================
+% Quality / Lists
+% =========================
+\usepackage{microtype}
+\usepackage{enumitem}
+\setlist{itemsep=2pt,topsep=3pt}
+
+% =========================
+% Math / Tables / Figures
+% =========================
+\usepackage{amsmath,amsfonts,bm}
+\usepackage{graphicx}
+\usepackage{booktabs,multirow,tabularx}
+\usepackage[table]{xcolor}
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf}
+\usepackage{float}
+\usepackage{subcaption}
+
+% Tell LaTeX where to look for assets
+\graphicspath{{figs/}{assets/images/}{../plots/}{../assets/images/}}
+
+% =========================
+% Links
+% =========================
+\usepackage{hyperref}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  urlcolor=blue,
+  citecolor=blue
+}
+
+% =========================
+% TikZ (reuse slide style)
+% =========================
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, shapes.symbols, arrows.meta, positioning, shadows, calc, fit, backgrounds}
+
+\definecolor{userblue}{RGB}{52, 152, 219}
+\definecolor{articlegreen}{RGB}{46, 204, 113}
+\definecolor{socialorange}{RGB}{230, 126, 34}
+\definecolor{cathub}{RGB}{155, 89, 182}
+
+% =========================
+% Bibliography (ACL style: BibTeX + natbib)
+% =========================
+\bibliographystyle{acl_natbib}
+
+% =========================
+% Title
+% =========================
+\title{\textbf{Heterogeneous Graph Learning for Article Recommender System}\\
+\large DS300.Q11 -- Final Project Report}
+\author{
+\textbf{T.~Nhat \quad L.~M.~Nhut \quad N.~H.~Phat}\\
+University of Information Technology (VNU-UIT)\\
+Instructor: Master. Huynh Van Tin
+}
+\date{} % ACL papers typically omit date
+
+% =========================
+% Helper macros (Vietnamese labels)
+% =========================
+\newcommand{\figref}[1]{Hình~\ref{#1}}
+\newcommand{\tabref}[1]{Bảng~\ref{#1}}
+\newcommand{\secref}[1]{Mục~\ref{#1}}
+
+\begin{document}
+\maketitle
+
+\vspace{-0.3cm}
+\begin{abstract}
+\noindent
+Báo cáo này trình bày hệ thống gợi ý bài báo tiếng Việt dựa trên học biểu diễn đồ thị (Graph Representation Learning), tập trung vào xử lý \textbf{tính thưa (sparsity)} và \textbf{cold-start} trong dữ liệu tương tác kiểu bình luận/trả lời trên VnExpress. Chúng tôi xây dựng pipeline thu thập dữ liệu và EDA, thiết kế ba tầng đồ thị \textbf{G1--G3} (mở rộng theo hướng Social và Semantic), benchmark các mô hình SOTA (LightGCN, SimGCL, XSimGCL, LightGCL) và đề xuất mô hình \textbf{HGN} (Heterogeneous GNN đa-aspect) cùng một biến thể \textbf{HCL} (Heterogeneous Contrastive Learning) như thử nghiệm. Đánh giá được thực hiện theo hai protocol: \textbf{Full Ranking Cold-Start} và \textbf{Leave-One-Out (Loo100)} với các metric Recall@10, NDCG@10, Hit@10 và MRR.
+\end{abstract}
+
+% NOTE: ACL-format papers usually do NOT include a table of contents.
+% If your course requires it, you can keep it.
+% \tableofcontents
+\newpage
+
+% ==========================================================
+\section{Project Overview}
+\label{sec:overview}
+
+\subsection{Motivation: Why News Recommendation?}
+Trong kỷ nguyên số, nền tảng tin tức đối mặt với \textbf{information overload}: số lượng bài báo mỗi ngày quá lớn khiến người dùng khó tìm nội dung phù hợp. Hệ thống gợi ý tin tức giúp:
+\begin{itemize}
+  \item \textbf{Cải thiện trải nghiệm:} giảm công sức lọc tin, tăng mức độ hài lòng.
+  \item \textbf{Tăng retention/engagement:} nội dung đúng sở thích tăng tương tác và thời gian ở lại nền tảng.
+  \item \textbf{Tác động kinh doanh:} engagement tốt hơn thường kéo theo doanh thu quảng cáo/subscription tốt hơn.
+\end{itemize}
+
+\subsection{Problem Statement}
+Bài toán: với lịch sử tương tác của user (bình luận/trả lời), hệ thống gợi ý Top-$K$ bài báo liên quan mà user chưa tương tác.
+
+\textbf{Thách thức chính} (đúng theo slides):
+\begin{enumerate}
+  \item \textbf{Cold-start:} user mới / bài mới không có lịch sử.
+  \item \textbf{Sparse data:} đa số user đọc/tương tác rất ít.
+  \item \textbf{Vietnamese NLP:} khó khăn tiền xử lý tiếng Việt, tài nguyên hạn chế.
+  \item \textbf{Temporal nature:} tin có vòng đời ngắn, sở thích thay đổi theo thời gian.
+\end{enumerate}
+
+% ==========================================================
+\section{Dataset Construction and Exploratory Data Analysis}
+\label{sec:data}
+
+\subsection{Data Source and Crawling}
+Nguồn dữ liệu: \textbf{VnExpress.net}. Chúng tôi crawl 6 chuyên mục: \emph{Thế giới}, \emph{Giáo dục}, \emph{Thể thao}, \emph{Thời sự}, \emph{Kinh doanh}, \emph{Khoa học công nghệ}. Việc crawl gồm:
+\begin{itemize}
+  \item \textbf{Articles:} title, short\_description, author, publish date, content.
+  \item \textbf{Metadata:} category, tags.
+  \item \textbf{Comments/Replies:} user IDs, text, reactions, timestamps, reply structure.
+  \item \textbf{User profile:} user id, username, join date (nếu có).
+\end{itemize}
+
+\subsection{Crawler Pipeline}
+\figref{fig:crawler-pipeline} minh họa pipeline crawler giống slide. Bạn có thể giữ nguyên TikZ hoặc thay bằng ảnh chụp từ slide.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+  scale=0.9, transform shape,
+  node distance=0.6cm and 0.9cm,
+  process/.style={
+    rectangle, rounded corners=4pt,
+    minimum width=3.2cm, minimum height=1.0cm,
+    align=center, text=white,
+    font=\scriptsize\bfseries, drop shadow
+  },
+  step1/.style={process, fill=blue!60!cyan},
+  step2/.style={process, fill=red!60!orange},
+  step3/.style={process, fill=purple!60!violet},
+  step4/.style={process, fill=teal!60!green},
+  data/.style={
+    cylinder, shape border rotate=90,
+    draw=gray!80, fill=yellow!10, aspect=0.25,
+    minimum height=0.75cm, minimum width=1.6cm,
+    align=center, font=\tiny\ttfamily,
+    drop shadow={opacity=0.2}
+  },
+  source/.style={
+    cloud, cloud puffs=11,
+    draw=blue!50, fill=blue!5, aspect=2,
+    minimum width=2.0cm, minimum height=1.2cm,
+    align=center, font=\scriptsize\itshape\color{blue!80!black}
+  },
+  arrow/.style={-Stealth, thick, draw=gray!60, rounded corners}
+]
+\node[source] (web) {VnExpress\\Website};
+
+\node[step1, right=0.8cm of web] (s1) {Step 1: Discovery\\(Scanning)};
+\node[data, right=0.6cm of s1] (d1) {articles.csv};
+
+\node[step4, above right=0.2cm and 1.2cm of d1] (s4) {Step 4: Metadata\\(Tags/Category)};
+\node[data, right=0.6cm of s4] (d4) {metadata.csv};
+
+\node[step2, below right=0.2cm and 1.2cm of d1] (s2) {Step 2: Deep Crawl\\(Comments)};
+\node[data, right=0.6cm of s2] (d2) {replies.csv};
+
+\node[step3, below=0.85cm of d2] (s3) {Step 3: Enrichment\\(User Profiles)};
+\node[data, left=0.8cm of s3] (d3) {user\_profiles.csv};
+
+\draw[arrow] (web) -- (s1);
+\draw[arrow] (s1) -- (d1);
+\draw[arrow] (d1.east) -- ++(0.35,0) |- (s4.west);
+\draw[arrow] (d1.east) -- ++(0.35,0) |- (s2.west);
+\draw[arrow] (s4) -- (d4);
+\draw[arrow] (s2) -- (d2);
+\draw[arrow] (d2.south) -- (s3.north);
+\draw[arrow] (s3) -- (d3);
+
+\node[text=gray, font=\tiny, align=center, below=0.08cm of s1] {Input: Categories};
+\node[text=gray, font=\tiny, align=center, below=0.05cm of s4] {Selenium (Stealth)};
+\node[text=gray, font=\tiny, align=center, below=0.05cm of s2] {Selenium (Single)};
+\node[text=gray, font=\tiny, align=center, below=0.1cm of s3] {Playwright};
+\end{tikzpicture}
+\caption{VnExpress crawler pipeline: discovery URL, deep crawl comments/replies, enrich user profile và thu metadata.}
+\label{fig:crawler-pipeline}
+\end{figure}
+
+\subsection{Dataset Schema}
+Dataset được chuẩn hóa thành 4 bảng (khớp slide):
+\begin{itemize}
+  \item \textbf{Articles:} \texttt{article\_id, url, title, short\_description, author, published\_at, content}.
+  \item \textbf{Metadata:} \texttt{article\_url, category, tags}.
+  \item \textbf{Replies:} \texttt{article\_url, parent\_user\_id, parent\_text, ..., reply\_user\_id, reply\_text}.
+  \item \textbf{User Profiles:} \texttt{user\_id, username, join\_date}.
+\end{itemize}
+
+\subsection{Dataset Summary}
+Theo thống kê trong slide:
+\begin{itemize}
+  \item \textbf{3,645 Articles} (6 categories)
+  \item \textbf{15,693 Users}
+  \item \textbf{40,045 Comments/Interactions}
+  \item Avg interactions/user $\approx 2.55$, Avg interactions/item $\approx 10.99$
+\end{itemize}
+
+\subsection{Sparsity Calculation}
+\begin{equation}
+\text{Sparsity} = 1 - \frac{40{,}045}{15{,}693 \times 3{,}645} \approx 99.93\%.
+\end{equation}
+Hệ quả: đồ thị user--article rất thưa, khó lan truyền thông tin (high cold-start risk). Đây là động lực chính cho chiến lược mở rộng đồ thị ở \secref{sec:graph}.
+
+\subsection{EDA Figures (assets from slides)}
+Bên dưới là các asset/plot giống slide. Nếu compile không thấy hình, hãy copy các ảnh này vào thư mục \texttt{figs/} (xem README đi kèm).
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{eda_00_summary_dashboard.png}
+\caption{EDA summary dashboard. (Nguồn: ../plots/eda\_00\_summary\_dashboard.png)}
+\label{fig:eda-summary}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{eda_09_metadata_categories.png}
+\caption{Category distribution. (Nguồn: ../plots/eda\_09\_metadata\_categories.png)}
+\label{fig:eda-category}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{eda_03_user_activity_top.png}
+\caption{User engagement patterns (1/2). (Nguồn: ../plots/eda\_03\_user\_activity\_top.png)}
+\label{fig:eda-user-top}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{eda_03_user_activity_bottom.png}
+\caption{User engagement patterns (2/2). (Nguồn: ../plots/eda\_03\_user\_activity\_bottom.png)}
+\label{fig:eda-user-bottom}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{eda_11_engagement_by_category.png}
+\caption{Engagement by category. (Nguồn: ../plots/eda\_11\_engagement\_by\_category.png)}
+\label{fig:eda-eng-by-cat}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{graph_eda_01_degree_distribution.png}
+\caption{Graph degree distribution. (Nguồn: ../plots/graph\_eda\_01\_degree\_distribution.png)}
+\label{fig:graph-degree}
+\end{figure}
+
+% ==========================================================
+\section{Motivation: Graph Expansion Strategy}
+\label{sec:graph}
+
+\subsection{Core Idea}
+Với sparsity cực cao, mô hình chỉ dựa trên tương tác user--article (G1) khó học được embedding tốt cho user có ít tương tác. Do đó, chúng tôi \textbf{enrich graph} theo 3 tầng để kiểm soát chất lượng tín hiệu:
+
+\begin{itemize}
+  \item \textbf{G1 --- Bipartite baseline:} chuẩn collaborative filtering.
+  \item \textbf{G2 --- Social expansion:} thêm user--user edges dựa trên reply (homophily).
+  \item \textbf{G3 --- Semantic expansion:} thêm category nodes như hub để rút ngắn path.
+\end{itemize}
+
+\subsection{Graph Definitions}
+\paragraph{G1 (User--Article).}
+$V = \{U, A\}$, $E=\{E_{ua}\}$. Mỗi cạnh biểu diễn một tương tác (comment/reply vào bài).
+
+\paragraph{G2 (Add Social Reply).}
+$V = \{U, A\}$, $E=\{E_{ua}, E_{uu}\}$. $E_{uu}$ được tạo từ quan hệ reply giữa hai user trong cùng thread.
+
+\paragraph{G3 (Add Category Hub).}
+$V = \{U, A, C\}$, $E=\{E_{ua}, E_{uu}, E_{ac}, E_{uc}\}$ (tuỳ cách bạn thiết kế; slide đang nhấn mạnh C như hub).
+
+\subsection{Interpretation}
+\textbf{G2} kỳ vọng tăng chất lượng lan truyền sở thích nhờ social homophily: user tương tác với nhau có thể cùng quan tâm chủ đề. \textbf{G3} tăng density nhưng có thể \emph{dilute} sở thích vì category quá rộng.
+
+% ==========================================================
+\section{Baselines (SOTA)}
+\label{sec:sota}
+
+\subsection{Models}
+Chúng tôi benchmark 3 nhóm:
+\begin{enumerate}
+  \item \textbf{Graph GNN:} LightGCN~\cite{he2020lightgcn}.
+  \item \textbf{Graph Contrastive:} SimGCL~\cite{yu2022graph}, XSimGCL~\cite{yu2023xsimgcl}, LightGCL~\cite{cai2023lightgcl}.
+  \item \textbf{Content-based:} TF-IDF và PhoBERT (embedding ngữ nghĩa tiếng Việt).
+\end{enumerate}
+
+\subsection{Short Technical Summary}
+\paragraph{LightGCN.}
+Loại bỏ phi tuyến và weight matrix trong GCN, chỉ giữ message passing tuyến tính và average nhiều lớp:
+\[
+\mathbf{E}^{(k)} = \hat{\mathbf{A}} \mathbf{E}^{(k-1)}, \quad
+\mathbf{E}^{*}=\sum_{k=0}^{K}\alpha_k \mathbf{E}^{(k)}.
+\]
+
+\paragraph{SimGCL / XSimGCL.}
+Thay vì augment đồ thị, hai phương pháp thêm nhiễu vào embedding trong quá trình lan truyền và tối ưu InfoNCE để tạo representation robust khi sparse.
+
+\paragraph{LightGCL.}
+Bổ sung global context (ví dụ khai thác SVD/low-rank structure) để vượt hạn chế local neighbors.
+
+% ==========================================================
+\section{Proposed Method: Heterogeneous Graph Learning}
+\label{sec:method}
+
+\subsection{Motivation: Why Heterogeneous GNN?}
+Các GNN dạng homogeneous xem mọi cạnh như nhau, nhưng trong dữ liệu VnExpress:
+\begin{itemize}
+  \item \textbf{User--Comment--Article} thể hiện \emph{explicit interest}.
+  \item \textbf{User--Reply--User} thể hiện \emph{social influence/trust}.
+\end{itemize}
+Nếu trộn chung, mô hình có thể học sai loại tín hiệu (``Reply'' bị coi như ``Comment''). Do đó, ta cần tách từng quan hệ và fuse sau.
+
+\subsection{HGN (Ours): Multi-Aspect Heterogeneous GNN}
+Ý tưởng HGN kế thừa trực giác từ HGRec~\cite{shi2020hgrec} nhưng tối ưu theo pipeline của dự án:
+
+\begin{itemize}
+  \item \textbf{Dual-path propagation:}
+  \begin{itemize}
+    \item \emph{Interest path:} lan truyền trên $\mathcal{G}_{u-a}$.
+    \item \emph{Social path:} lan truyền trên $\mathcal{G}_{u-u}$.
+  \end{itemize}
+  \item \textbf{Fusion:} cộng hoặc attention fusion (tuỳ bạn triển khai). Slide đang dùng sum.
+  \item \textbf{Backbone GNN:} so sánh GAT, GraphSAGE, TransformerConv.
+\end{itemize}
+
+\paragraph{Fusion (theo slide).}
+\[
+\mathbf{h}_u = \mathbf{h}_{int} + \mathbf{h}_{soc}.
+\]
+
+\subsection{HCL (Ours): Heterogeneous Contrastive Learning (Failed)}
+HCL cố gắng kết hợp heterogeneity với contrastive learning (BPR + InfoNCE). Trong setting thưa và cold-start, HCL không ổn định (theo kết quả slide). Báo cáo vẫn giữ HCL như một thử nghiệm để rút ra bài học về:
+\begin{itemize}
+  \item nhạy cảm hyper-parameter,
+  \item sampling negatives,
+  \item noise/temperature trong InfoNCE.
+\end{itemize}
+
+% ==========================================================
+\section{Experimental Setup}
+\label{sec:exp}
+
+\subsection{Training}
+Theo slide:
+\begin{itemize}
+  \item Epochs: 100, Batch size: 2048.
+  \item Loss: BPR; CL models thêm InfoNCE.
+\end{itemize}
+
+\subsection{Evaluation Protocols}
+\paragraph{Full Ranking (Cold-Start).}
+Split user 80/20 (random). Với user test, rank toàn bộ bài và tính Recall/NDCG/Hit/MRR.
+
+\paragraph{Leave-One-Out (Loo100).}
+Với mỗi user test: 1 positive + 99 negatives random. Đánh giá độ nhạy ranking trong điều kiện ``nhiễu vừa phải''.
+
+\subsection{Metrics}
+\begin{itemize}
+  \item \textbf{Recall@10}: độ phủ của top-10.
+  \item \textbf{Hit@10}: có/không item đúng trong top-10.
+  \item \textbf{NDCG@10}: thưởng cho item đúng ở vị trí cao.
+  \item \textbf{MRR}: phù hợp single-target retrieval.
+\end{itemize}
+
+% ==========================================================
+\section{Results and Analysis}
+\label{sec:results}
+
+\subsection{Full Ranking Results}
+\begin{table}[t]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.02}
+\begin{tabular}{l l c c c c}
+\toprule
+\textbf{Model} & \textbf{Type} & \textbf{R@10} & \textbf{N@10} & \textbf{H@10} & \textbf{MRR} \\
+\midrule
+\multicolumn{6}{l}{\textit{Content-Based / Baselines}}\\
+PhoBERT & CB & \textbf{0.0535} & \textbf{0.0315} & \textbf{0.0929} & \textbf{0.0416} \\
+TF-IDF  & CB & 0.0508 & 0.0301 & 0.0951 & 0.0394 \\
+\midrule
+\multicolumn{6}{l}{\textit{Graph G1 (Bipartite)}}\\
+LightGCL  & Graph CL & 0.0398 & 0.0249 & 0.0685 & 0.0313 \\
+LightGCN  & Graph GNN& 0.0263 & 0.0145 & 0.0400 & 0.0174 \\
+XSimGCL   & Graph CL & \textbf{0.0439} & \textbf{0.0253} & \textbf{0.0694} & \textbf{0.0289} \\
+HGN       & Hetero GNN & 0.0262 & 0.0147 & 0.0451 & 0.0182 \\
+HCL       & Hetero CL  & 0.0259 & 0.0164 & 0.0471 & 0.0214 \\
+SimGCL    & Graph CL & 0.0191 & 0.0115 & 0.0275 & 0.0135 \\
+\midrule
+\multicolumn{6}{l}{\textit{Graph G2 (Hetero - User--User)}}\\
+LightGCL  & Graph CL & \textbf{0.0436} & \textbf{0.0261} & \textbf{0.0739} & \textbf{0.0313} \\
+LightGCN  & Graph GNN& 0.0272 & 0.0156 & 0.0404 & 0.0186 \\
+XSimGCL   & Graph CL & 0.0432 & 0.0260 & 0.0688 & 0.0303 \\
+HGN       & Hetero GNN & 0.0369 & 0.0201 & 0.0596 & 0.0250 \\
+HCL       & Hetero CL  & 0.0320 & 0.0192 & 0.0520 & 0.0233 \\
+SimGCL    & Graph CL & 0.0228 & 0.0131 & 0.0312 & 0.0144 \\
+\midrule
+\multicolumn{6}{l}{\textit{Graph G3 (Category Hubs)}}\\
+LightGCL  & Graph CL & \textbf{0.0413} & \textbf{0.0256} & \textbf{0.0710} & \textbf{0.0311} \\
+LightGCN  & Graph GNN& 0.0258 & 0.0145 & 0.0388 & 0.0175 \\
+XSimGCL   & Graph CL & 0.0379 & 0.0232 & 0.0643 & 0.0289 \\
+HGN       & Hetero GNN & 0.0299 & 0.0167 & 0.0464 & 0.0198 \\
+HCL       & Hetero CL  & 0.0250 & 0.0152 & 0.0471 & 0.0205 \\
+SimGCL    & Graph CL & 0.0222 & 0.0122 & 0.0322 & 0.0137 \\
+\bottomrule
+\end{tabular}
+\caption{Full Ranking benchmark (80/20 user split) -- số liệu theo slide.}
+\label{tab:full-ranking}
+\end{table}
+
+\paragraph{Nhận xét.}
+Trong Full Ranking, content-based (PhoBERT/TF-IDF) cạnh tranh mạnh do protocol nhấn vào cold-start. Với graph-based, G2 nhìn chung cải thiện so với G1 vì thêm social edges giúp lan truyền thông tin tốt hơn, nhưng G3 có thể làm loãng sở thích cá nhân do category quá rộng.
+
+\subsection{Loo100 Results}
+\begin{table}[t]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.02}
+\begin{tabular}{l l c c c c}
+\toprule
+\textbf{Model} & \textbf{Type} & \textbf{R@10} & \textbf{N@10} & \textbf{H@10} & \textbf{MRR} \\
+\midrule
+\multicolumn{6}{l}{\textit{Graph G1 (Bipartite)}}\\
+LightGCL  & Graph CL & \textbf{0.3081} & \textbf{0.2021} & \textbf{0.3822} & \textbf{0.2060} \\
+LightGCN  & Graph GNN& 0.2818 & 0.1743 & 0.3595 & 0.1782 \\
+XSimGCL   & Graph CL & 0.3009 & 0.1972 & 0.3787 & 0.2063 \\
+HGN       & Hetero GNN & 0.2740 & 0.1668 & 0.3570 & 0.1750 \\
+HCL       & Hetero CL  & 0.2047 & 0.1324 & 0.2802 & 0.1487 \\
+SimGCL    & Graph CL & 0.2129 & 0.1324 & 0.2920 & 0.1426 \\
+\midrule
+\multicolumn{6}{l}{\textit{Graph G2 (Hetero - User--User)}}\\
+LightGCL  & Graph CL & 0.3017 & 0.1986 & 0.3762 & 0.2034 \\
+LightGCN  & Graph GNN& 0.2784 & 0.1727 & 0.3559 & 0.1778 \\
+XSimGCL   & Graph CL & 0.3036 & 0.2002 & 0.3827 & 0.2072 \\
+HGN       & Hetero GNN & \textbf{0.4364} & \textbf{0.2636} & \textbf{0.5155} & \textbf{0.2518} \\
+HCL       & Hetero CL  & 0.2075 & 0.1355 & 0.2838 & 0.1546 \\
+SimGCL    & Graph CL & 0.2132 & 0.1322 & 0.2927 & 0.1434 \\
+\midrule
+\multicolumn{6}{l}{\textit{Graph G3 (Category Hubs)}}\\
+LightGCL  & Graph CL & 0.3024 & 0.1988 & 0.3753 & 0.2022 \\
+LightGCN  & Graph GNN& 0.2790 & 0.1697 & 0.3588 & 0.1733 \\
+XSimGCL   & Graph CL & 0.2969 & 0.1957 & 0.3726 & 0.2035 \\
+HGN       & Hetero GNN & \textbf{0.3127} & \textbf{0.1957} & \textbf{0.3896} & \textbf{0.1962} \\
+HCL       & Hetero CL  & 0.2260 & 0.1492 & 0.2998 & 0.1631 \\
+SimGCL    & Graph CL & 0.2181 & 0.1333 & 0.2998 & 0.1435 \\
+\bottomrule
+\end{tabular}
+\caption{Leave-One-Out (Loo100) -- số liệu theo slide.}
+\label{tab:loo100}
+\end{table}
+
+\paragraph{Nhận xét.}
+Điểm nổi bật là HGN trên G2 đạt Recall@10 = 0.4364 (tăng mạnh), cho thấy \textbf{social edges} cung cấp tín hiệu chất lượng giúp phân biệt positive/negative rõ hơn trong setting Loo100.
+
+\subsection{Impact of Graph Structure}
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{l p{5.8cm} c}
+\toprule
+\textbf{Graph} & \textbf{Structure Stats (theo slide)} & \textbf{R@10 (HGN)}\\
+\midrule
+G1 & 13k Users, 30k Edges; Density: 0.06\% & 0.0262\\
+\textbf{G2} & \textbf{+61k Social Edges}; Density: 0.064\% & \textbf{0.0369}\\
+G3 & +6 Categories; 16k User-Cat Edges; Density: 0.096\% & 0.0299\\
+\bottomrule
+\end{tabular}
+\caption{Impact of topology: denser không luôn tốt hơn; chất lượng tín hiệu quyết định.}
+\label{tab:impact-graph}
+\end{table}
+
+\subsection{Efficiency Analysis}
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.06}
+\begin{tabular}{l c c c c}
+\toprule
+\textbf{Model} & \textbf{Params} & \textbf{Time (G1)} & \textbf{Time (G2)} & \textbf{Time (G3)}\\
+\midrule
+SimGCL  & 1,072,768 & 00:47 & 00:46 & 00:45\\
+XSimGCL & 1,072,770 & \textbf{00:35} & \textbf{00:33} & \textbf{00:34}\\
+LightGCL& 1,072,768 & 00:46 & 00:45 & 00:45\\
+\midrule
+MA-HCL  & 1,072,770 & 00:47 & 01:10 & 00:37\\
+MA-HGN  & 1,273,986 & 01:29 & 02:23 & 00:35\\
+\bottomrule
+\end{tabular}
+\caption{Training time/epoch và số tham số (theo slide).}
+\label{tab:efficiency}
+\end{table}
+
+\subsection{Ablation Studies}
+\paragraph{Meta-path / edge-type.}
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{l c c l}
+\toprule
+\textbf{Configuration} & \textbf{Recall@10} & \textbf{Drop (\%)} & \textbf{Insight}\\
+\midrule
+Full Graph (G2) & \textbf{0.0369} & - & Best performance\\
+w/o Social & 0.0293 & -20.6\% & Social alignment is critical\\
+w/o Category & 0.0227 & -38.5\% & Category provides broad signal\\
+\bottomrule
+\end{tabular}
+\caption{Ablation theo slide.}
+\label{tab:ablation-metapath}
+\end{table}
+
+\paragraph{GNN depth.}
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{l c c c c}
+\toprule
+\textbf{Model} & \textbf{L=1} & \textbf{L=2} & \textbf{L=3} & \textbf{L=4}\\
+\midrule
+LightGCL & 0.032 & 0.040 & 0.043 & 0.042\\
+XSimGCL  & 0.028 & 0.035 & 0.039 & 0.041\\
+LightGCN & 0.031 & 0.026 & 0.022 & 0.019\\
+HGN      & 0.033 & 0.032 & 0.026 & 0.028\\
+HCL      & 0.020 & 0.010 & 0.007 & 0.009\\
+SimGCL   & 0.024 & 0.027 & 0.021 & 0.023\\
+\bottomrule
+\end{tabular}
+\caption{Ablation độ sâu theo slide.}
+\label{tab:ablation-depth}
+\end{table}
+
+\subsection{Performance Justification vs Standard Benchmarks}
+\begin{itemize}
+  \item Dataset càng thưa, Recall@K kỳ vọng càng thấp.
+  \item Với density của bạn ($\approx 0.064\%$ ở G2), kết quả graph-based ở mức vài \% trong Full Ranking là hợp lý.
+\end{itemize}
+
+% ==========================================================
+\section{Conclusion and Future Work}
+\label{sec:conclusion}
+
+\subsection{Conclusion}
+\begin{itemize}
+  \item Hoàn thiện pipeline end-to-end cho gợi ý tin tức tiếng Việt dựa trên học đồ thị.
+  \item Social expansion (G2) là tín hiệu hữu ích, giúp HGN cải thiện mạnh trong Loo100.
+  \item Trong Full Ranking cold-start, content-based vẫn rất mạnh; hybrid có thể là hướng triển khai thực tế.
+\end{itemize}
+
+\subsection{Limitations}
+\begin{itemize}
+  \item Dữ liệu dựa trên comment/reply có thể bias (nhiều người đọc nhưng không bình luận).
+  \item Mô hình đồ thị tốn compute ở graph hetero dày (G2).
+  \item Chưa xử lý online/dynamic update khi bài mới xuất hiện.
+\end{itemize}
+
+\subsection{Future Directions (theo slide)}
+\begin{itemize}
+  \item \textbf{Dynamic graph learning:} bắt kịp sở thích theo thời gian.
+  \item \textbf{More meta-paths:} mở rộng node/edge (tags/author/entity) nếu có metadata.
+  \item \textbf{Self-supervised learning:} thiết kế SSL ổn định hơn cho sparse regime.
+  \item \textbf{Knowledge distillation:} nén model để inference nhanh.
+\end{itemize}
+
+\section*{References}
+\bibliography{references}
+
+\end{document}
