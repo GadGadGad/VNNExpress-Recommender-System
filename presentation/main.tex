@@ -464,8 +464,23 @@
 
 \begin{frame}
   \frametitle{Graph Degree Distribution}
-  \centering
-  \includegraphics[width=0.98\textwidth]{../plots/graph_eda_01_degree_distribution.png}
+
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.5\textwidth}
+      \centering
+      \includegraphics[width=\linewidth]{../plots/users_dis.png}
+      \vspace{0.1cm}
+      \scriptsize \textbf{Users}
+    \end{column}
+
+    \begin{column}{0.5\textwidth}
+      \centering
+      \includegraphics[width=\linewidth]{../plots/articles_dis.png}
+      \vspace{0.1cm}
+      \scriptsize \textbf{Articles}
+    \end{column}
+  \end{columns}
+
   \vspace{0.2cm}
   \begin{itemize}
     \item User degrees peak at very low values (high cold-start risk).
@@ -484,17 +499,7 @@
 %------------------------------------------------------------
 
 \begin{frame}
-  \frametitle{The Sparsity Challenge}
-  \textbf{Problem:} Interactions are extremely sparse (99.93\%), making it hard for models to learn.
-
-  \vspace{0.3cm}
-  \begin{block}{Sparsity Calculation}
-    \[ \text{Sparsity} = 1 - \frac{40,045 \text{ (Interactions)}}{15,693 \text{ (Users)} \times 3,645 \text{ (Articles)}} = \mathbf{99.93\%} \]
-  \end{block}
-\end{frame}
-
-\begin{frame}
-  \frametitle{Solution: Expanding the Graph Structure}
+  \frametitle {Graph Structure}
 
   \begin{block}{Core Idea}
     To alleviate extreme sparsity, we \textbf{progressively enrich the interaction graph}.
@@ -562,6 +567,16 @@
   \end{tikzpicture}
 \end{frame}
 
+\begin{frame}
+  \frametitle{The Sparsity Challenge}
+  \textbf{Problem:} Interactions are extremely sparse (99.93\%), making it hard for models to learn.
+
+  \vspace{0.3cm}
+  \begin{block}{Sparsity Calculation}
+      \[ \text{Sparsity} = 1 - \frac{40,045 \text{ (Interactions)}}{15,693 \text{ (Users)} \times 3,645 \text{ (Articles)}} = \mathbf{99.93\%} \]
+  \end{block}
+\end{frame}
+
 % --- SLIDE 2: GRAPH G2 (SOCIAL) ---
 \begin{frame}
   \frametitle{Method 2: Heterogeneous Social Graph (G2)}
@@ -600,43 +615,41 @@
   \end{tikzpicture}
 \end{frame}
 
-\begin{frame}
-  \frametitle{Core Innovation: Social Fusion (Graph G2)}
-  \textbf{Idea:} Use the "Reply Network" to bridge gaps between users.
+% \begin{frame}
+%   \frametitle{Core Innovation: Social Fusion (Graph G2)}
+%   \textbf{Idea:} Use the "Reply Network" to bridge gaps between users.
 
-  \vspace{0.3cm}
-  \begin{columns}
-    \begin{column}{0.5\textwidth}
-      \centering
-      \begin{tikzpicture}[node distance=1.5cm, every node/.style={scale=0.7}]
-        \node[circle, draw, fill=blue!20] (U1) {User A};
-        \node[circle, draw, fill=blue!20, right of=U1, xshift=1cm] (U2) {User B};
-        \node[rectangle, draw, fill=green!20, below of=U1] (A1) {Article 1};
-        \node[rectangle, draw, fill=green!20, below of=U2] (A2) {Article 2};
+%   \vspace{0.3cm}
+%   \begin{columns}
+%     \column{0.5\textwidth}
+%     \centering
+%     \begin{tikzpicture}[node distance=1.5cm, every node/.style={scale=0.7}]
+%       \node[circle, draw, fill=blue!20] (U1) {User A};
+%       \node[circle, draw, fill=blue!20, right of=U1, xshift=1cm] (U2) {User B};
+%       \node[rectangle, draw, fill=green!20, below of=U1] (A1) {Article 1};
+%       \node[rectangle, draw, fill=green!20, below of=U2] (A2) {Article 2};
 
-        \draw[->, thick] (U1) -- (A1) node[midway, left, font=\footnotesize] {Read};
-        \draw[->, thick, red, dashed] (U1) -- (U2) node[midway, above, font=\footnotesize] {Reply};
-        \draw[->, thick] (U2) -- (A2) node[midway, right, font=\footnotesize] {Read};
+%       \draw[->, thick] (U1) -- (A1) node[midway, left] {Read};
+%       \draw[->, thick, red, dashed] (U1) -- (U2) node[midway, above] {Reply};
+%       \draw[->, thick] (U2) -- (A2) node[midway, right] {Read};
 
-        \draw[->, blue, dotted, bend left] (U1) to node[midway, below, font=\footnotesize] {Suggest?} (A2);
-      \end{tikzpicture}
+%       \draw[->, blue, dotted, bend left] (U1) to node[midway, below] {Suggest?} (A2);
+%     \end{tikzpicture}
 
-    \end{column}
-    \begin{column}{0.5\textwidth}
-      \textbf{The Logic:}
-      \begin{itemize}
-        \item \textbf{Direct:} User A likes Article 1.
-        \item \textbf{Social:} User A replies to User B $\rightarrow$ \textit{Shared Interest}.
-        \item \textbf{Inference:} User A is likely to enjoy Article 2 (read by B).
-      \end{itemize}
-    \end{column}
-  \end{columns}
+%     \column{0.5\textwidth}
+%     \textbf{The Logic:}
+%     \begin{itemize}
+%       \item \textbf{Direct:} User A likes Article 1.
+%       \item \textbf{Social:} User A replies to User B $\rightarrow$ \textit{Shared Interest}.
+%       \item \textbf{Inference:} User A is likely to enjoy Article 2 (read by B).
+%     \end{itemize}
+%   \end{columns}
 
-  \vspace{0.4cm}
-  \begin{block}{Impact on Sparsity}
-    By adding User-User edges (G2), the GNN can propagate "interests" even if User A has only read 1 article.
-  \end{block}
-\end{frame}
+%   \vspace{0.4cm}
+%   \begin{block}{Impact on Sparsity}
+%     By adding User-User edges (G2), the GNN can propagate "interests" even if User A has only read 1 article.
+%   \end{block}
+% \end{frame}
 
 % --- SLIDE 3: GRAPH G3 (SEMANTIC) ---
 \begin{frame}
@@ -681,6 +694,65 @@
   \end{tikzpicture}
 \end{frame}
 
+% \begin{frame}
+%     \frametitle{Graph Topology: A Heterogeneous Network}
+%     \centering
+%     \includegraphics[height=0.9\textheight]{../plots/graph_network_topology.png}
+%     \vspace{0.1cm}
+%     % \begin{itemize}
+%     %     \item \color{blue} \textbf{Blue Nodes:} \color{black} Active Users
+%     %     \item \color{green!60!black} \textbf{Green Nodes:} \color{black} News Articles
+%     %     \item \color{red} \textbf{Dashed Edges:} \color{black} Social Reply interactions
+%     % \end{itemize}
+% \end{frame}
+% --- SINGLE SLIDE: PROBLEM + SOLUTION ---
+\begin{frame}
+  \frametitle{Temporal Data Splitting for News Recommendation}
+
+  % --- BLOCK 1: PROBLEM ---
+  \begin{alertblock}{Problem: Random Split Causes Data Leakage}
+    In news recommendation, random data splitting violates temporal causality by
+    allowing models to train on \textbf{future user interactions}, leading to
+    unrealistic and over-optimistic evaluation results.
+  \end{alertblock}
+
+  % --- BLOCK 2: SOLUTION ---
+  \begin{exampleblock}{Solution: Global Temporal Split}
+    We apply a \textbf{strict chronological split}, where training uses only past
+    interactions and evaluation is performed exclusively on future data, ensuring
+    realistic and causal recommendation.
+  \end{exampleblock}
+
+  \vspace{0.4cm}
+
+  % --- TIMELINE FIGURE (UNCHANGED) ---
+  \centering
+  \begin{tikzpicture}[scale=0.9, transform shape]
+      % Timeline arrow
+      \draw[->, ultra thick, gray] (0,0) -- (11,0) node[right, font=\bfseries] {Time ($t$)};
+      
+      % Training segment
+      \shade[left color=blue!10, right color=blue!40] (0,0.1) rectangle (8.0,0.8);
+      \node[blue!40!black] at (4.0, 0.45) {\textbf{Training Set (80\%)}};
+      \node[below, font=\scriptsize, align=center, text=gray] at (4.0, 0) {Past Data};
+
+      % Test segment
+      \shade[left color=orange!30, right color=orange!60] (8.1,0.1) rectangle (10.5,0.8);
+      \node[orange!40!black] at (9.3, 0.45) {\textbf{Test Set (20\%)}};
+      \node[below, font=\scriptsize, align=center, text=gray] at (9.3, 0) {Future Data};
+
+      % Split point
+      \draw[dashed, red, ultra thick] (8.05, -0.4) -- (8.05, 1.2);
+      \node[red, font=\bfseries\scriptsize, fill=white, inner sep=2pt] 
+          at (8.05, 1.35) {$T_{split}$};
+
+      % Causality arrow
+      \draw[->, thick, blue!80!black, bend left=30]
+          (4.0, 0.9) to node[midway, above, font=\tiny\itshape] {Predicts} (9.3, 0.9);
+  \end{tikzpicture}
+
+\end{frame}
+
 %------------------------------------------------------------
 \section{State-of-the-Art (SOTA) Baselines}
 %------------------------------------------------------------
@@ -691,8 +763,6 @@
   \begin{enumerate}
     \item \textbf{Graph Neural Networks (GNNs):}
           \begin{itemize}
-            \item \textbf{LightGCL \cite{cai2023lightgcl} (2023):} Efficient Global Context Learning via SVD for better structural alignment.
-            \item \textbf{XSimGCL \cite{yu2023xsimgcl} (2023):} Extreme Simple Graph Contrastive Learning using noise perturbation instead of graph augmentation.
             \item \textbf{LightGCN \cite{he2020lightgcn} (2020):} Simplified GCN by removing non-linearities. Current industry standard for efficiency.
           \end{itemize}
 
@@ -700,6 +770,8 @@
     \item \textbf{Contrastive Learning (CL):}
           \begin{itemize}
             \item \textbf{SimGCL \cite{yu2022graph} (2022):} Augments graph structure with noise to learn robust representations. Handles sparsity better than pure GNNs.
+            \item \item \textbf{LightGCL \cite{cai2023lightgcl} (2023):} Efficient Global Context Learning via SVD for better structural alignment.
+            \item \textbf{XSimGCL \cite{yu2023xsimgcl} (2023):} Extreme Simple Graph Contrastive Learning using noise perturbation instead of graph augmentation.
           \end{itemize}
 
           \vspace{0.2cm}
@@ -837,7 +909,7 @@
 %------------------------------------------------------------
 
 \begin{frame}
-  \frametitle{Inspiration & Theoretical Foundation}
+  \frametitle{Inspiration \& Theoretical Foundation}
   \textbf{Where did this idea come from?}
   Our architecture is an adaptation of the \textbf{HGRec} framework \cite{shi2020hgrec}, optimized with LightGCN \cite{he2020lightgcn} mechanics.
 
@@ -1027,7 +1099,7 @@
     \item \textbf{Strict G3:} Hetero (+ Category)
   \end{itemize}
 \end{column}
-</columns}
+\end{columns}
 
 \vspace{0.3cm}
 \end{frame}
@@ -1087,7 +1159,7 @@
     \centering
     \tiny
     \setlength{\tabcolsep}{1.5pt}
-    \renewcommand{\arraystretch}{0.95}
+    \renewcommand{\arraystretch}{0.9}
     \begin{tabularx}{\textwidth}{l|c|*4{>{\centering\arraybackslash}X}}
       \toprule
       \textbf{Model}                        & \textbf{Type} & \textbf{R@10}   & \textbf{N@10}   & \textbf{H@10}   & \textbf{MRR}    \\
@@ -1165,6 +1237,7 @@
     \bottomrule
   \end{tabularx}
 \end{table}
+\end{frame}
 
 \begin{frame}
   \frametitle{Impact of Graph Structure}

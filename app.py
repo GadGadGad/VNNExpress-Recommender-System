@@ -107,7 +107,7 @@ def discover_trained_models():
     # 1. Discover CF Models (GNNs)
     # Search root models/ and any subdirs (like models/models/ from unzipped results)
     search_dirs = [MODELS_DIR, os.path.join(MODELS_DIR, "models")]
-    cf_catalog = ["MA-HCL", "SimGCL", "XSimGCL", "LightGCL", "Sim-MAHGN"]
+    cf_catalog = ["MA-HCL", "SimGCL", "XSimGCL", "LightGCL"]
     
     found_cf = set()
     found_variants = set()
@@ -703,8 +703,8 @@ def load_cf_model(model_name, n_users, n_items, graph_name=None):
             from src.models.xsimgcl import XSimGCL as ModelClass
         elif model_name.lower() == 'ma-hcl':
             from src.models.ma_hcl import MAHCL as ModelClass
-        elif model_name.lower() == 'sim-mahgn':
-            from src.models.sim_mahgn import SimMAHGN as ModelClass
+        # elif model_name.lower() == 'sim-mahgn':
+        #     from src.models.sim_mahgn import SimMAHGN as ModelClass
         else:
             return None
 
@@ -841,15 +841,15 @@ def load_cf_model(model_name, n_users, n_items, graph_name=None):
                 n_categories=config.get('n_categories', 0)
             )
 
-        elif model_name.lower() == 'sim-mahgn':
-            model = ModelClass(
-                n_users=n_users, 
-                n_items=n_items, 
-                embedding_dim=dim, 
-                n_layers=config.get('n_layers', 3),
-                n_categories=config.get('n_categories', 0),
-                heads=config.get('heads', 2)
-            )
+        # elif model_name.lower() == 'sim-mahgn':
+        #     model = ModelClass(
+        #         n_users=n_users, 
+        #         n_items=n_items, 
+        #         embedding_dim=dim, 
+        #         n_layers=config.get('n_layers', 3),
+        #         n_categories=config.get('n_categories', 0),
+        #         heads=config.get('heads', 2)
+        #     )
              
         try:
              model.load_state_dict(state_dict, strict=False)
@@ -1244,15 +1244,43 @@ def main():
             all_cats = sorted(articles_df['source_category'].dropna().unique().tolist())
             selected_cats = st.multiselect("Chủ đề:", [c for c in all_cats if c in CATEGORY_MAP], format_func=lambda x: CATEGORY_MAP.get(x, x))
             if st.button("🚀 Tạo Profile"):
-                mask = pd.Series([True] * len(articles_df))
-                if selected_cats: mask &= articles_df['source_category'].isin(selected_cats)
-                matched = np.flatnonzero(mask)
-                if len(matched) > 0:
-                    samples = articles_df.iloc[np.random.choice(matched, min(5, len(matched)), replace=False)]['url'].tolist()
-                    st.session_state['guest_profile'] = samples
+                guest_samples = []
+                
+                # --- PHẦN 1: Lấy 3 bài hoàn toàn ngẫu nhiên (bất kể chủ đề) ---
+                # Mục đích: Tăng tính khám phá (Serendipity)
+                n_random = 3
+                if len(articles_df) > 0:
+                    # Lấy ngẫu nhiên index
+                    rand_indices = np.random.choice(articles_df.index, min(n_random, len(articles_df)), replace=False)
+                    guest_samples.extend(articles_df.iloc[rand_indices]['url'].tolist())
+
+                # --- PHẦN 2: Lấy 3 bài cho MỖI chủ đề đã chọn ---
+                # Mục đích: Đảm bảo bám sát sở thích người dùng
+                n_per_cat = 3
+                if selected_cats:
+                    for cat in selected_cats:
+                        # Lọc các bài viết thuộc chủ đề `cat`
+                        cat_indices = articles_df[articles_df['source_category'] == cat].index
+                        
+                        if len(cat_indices) > 0:
+                            # Chọn ngẫu nhiên 3 bài từ chủ đề này
+                            chosen_indices = np.random.choice(cat_indices, min(n_per_cat, len(cat_indices)), replace=False)
+                            guest_samples.extend(articles_df.iloc[chosen_indices]['url'].tolist())
+
+                # --- PHẦN 3: Xử lý và Lưu ---
+                if guest_samples:
+                    # Dùng set() để loại bỏ bài trùng lặp (nếu bài ngẫu nhiên trùng với bài theo chủ đề)
+                    unique_samples = list(set(guest_samples))
+                    
+                    # Trộn ngẫu nhiên lại danh sách để không bị gom cụm theo chủ đề
+                    random.shuffle(unique_samples)
+                    
+                    st.session_state['guest_profile'] = unique_samples
                     st.session_state['session_interactions'] = []
                     st.session_state['viewed_posts'] = set()
                     st.rerun()
+                else:
+                    st.error("Không tìm thấy dữ liệu bài báo nào!")
 
     with st.sidebar.expander("⚙️ Cấu hình Thuật toán", expanded=False):
         cf_model_choice = st.selectbox("Model CF:", MODEL_OPTIONS["CF"])
