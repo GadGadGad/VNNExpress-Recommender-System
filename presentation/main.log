@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023/Debian) (preloaded format=xelatex 2025.6.18)  29 DEC 2025 22:33
+This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023/Debian) (preloaded format=xelatex 2025.6.18)  1 JAN 2026 17:30
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1727,7 +1727,7 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 File: ../plots/eda_00_summary_dashboard.png Graphic file (type bmp)
 <../plots/eda_00_summary_dashboard.png>
 
-Overfull \vbox (1.13776pt too high) detected at line 418
+Overfull \vbox (82.84334pt too high) detected at line 418
  []
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
@@ -2023,7 +2023,7 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 \tf@snm=\write9
 \openout9 = `main.snm'.
 
- (./main.aux)
+ [53] (./main.aux)
  ***********
 LaTeX2e <2023-11-01> patch level 1
 L3 programming layer <2024-01-22>
@@ -2032,8 +2032,17 @@ L3 programming layer <2024-01-22>
 
 LaTeX Warning: There were undefined references.
 
-Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: E17DE1070BA22BAEBFDE8B4D350FD0F5;1455.
+
+LaTeX Warning: Temporary extra page added at the end. Rerun to get it removed.
+
+
+Package rerunfilecheck Warning: File `main.out' has changed.
+(rerunfilecheck)                Rerun to get outlines right
+(rerunfilecheck)                or use package `bookmark'.
+
+Package rerunfilecheck Info: Checksums for `main.out':
+(rerunfilecheck)             Before: C27CC9DF4F1B62E3B191D60E06180E6A;1548
+(rerunfilecheck)             After:  E17DE1070BA22BAEBFDE8B4D350FD0F5;1455.
 
 Package biblatex Warning: Please (re)run Biber on the file:
 (biblatex)                main
@@ -2044,12 +2053,12 @@ Package logreq Info: Writing requests to 'main.run.xml'.
 
  ) 
 Here is how much of TeX's memory you used:
- 43336 strings out of 474878
- 904015 string characters out of 5762516
+ 43341 strings out of 474878
+ 904240 string characters out of 5762516
  1945627 words of memory out of 5000000
- 64586 multiletter control sequences out of 15000+600000
+ 64591 multiletter control sequences out of 15000+600000
  566542 words of font info for 128 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
  128i,15n,123p,1129b,3945s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on main.pdf (52 pages).
+Output written on main.pdf (53 pages).
