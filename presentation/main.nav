@@ -106,26 +106,30 @@
 \headcommand {\beamer@framepages {44}{44}}
 \headcommand {\slideentry {6}{0}{11}{45/45}{}{0}}
 \headcommand {\beamer@framepages {45}{45}}
-\headcommand {\beamer@sectionpages {35}{45}}
-\headcommand {\beamer@subsectionpages {35}{45}}
-\headcommand {\sectionentry {7}{Conclusion \& Future Works}{46}{Conclusion \& Future Works}{0}}
-\headcommand {\slideentry {7}{0}{1}{46/46}{}{0}}
+\headcommand {\slideentry {6}{0}{12}{46/46}{}{0}}
 \headcommand {\beamer@framepages {46}{46}}
-\headcommand {\slideentry {7}{0}{2}{47/47}{}{0}}
+\headcommand {\slideentry {6}{0}{13}{47/47}{}{0}}
 \headcommand {\beamer@framepages {47}{47}}
-\headcommand {\slideentry {7}{0}{3}{48/48}{}{0}}
+\headcommand {\beamer@sectionpages {35}{47}}
+\headcommand {\beamer@subsectionpages {35}{47}}
+\headcommand {\sectionentry {7}{Conclusion \& Future Works}{48}{Conclusion \& Future Works}{0}}
+\headcommand {\slideentry {7}{0}{1}{48/48}{}{0}}
 \headcommand {\beamer@framepages {48}{48}}
-\headcommand {\slideentry {7}{0}{4}{49/49}{}{0}}
+\headcommand {\slideentry {7}{0}{2}{49/49}{}{0}}
 \headcommand {\beamer@framepages {49}{49}}
-\headcommand {\beamer@sectionpages {46}{49}}
-\headcommand {\beamer@subsectionpages {46}{49}}
-\headcommand {\sectionentry {8}{References}{50}{References}{0}}
-\headcommand {\slideentry {8}{0}{0}{50/50}{}{0}}
+\headcommand {\slideentry {7}{0}{3}{50/50}{}{0}}
 \headcommand {\beamer@framepages {50}{50}}
-\headcommand {\slideentry {8}{0}{0}{50/51}{}{0}}
-\headcommand {\beamer@framepages {50}{51}}
-\headcommand {\beamer@partpages {1}{51}}
-\headcommand {\beamer@subsectionpages {46}{51}}
-\headcommand {\beamer@sectionpages {46}{51}}
-\headcommand {\beamer@documentpages {51}}
-\headcommand {\gdef \inserttotalframenumber {51}}
+\headcommand {\slideentry {7}{0}{4}{51/51}{}{0}}
+\headcommand {\beamer@framepages {51}{51}}
+\headcommand {\beamer@sectionpages {48}{51}}
+\headcommand {\beamer@subsectionpages {48}{51}}
+\headcommand {\sectionentry {8}{References}{52}{References}{0}}
+\headcommand {\slideentry {8}{0}{0}{52/52}{}{0}}
+\headcommand {\beamer@framepages {52}{52}}
+\headcommand {\slideentry {8}{0}{0}{52/53}{}{0}}
+\headcommand {\beamer@framepages {52}{53}}
+\headcommand {\beamer@partpages {1}{53}}
+\headcommand {\beamer@subsectionpages {48}{53}}
+\headcommand {\beamer@sectionpages {48}{53}}
+\headcommand {\beamer@documentpages {53}}
+\headcommand {\gdef \inserttotalframenumber {53}}
