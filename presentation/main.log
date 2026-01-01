@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023/Debian) (preloaded format=xelatex 2025.6.18)  1 JAN 2026 17:27
+This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023/Debian) (preloaded format=xelatex 2025.6.18)  1 JAN 2026 17:37
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1754,8 +1754,10 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
  [14
 
 ]
-File: ../plots/graph_eda_01_degree_distribution.png Graphic file (type bmp)
-<../plots/graph_eda_01_degree_distribution.png>
+File: ../plots/users_dis.png Graphic file (type bmp)
+<../plots/users_dis.png>
+File: ../plots/articles_dis.png Graphic file (type bmp)
+<../plots/articles_dis.png>
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [15
@@ -1767,9 +1769,9 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 
 ]
 LaTeX Font Info:    Font shape `TU/lmss/m/it' in size <10> not available
-(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 519.
+(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 534.
 LaTeX Font Info:    Font shape `TU/lmss/bx/it' in size <10.95> not available
-(Font)              Font shape `TU/lmss/bx/sl' tried instead on input line 519.
+(Font)              Font shape `TU/lmss/bx/sl' tried instead on input line 534.
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
@@ -1797,7 +1799,7 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 
 ]
 LaTeX Font Info:    Font shape `TU/lmss/m/it' in size <6> not available
-(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 739.
+(Font)              Font shape `TU/lmss/m/sl' tried instead on input line 754.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [22
@@ -1850,7 +1852,7 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
  [30
 
 ]
-Overfull \vbox (2.78151pt too high) detected at line 928
+Overfull \vbox (2.78151pt too high) detected at line 943
  []
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
@@ -1869,13 +1871,13 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 
 ]
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 10.00107pt on input line 1048.
+(Font)              scaled to size 10.00107pt on input line 1063.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 7.00075pt on input line 1048.
+(Font)              scaled to size 7.00075pt on input line 1063.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 9.99893pt on input line 1048.
+(Font)              scaled to size 9.99893pt on input line 1063.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 6.99925pt on input line 1048.
+(Font)              scaled to size 6.99925pt on input line 1063.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [34
@@ -1901,7 +1903,7 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
  [38
 
 ]
-Overfull \vbox (5.52837pt too high) detected at line 1182
+Overfull \vbox (5.52837pt too high) detected at line 1197
  []
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
@@ -1919,7 +1921,7 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
  [41
 
 ]
-Overfull \vbox (3.00227pt too high) detected at line 1288
+Overfull \vbox (3.00227pt too high) detected at line 1303
  []
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
@@ -1937,7 +1939,7 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
  [44
 
 ]
-Overfull \hbox (4.37463pt too wide) in paragraph at lines 1381--1381
+Overfull \hbox (4.37463pt too wide) in paragraph at lines 1396--1396
  [] 
  []
 
@@ -1947,11 +1949,11 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 
 ]
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 14.40152pt on input line 1420.
+(Font)              scaled to size 14.40152pt on input line 1435.
 LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 14.39845pt on input line 1420.
+(Font)              scaled to size 14.39845pt on input line 1435.
 
-Overfull \vbox (5.2056pt too high) detected at line 1420
+Overfull \vbox (5.2056pt too high) detected at line 1435
  []
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
@@ -1986,7 +1988,7 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 ]
 
 LaTeX Font Warning: Font shape `TU/lmss/m/sc' in size <10.95> not available
-(Font)              Font shape `TU/lmr/m/sc' tried instead on input line 1505.
+(Font)              Font shape `TU/lmr/m/sc' tried instead on input line 1520.
 
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
@@ -2020,10 +2022,10 @@ Package logreq Info: Writing requests to 'main.run.xml'.
 
  ) 
 Here is how much of TeX's memory you used:
- 43408 strings out of 474878
- 906264 string characters out of 5762516
+ 43417 strings out of 474878
+ 906321 string characters out of 5762516
  1958627 words of memory out of 5000000
- 64656 multiletter control sequences out of 15000+600000
+ 64664 multiletter control sequences out of 15000+600000
  566558 words of font info for 130 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
  128i,15n,123p,1129b,5188s stack positions out of 10000i,1000n,20000p,200000b,200000s

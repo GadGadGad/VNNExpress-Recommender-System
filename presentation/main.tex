@@ -464,8 +464,23 @@
 
 \begin{frame}
   \frametitle{Graph Degree Distribution}
-  \centering
-  \includegraphics[width=0.98\textwidth]{../plots/graph_eda_01_degree_distribution.png}
+
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.5\textwidth}
+      \centering
+      \includegraphics[width=\linewidth]{../plots/users_dis.png}
+      \vspace{0.1cm}
+      \scriptsize \textbf{Users}
+    \end{column}
+
+    \begin{column}{0.5\textwidth}
+      \centering
+      \includegraphics[width=\linewidth]{../plots/articles_dis.png}
+      \vspace{0.1cm}
+      \scriptsize \textbf{Articles}
+    \end{column}
+  \end{columns}
+
   \vspace{0.2cm}
   \begin{itemize}
     \item User degrees peak at very low values (high cold-start risk).
