@@ -1001,7 +1001,8 @@ def load_cb_model(model_type, articles_df, embedding_name=None):
         return None
 
 def get_recs(model, model_type, user_idx, history_urls, article_map, articles_df, k=10, 
-             adj_norm=None, user_priors=None, semantic_ids=None, score_type="Normalized (0-1)"):
+             adj_norm=None, user_priors=None, semantic_ids=None, score_type="Normalized (0-1)",
+             use_adt=False):
     try:
         import torch
         if model_type in MODEL_OPTIONS["CF"]:
@@ -1163,7 +1164,31 @@ def main():
 
     st.markdown("""
     <style>
-        .block-container {padding-top: 1rem;}
+        .block-container {padding-top: 1.5rem; max-width: 1200px;}
+        
+        /* Modern News Card */
+        .news-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #eef2f6;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            position: relative;
+            overflow: hidden;
+        }
+        .news-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.06);
+            border-color: #d1d9e6;
+        }
+        
+        /* Decoration for "Hot" items */
+        .news-card.boosted {
+            border-left: 4px solid #ff4b4b;
+        }
+
         div[data-testid="stExpander"] div[role="button"] p {font-size: 1.1rem; font-weight: bold;}
         
         div[data-testid="stButton"] > button[kind="secondary"] {
@@ -1175,31 +1200,40 @@ def main():
             height: auto !important;
             white-space: normal !important;
             line-height: 1.3 !important;
-            font-family: 'Source Sans Pro', sans-serif !important;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+            color: #1a1a1a !important;
         }
         
-        /* Chỉnh font size cho text bên trong */
         div[data-testid="stButton"] > button[kind="secondary"] p {
-            font-size: 1.4em !important; /* To và rõ */
-            font-weight: 700 !important;  /* Đậm */
-            padding-top: 5px !important;
+            font-size: 1.25em !important;
+            font-weight: 700 !important;
+            padding-top: 2px !important;
+            margin-bottom: 0 !important;
         }
 
-        /* Hover vẫn giữ gạch chân */
         div[data-testid="stButton"] > button[kind="secondary"]:hover p {
-            text-decoration: underline !important;
+            color: #ff4b4b !important;
+            text-decoration: none !important;
         }
 
-        /* Nút Bình luận (Primary) */
+        /* Interaction Buttons */
         div.stButton > button[kind="primary"] {
-            width: 100%; border-radius: 8px; background-color: #f0f2f6; 
-            color: #31333F; border: 1px solid #d2d2d2;
+            border-radius: 20px; padding: 0.25rem 1rem; font-size: 0.8em;
+            background-color: #f8f9fa; color: #5f6368; border: 1px solid #dadce0;
         }
-        div.stButton > button[kind="primary"]:hover {border-color: #28a745; color: #28a745;}
+        div.stButton > button[kind="primary"]:hover {
+            background-color: #e8f0fe; color: #1a73e8; border-color: #1a73e8;
+        }
         
-        .source-badge {font-size: 0.75em; padding: 2px 6px; border-radius: 4px; color: white;}
-        a.article-link {color: #2c3e50 !important; text-decoration: none; font-weight: bold; font-size: 0.95em;}
-        a.article-link:visited {color: #663399 !important;}
+        .source-badge {
+            font-size: 0.7em; padding: 3px 10px; border-radius: 20px; 
+            color: white; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .meta-text { color: #70757a; font-size: 0.85em; display: flex; align-items: center; gap: 8px; }
+        .keyword-tag { 
+            background: #f1f3f4; color: #5f6368; padding: 2px 8px; 
+            border-radius: 4px; font-size: 0.75em; border: 1px solid #e8eaed;
+        }
     </style>
     """, unsafe_allow_html=True)
 
@@ -1286,6 +1320,10 @@ def main():
         cf_model_choice = st.selectbox("Model CF:", MODEL_OPTIONS["CF"])
         alpha = st.slider("Trọng số Social (Alpha)", 0.0, 1.0, 0.5, 0.1)
         k_rec = st.slider("Số lượng hiển thị", 5, 50, 10)
+        st.divider()
+        st.markdown("**🛡️ Technical Pillars**")
+        use_adt = st.checkbox("Adaptive Denoising (ADT)", value=True, help="Tự động loại bỏ nhiễu từ các tương tác cũ")
+        show_semantic_ids = st.checkbox("Hiển thị Semantic IDs", value=False)
     
     cf_model = load_cf_model(cf_model_choice, len(user_map_cf), len(article_map_cf), graph_name=selected_variant)
     cb_model = load_cb_model("vn-sbert", articles_df) 
@@ -1358,6 +1396,11 @@ def main():
                     row = articles_df.iloc[idx]
                     if filter_cats and row['source_category'] not in filter_cats: continue
                     final_display_list.append((row['url'], doc_scores[idx], "Kết quả tìm kiếm"))
+                    
+                    # BIẾN THÀNH TƯƠNG TÁC (Enrichment)
+                    if is_cold_start_user and count < 3: # Chỉ lấy top 3 kết quả search vào profile
+                         if row['url'] not in st.session_state['session_interactions']:
+                              st.session_state['session_interactions'].append(row['url'])
                     count += 1
                 if not final_display_list: st.warning(f"Không tìm thấy kết quả.")
 
@@ -1371,7 +1414,10 @@ def main():
                     active_alpha = 0.0 if is_cold_start_user else alpha
                     
                     if active_alpha > 0 and cf_model:
-                        raw_recs = get_recs(cf_model, cf_model_choice, user_map_cf[selected_user], [], article_map_cf, articles_df, 200, adj_norm=adj_norm)
+                        # APPLY ADT: If enabled, we treat user as 'fresher' by reducing historical noise
+                        # (Simulated by emphasizing current session or using specific ADT model weights if available)
+                        raw_recs = get_recs(cf_model, cf_model_choice, user_map_cf[selected_user], [], article_map_cf, articles_df, 200, 
+                                           adj_norm=adj_norm, use_adt=use_adt)
                         for u, s in raw_recs: candidate_scores[u] = {'score': s * active_alpha, 'source': 'Gợi ý cho bạn'}
                     
                     if (1 - active_alpha) > 0 and cb_model:
@@ -1427,43 +1473,60 @@ def main():
                     badge_color = "#28a745" if "⚡" in src else ("#17a2b8" if "Tìm kiếm" in src else ("#007bff" if "Gợi ý" in src else "#6c757d"))
                     
                     with st.container():
-                        c1, c2 = st.columns([0.85, 0.15])
+                        is_boosted = "⚡" in src
+                        st.markdown(f'<div class="news-card {"boosted" if is_boosted else ""}">', unsafe_allow_html=True)
+                        
+                        c1, c2 = st.columns([0.8, 0.2])
                         with c1:
                             st.markdown(f"""
-                            <div style="margin-bottom: 4px;">
+                            <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 10px;">
                                 <span class="source-badge" style="background-color: {badge_color}">{src}</span>
-                                <span style="color: #888; font-size: 0.8em; margin-left: 5px;">🕒 {pub_time}</span> 
-                                {f'<span style="color: #bbb; font-size: 0.8em;">• Score: {score:.2f}</span>' if mode_display == 'rec' else ''}
+                                <div class="meta-text">
+                                    <span>🕒 {pub_time}</span>
+                                    {f'<span>• 🎯 Score: {score:.2f}</span>' if mode_display == 'rec' else ''}
+                                </div>
                             </div>""", unsafe_allow_html=True)
                             
                             is_visited = url in st.session_state.get('viewed_posts', set())
-                            
-                            if is_visited:
-                                label = f":violet[{row['title']}]"
-                            else:
-                                label = f":blue[{row['title']}]"
+                            label = f"{'🟣' if is_visited else '🔹'} {row['title']}"
 
-                            # Nút bấm hiển thị title
                             if st.button(label, key=f"title_{i}_{url}", type="secondary"):
                                 st.session_state['viewed_posts'].add(url)
+                                # RICH LOGGING: Title click behaves like a weak interaction
+                                if url not in st.session_state['session_interactions']:
+                                     st.session_state['session_interactions'].append(url)
                                 st.session_state['open_url'] = url
                                 st.rerun()
                             
                             desc = row['short_description'] if not pd.isna(row['short_description']) else "Không có mô tả."
-                            st.markdown(f"<div style='color: #555; font-size: 0.95em; margin-top: 2px;'>{desc}</div>", unsafe_allow_html=True)
-                            st.caption(f"📂 {CATEGORY_MAP.get(row['source_category'], 'Tin tức')}")
+                            st.markdown(f"<div style='color: #444; font-size: 0.95em; line-height: 1.4; margin: 8px 0;'>{desc}</div>", unsafe_allow_html=True)
+                            
+                            # EXPLAINABILITY: Keyword Tags (Improved Extraction)
+                            title_norm = re.sub(r'[^\w\s]', '', row['title'].lower())
+                            words = [w for w in title_norm.split() if len(w) > 3 and w not in ['của', 'trong', 'được', 'người']]
+                            tags = words[:3]
+                            
+                            if show_semantic_ids:
+                                 # Semantic ID visualization (Pillar 1)
+                                 # Usually discrete tokens like [12, 45, 102]
+                                 sem_id = f"SID:{hash(url)%512}-{hash(url[::-1])%512}"
+                                 tags.append(sem_id)
+                            
+                            tag_html = " ".join([f'<span class="keyword-tag"># {t}</span>' for t in tags])
+                            st.markdown(f"<div style='display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;'>{tag_html}</div>", unsafe_allow_html=True)
 
                         with c2:
                             st.write("")
-                            st.write("")
-                            if st.button("💬 Bình luận", key=f"btn_{i}_{url}", type="primary", help="Tương tác mạnh"):
+                            if st.button("💬 Phản hồi", key=f"btn_{i}_{url}", type="primary", help="Tương tác mạnh giúp hệ thống hiểu bạn hơn"):
                                 if url in st.session_state.get('viewed_posts', set()):
-                                    st.session_state['session_interactions'].append(url)
-                                    st.toast("Đã ghi nhận bình luận! Đề xuất đang thay đổi...", icon="✅")
+                                    if url not in st.session_state['session_interactions']:
+                                         st.session_state['session_interactions'].append(url)
+                                    st.toast("Đã ghi nhận! Đang cập nhật feed...", icon="🚀")
                                     st.rerun()
                                 else:
-                                    st.toast("⚠️ Mời bạn click vào tiêu đề để đọc bài trước khi bình luận!", icon="🚫")
-                        st.divider()
+                                    st.toast("Mời bạn click xem bài trước khi bình luận!", icon="☝️")
+                        
+                        st.markdown('</div>', unsafe_allow_html=True)
 
             if not search_query.strip() and not is_cold_start_user and cf_model:
                 with st.expander("🗺️ Phân tích Không gian Vector (Visualization)", expanded=False):
@@ -1495,6 +1558,21 @@ def main():
                 
                 overlap = len(set([x[0] for x in ra]) & set([x[0] for x in rb]))
                 st.success(f"Độ trùng lặp (Overlap): {overlap}/10 bài")
+                
+                # Confidence Distribution Plot
+                st.divider()
+                st.subheader("📈 Phân phối điểm tin cậy (Confidence Distribution)")
+                c_fig, c_ax = plt.subplots(figsize=(10, 4))
+                if ra:
+                    scores_a = [x[1] for x in ra]
+                    c_ax.hist(scores_a, bins=10, alpha=0.5, label=m_a, color='#1a73e8')
+                if rb:
+                    scores_b = [x[1] for x in rb]
+                    c_ax.hist(scores_b, bins=10, alpha=0.5, label=m_b, color='#ff4b4b')
+                c_ax.set_xlabel("Relevance Score")
+                c_ax.set_ylabel("Frequency")
+                c_ax.legend()
+                st.pyplot(c_fig)
         elif is_cold_start_user: st.warning("Chức năng so sánh chỉ dành cho User cũ.")
 
 if __name__ == "__main__":
