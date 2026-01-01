@@ -507,39 +507,26 @@ def load_data(data_path, min_interactions=2, split_strategy='random'):
             test_dict[u] = set()
         test_dict[u].add(i)
     
-    # --- [NEW CODE] FIX LỖI 2: TRÍCH XUẤT SOCIAL EDGES CHỈ TỪ TẬP TRAIN ---
-    print("   [INFO] Extracting Social Edges (User-Reply-User) from TRAIN data only...")
-    # Lấy các dòng replies thuộc tập train (dựa vào split_idx đã tính ở trên)
     if 'split_idx' in locals():
         train_replies_df = replies.iloc[:split_idx].copy()
     else:
-        # Fallback nếu dùng logic cũ không có biến split_idx
-        # Nhưng nếu bạn đã fix Lỗi 1 thì chắc chắn có split_idx
         train_replies_df = replies.iloc[:int(len(replies)*0.8)].copy()
 
-    # Map parent_user_id sang index
     train_replies_df['parent_idx'] = train_replies_df['parent_user_id'].map(user_map)
-    
-    # Lọc bỏ các dòng lỗi (parent không tồn tại trong map)
     valid_social = train_replies_df.dropna(subset=['user_idx', 'parent_idx'])
     
     if len(valid_social) > 0:
         social_src = torch.tensor(valid_social['user_idx'].values.astype('int64'), dtype=torch.long)
         social_dst = torch.tensor(valid_social['parent_idx'].values.astype('int64'), dtype=torch.long)
-        
-        # Tạo cạnh vô hướng (User <-> User)
         user_user_edges = torch.stack([
             torch.cat([social_src, social_dst]),
             torch.cat([social_dst, social_src])
         ], dim=0)
-        
-        # Xóa cạnh trùng lặp
         user_user_edges = torch.unique(user_user_edges, dim=1)
         print(f"   -> Created {user_user_edges.shape[1]} safe social edges from past interactions.")
     else:
         user_user_edges = None
         print("   -> No valid social edges found in training set.")
-    # ----------------------------------------------------------------------
     
     # Create edge index from TRAIN PAIRS ONLY (no data leakage)
     train_users = torch.tensor([u for u, i in train_pairs], dtype=torch.long)
@@ -710,7 +697,6 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
                      if (not articles_path) and data_path: articles_path = Path(data_path).parent / 'articles.csv'
                      if not articles_path: articles_path = Path('data/raw/articles.csv')
 
-                 # --- DEEP SEARCH FALLBACK ---
                  if not articles_path or not articles_path.exists():
                      print("  ⚠️ Standard paths failed. Attempting deep search for 'articles.csv'...")
                      potential_roots = ['/kaggle/input', 'data']
@@ -769,24 +755,19 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
         from sklearn.decomposition import TruncatedSVD
         
         try:
-            # --- [FIX] KHAI BÁO BIẾN BỊ THIẾU ---
-            texts = [] # Khởi tạo list texts để không bị lỗi gợn sóng
+            texts = []
             
-            # Load articles CSV để lấy nội dung text
-            # Load articles CSV
-            # Load articles CSV
             if not articles_path:
                 articles_path = resolve_path('articles.csv', search_dirs)
             
             if not articles_path:
-                 # Last resort fallback
                  articles_path = Path('data/raw/articles.csv')
             
             if not articles_path.exists():
                 print(f"      Error: Articles file not found at {articles_path}")
                 return None
                 
-            articles = pd.read_csv(articles_path) # Định nghĩa biến articles
+            articles = pd.read_csv(articles_path)
             # ------------------------------------
 
             # Load mapping idx2item
@@ -1479,9 +1460,7 @@ def main():
                                                        edge_weights=edge_weights, social_weight=args.social_weight)
         data['augmented_pairs'] = augmented_pairs # Store for LightGCL
     
-    # --- [NEW CODE] Lấy danh sách index các bài báo dùng trong tập train ---
     train_item_indices = list(set([i for u, i in data['train_pairs']]))
-    # ---------------------------------------------------------------------
 
     pretrained_emb = load_pretrained_embeddings(
         args.embedding, 

@@ -90,17 +90,9 @@ MODELS_DIR = "models"
 def build_search_engine(df):
     """
     Xây dựng chỉ mục BM25+ từ dữ liệu bài báo.
-    Cache lại để không phải build lại mỗi lần reload.
     """
-    # 1. Chuẩn bị dữ liệu: Gộp Tiêu đề + Mô tả để tìm cho chính xác
-    # (Có thể dùng hàm tách từ tiếng Việt ở đây nếu muốn xịn hơn)
     corpus = (df['title'].fillna("") + " " + df['short_description'].fillna("")).astype(str).tolist()
-    
-    # 2. Tokenize đơn giản (Tách theo khoảng trắng và lowercase)
-    # Lưu ý: Nếu bạn có hàm 'word_tokenize' của pyvi hay underthesea thì dùng ở đây sẽ tốt hơn
     tokenized_corpus = [doc.lower().split() for doc in corpus]
-    
-    # 3. Khởi tạo BM25+
     bm25 = BM25Plus(tokenized_corpus)
     return bm25
 
@@ -115,7 +107,7 @@ def discover_trained_models():
     # 1. Discover CF Models (GNNs)
     # Search root models/ and any subdirs (like models/models/ from unzipped results)
     search_dirs = [MODELS_DIR, os.path.join(MODELS_DIR, "models")]
-    cf_catalog = ["MA-HCL", "SimGCL", "XSimGCL", "LightGCL", "Sim-MAHGN"]
+    cf_catalog = ["MA-HCL", "SimGCL", "XSimGCL", "LightGCL"]
     
     found_cf = set()
     found_variants = set()
@@ -361,10 +353,7 @@ def plot_embedding_space(model, user_idx, history_urls, recommended_urls, articl
         return fig
 
     except Exception as e:
-        st.error(f"Lỗi vẽ biểu đồ: {str(e)}")
         return None
-
-# --- ADD THIS FUNCTION ---
 def generate_user_wordcloud(history_urls, articles_df):
     """Tạo WordCloud từ tiêu đề lịch sử đọc"""
     if not history_urls: return None
@@ -389,8 +378,6 @@ def generate_user_wordcloud(history_urls, articles_df):
         return fig
     except Exception as e:
         return None
-
-# --- ADD THIS FUNCTION ---
 def explain_recommendation(rec_url, history_urls, articles_df, source_type):
     """
     Tạo câu giải thích lý do gợi ý dựa trên Content hoặc Social.
@@ -589,20 +576,11 @@ def load_resources(data_dir=DATA_DIR, raw_dir=RAW_DIR, specific_graph_path=None)
         return None, None, None, None, None, None, status
 
 
-    # 2. Mappings (from converted data) - Used for CF
-    u_map_path = Path(data_dir) / "user_map.json"
-    a_map_path = Path(data_dir) / "article_map.json"
-    
-    user_map_cf = {}
-    article_map_cf = {}
-    
     if u_map_path.exists():
         with open(u_map_path) as f: user_map_cf = json.load(f)
     if a_map_path.exists():
         with open(a_map_path) as f: article_map_cf = json.load(f)
 
-    # 3. Adjacency Matrix & Mappings (from converted data cache) - Priority
-    adj_norm = None
     if specific_graph_path and Path(specific_graph_path).exists():
         cf_cache_path = Path(specific_graph_path)
     else:
@@ -725,8 +703,8 @@ def load_cf_model(model_name, n_users, n_items, graph_name=None):
             from src.models.xsimgcl import XSimGCL as ModelClass
         elif model_name.lower() == 'ma-hcl':
             from src.models.ma_hcl import MAHCL as ModelClass
-        elif model_name.lower() == 'sim-mahgn':
-            from src.models.sim_mahgn import SimMAHGN as ModelClass
+        # elif model_name.lower() == 'sim-mahgn':
+        #     from src.models.sim_mahgn import SimMAHGN as ModelClass
         else:
             return None
 
@@ -863,15 +841,15 @@ def load_cf_model(model_name, n_users, n_items, graph_name=None):
                 n_categories=config.get('n_categories', 0)
             )
 
-        elif model_name.lower() == 'sim-mahgn':
-            model = ModelClass(
-                n_users=n_users, 
-                n_items=n_items, 
-                embedding_dim=dim, 
-                n_layers=config.get('n_layers', 3),
-                n_categories=config.get('n_categories', 0),
-                heads=config.get('heads', 2)
-            )
+        # elif model_name.lower() == 'sim-mahgn':
+        #     model = ModelClass(
+        #         n_users=n_users, 
+        #         n_items=n_items, 
+        #         embedding_dim=dim, 
+        #         n_layers=config.get('n_layers', 3),
+        #         n_categories=config.get('n_categories', 0),
+        #         heads=config.get('heads', 2)
+        #     )
              
         try:
              model.load_state_dict(state_dict, strict=False)
@@ -1178,20 +1156,16 @@ CF_GRAPHS = {
 def main():
     st.set_page_config(page_title="News RecSys Portal", page_icon="📰", layout="wide")
     
-    # --- 1. LOGIC MỞ LINK ---
     if 'open_url' in st.session_state and st.session_state['open_url']:
         url_to_open = st.session_state['open_url']
         st.session_state['open_url'] = None
         st.components.v1.html(f"""<script>window.open("{url_to_open}", "_blank");</script>""", height=0)
 
-    # --- CSS TÙY CHỈNH ---
     st.markdown("""
     <style>
         .block-container {padding-top: 1rem;}
         div[data-testid="stExpander"] div[role="button"] p {font-size: 1.1rem; font-weight: bold;}
         
-        /* [UPDATED] CSS CHO TIÊU ĐỀ (BUTTON GIẢ LINK) */
-        /* Chỉ chỉnh cấu trúc (size, font), KHÔNG chỉnh màu ở đây để Python tự xử lý */
         div[data-testid="stButton"] > button[kind="secondary"] {
             border: none !important;
             background: none !important;
@@ -1238,7 +1212,6 @@ def main():
     if 'last_selected_user' not in st.session_state: st.session_state['last_selected_user'] = None
     if 'open_url' not in st.session_state: st.session_state['open_url'] = None
 
-    # --- SIDEBAR ---
     st.sidebar.title("🎛️ Control Panel")
     mode_select = st.sidebar.radio("Chế độ:", ["🔑 Thành viên", "🆕 Khách (Cold Start)"], index=0 if st.session_state['user_mode'] == 'existing' else 1)
     
@@ -1254,8 +1227,11 @@ def main():
     
     if mode_select == "🔑 Thành viên":
         st.session_state['user_mode'] = 'existing'
-        user_ids = sorted([uid for uid, hist in user_history.items() if len(hist) >= 5 and uid in user_map_cf])
-        selected_user = st.sidebar.selectbox("Chọn ID:", user_ids)
+        existing_users = sorted(list(user_map_cf.keys()))
+        selected_uid = st.sidebar.selectbox("Chọn User ID:", existing_users)
+        
+        user_idx = user_map_cf[selected_uid]
+        
         if selected_user != st.session_state['last_selected_user']:
             st.session_state['session_interactions'] = []
             st.session_state['viewed_posts'] = set()
@@ -1268,15 +1244,43 @@ def main():
             all_cats = sorted(articles_df['source_category'].dropna().unique().tolist())
             selected_cats = st.multiselect("Chủ đề:", [c for c in all_cats if c in CATEGORY_MAP], format_func=lambda x: CATEGORY_MAP.get(x, x))
             if st.button("🚀 Tạo Profile"):
-                mask = pd.Series([True] * len(articles_df))
-                if selected_cats: mask &= articles_df['source_category'].isin(selected_cats)
-                matched = np.flatnonzero(mask)
-                if len(matched) > 0:
-                    samples = articles_df.iloc[np.random.choice(matched, min(5, len(matched)), replace=False)]['url'].tolist()
-                    st.session_state['guest_profile'] = samples
+                guest_samples = []
+                
+                # --- PHẦN 1: Lấy 3 bài hoàn toàn ngẫu nhiên (bất kể chủ đề) ---
+                # Mục đích: Tăng tính khám phá (Serendipity)
+                n_random = 3
+                if len(articles_df) > 0:
+                    # Lấy ngẫu nhiên index
+                    rand_indices = np.random.choice(articles_df.index, min(n_random, len(articles_df)), replace=False)
+                    guest_samples.extend(articles_df.iloc[rand_indices]['url'].tolist())
+
+                # --- PHẦN 2: Lấy 3 bài cho MỖI chủ đề đã chọn ---
+                # Mục đích: Đảm bảo bám sát sở thích người dùng
+                n_per_cat = 3
+                if selected_cats:
+                    for cat in selected_cats:
+                        # Lọc các bài viết thuộc chủ đề `cat`
+                        cat_indices = articles_df[articles_df['source_category'] == cat].index
+                        
+                        if len(cat_indices) > 0:
+                            # Chọn ngẫu nhiên 3 bài từ chủ đề này
+                            chosen_indices = np.random.choice(cat_indices, min(n_per_cat, len(cat_indices)), replace=False)
+                            guest_samples.extend(articles_df.iloc[chosen_indices]['url'].tolist())
+
+                # --- PHẦN 3: Xử lý và Lưu ---
+                if guest_samples:
+                    # Dùng set() để loại bỏ bài trùng lặp (nếu bài ngẫu nhiên trùng với bài theo chủ đề)
+                    unique_samples = list(set(guest_samples))
+                    
+                    # Trộn ngẫu nhiên lại danh sách để không bị gom cụm theo chủ đề
+                    random.shuffle(unique_samples)
+                    
+                    st.session_state['guest_profile'] = unique_samples
                     st.session_state['session_interactions'] = []
                     st.session_state['viewed_posts'] = set()
                     st.rerun()
+                else:
+                    st.error("Không tìm thấy dữ liệu bài báo nào!")
 
     with st.sidebar.expander("⚙️ Cấu hình Thuật toán", expanded=False):
         cf_model_choice = st.selectbox("Model CF:", MODEL_OPTIONS["CF"])
@@ -1286,7 +1290,8 @@ def main():
     cf_model = load_cf_model(cf_model_choice, len(user_map_cf), len(article_map_cf), graph_name=selected_variant)
     cb_model = load_cb_model("vn-sbert", articles_df) 
 
-    # --- MAIN TABS ---
+    st.title("🗞️ Personalized News Engine")
+    
     tab_feed, tab_analytics = st.tabs(["📰 News Feed & Tìm kiếm", "🛠️ Dev & Analytics"])
 
     with tab_feed:
@@ -1431,11 +1436,8 @@ def main():
                                 {f'<span style="color: #bbb; font-size: 0.8em;">• Score: {score:.2f}</span>' if mode_display == 'rec' else ''}
                             </div>""", unsafe_allow_html=True)
                             
-                            # --- [QUAN TRỌNG] LOGIC MÀU SẮC DỰA TRÊN TRẠNG THÁI ---
                             is_visited = url in st.session_state.get('viewed_posts', set())
                             
-                            # Nếu đã xem -> Dùng :violet[] (Tím)
-                            # Nếu chưa xem -> Dùng :blue[] (Xanh - màu mặc định của link)
                             if is_visited:
                                 label = f":violet[{row['title']}]"
                             else:
