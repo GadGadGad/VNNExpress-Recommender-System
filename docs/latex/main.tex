@@ -1,0 +1,204 @@
+% This file compiles with both LuaLaTeX and XeLaTeX
+\documentclass[11pt]{article}
+
+% Change "review" to "final" to generate the final (camera-ready) version.
+% Change to "preprint" to generate a non-anonymous version with page numbers.
+\usepackage[preprint]{acl}
+
+\usepackage{microtype}
+
+% LuaLaTeX/XeLaTeX font selection
+\usepackage[english,bidi=default]{babel}
+\babelfont{rm}{TeXGyreTermesX}
+\babelprovide[import]{vietnamese}
+\babelfont[*vietnamese]{rm}{TeXGyreTermesX}
+
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{bm}
+\usepackage{hyperref}
+\usepackage{enumitem}
+
+\title{Multi-Aspect Heterogeneous Graph Learning for Vietnamese News Recommendation}
+
+\author{
+  Student Name \\
+  University Name \\
+  \texttt{email@domain} \\
+  \And
+  Advisor Name \\
+  University Name \\
+  \texttt{email@domain}
+}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Vietnamese news recommendation is challenging due to extreme interaction sparsity, frequent cold-start scenarios, and strong reliance on textual semantics for short-lived content. We study graph-based collaborative filtering (CF) and heterogeneous graph learning on a real-world VnExpress dataset (\(\sim\)10k users, \(\sim\)3.7k articles, \(\sim\)43k interactions). We propose a family of graph constructions (G1--G4) that progressively enrich the user--article bipartite graph with reply-induced social links and semantic structures (category and author nodes). We implement multi-aspect heterogeneous encoders with aspect fusion and contrastive learning (CL) and benchmark strong CF baselines (LightGCN, LightGCL, SimGCL, XSimGCL). To address cold-start users/items, we further introduce an adaptive hybrid inference strategy that fuses CF scores with Vietnamese sentence embeddings (VN-SBERT). Under chrono-holdout evaluation, the hybrid approach achieves the best overall performance (NDCG@10 = 0.1895), while heterogeneous modeling consistently improves over CF-only baselines. Extensive ablations on graph variants, edge types, weighting schemes, and embedding backbones demonstrate that social and semantic enrichment is crucial for robust Vietnamese news recommendation.
+\end{abstract}
+
+\section{Introduction}
+News portals publish a large number of articles daily, making it difficult for users to find content aligned with their interests. Personalized news recommendation systems (NRS) aim to surface relevant articles, improve engagement, and reduce information overload.
+
+While research on English news recommendation has progressed rapidly, Vietnamese NRS remains under-explored due to limited datasets and language-specific processing constraints. In practice, Vietnamese NRS faces at least three major challenges:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Extreme sparsity:} user feedback is typically implicit and highly sparse (most users interact with only a few articles), limiting the effectiveness of CF.
+  \item \textbf{Cold-start:} new or low-activity users/items appear frequently; graph connectivity is weak or absent.
+  \item \textbf{Semantic dependence and recency:} news is time-sensitive and text-heavy; semantic understanding and temporal relevance matter.
+\end{itemize}
+
+Graph neural networks (GNNs) provide a principled approach to leverage high-order connectivity and multi-relational signals. However, many NRS formulations still assume a bipartite user--item graph, ignoring rich auxiliary signals such as social discussions (replies), categories, and authors.
+
+In this work, we model Vietnamese news as a \textbf{heterogeneous information network (HIN)} and systematically study how graph enrichment and multi-aspect modeling affect performance. Our contributions are:
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Graph construction (G1--G4):} We design progressive graphs that add (i) reply-based social edges between users, (ii) category nodes, and (iii) author nodes.
+  \item \textbf{Multi-aspect heterogeneous learning:} We implement aspect-specific encoders (interest and social) and fusion mechanisms, with optional contrastive regularization.
+  \item \textbf{Comprehensive benchmarking:} We compare strong CF baselines and evaluate Vietnamese text embeddings (TF-IDF, PhoBERT, VN-SBERT, BGE-M3) for content-based and hybrid inference.
+  \item \textbf{Hybrid inference for cold-start:} We propose an adaptive fusion between CF and content similarity to remain robust when graph signals are insufficient.
+\end{enumerate}
+
+\section{Related Work}
+\subsection{Graph-Based Collaborative Filtering}
+Neural graph collaborative filtering methods use message passing over a user--item graph to capture higher-order relations. NGCF \citet{wang2019neural} models feature transformations and non-linearities but can be heavy. LightGCN \citet{he2020lightgcn} simplifies the architecture by removing non-linearities and transformations, becoming a strong baseline for implicit feedback.
+
+Self-supervised learning has improved robustness under sparsity. SimGCL \citet{yu2022graph} introduces perturbation-based contrastive learning to regularize embeddings. XSimGCL further improves efficiency by simplifying view generation and training dynamics.
+
+\subsection{Heterogeneous Graph Recommendation}
+Heterogeneous GNNs extend message passing to multiple node/edge types and often use relation-specific aggregation and attention fusion. In recommendation, heterogeneous modeling can incorporate side information such as item attributes and social relations. In news recommendation, heterogeneous graphs have been used to integrate topic/entity signals and improve content understanding \citet{liu2021heterogeneous}. We adapt this paradigm to Vietnamese news and explicitly study social replies, categories, and authors.
+
+\subsection{Vietnamese Text Embeddings for Recommendation}
+Pretrained language models (PLMs) such as BERT \citet{devlin2018bert} provide strong representations for text. For Vietnamese, PhoBERT offers effective contextual representations. Sentence-level embedding models (e.g., VN-SBERT \citet{reimers2019sentence}) are suitable for short texts such as titles and descriptions, making them natural candidates for content-based scoring and hybrid recommenders.
+
+\section{Dataset}
+\subsection{Data Source and Collection}
+We crawl Vietnamese news from VnExpress, collecting article metadata and public discussion traces. Interactions are derived from user comments and replies, which serve as implicit feedback. We also collect auxiliary metadata including categories and authors.
+
+\subsection{Schema}
+We organize the dataset into the following logical tables:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Articles:} \texttt{article\_id/url, title, description, content, author, publish\_time}.
+  \item \textbf{Metadata:} \texttt{article\_url, category, tags}.
+  \item \textbf{Interactions:} \texttt{user\_id, article\_url, comment/reply text, time, reactions}.
+  \item \textbf{User profiles (optional):} \texttt{user\_id, username, join\_date}.
+\end{itemize}
+
+\subsection{Statistics and Sparsity}
+We filter to a stable subset of approximately \(10{,}000\) users and \(3{,}700\) articles. The total interaction count is approximately \(43{,}000\). Interaction sparsity is extremely high:
+\begin{equation}
+\text{sparsity} = 1 - \frac{|E_{ui}|}{|\mathcal{U}|\cdot|\mathcal{I}|}.
+\end{equation}
+This regime stresses purely collaborative methods and motivates both graph enrichment (to propagate signals further) and semantic/hybrid approaches.
+
+\paragraph{Bias and limitations.}
+Comment/reply data reflects highly engaged users rather than passive readers. Therefore, the dataset may over-represent ``power users'' and debate-heavy topics. We discuss implications in \S\ref{sec:limitations}.
+
+\section{Problem Definition}
+Let \(\mathcal{U}\) be the set of users and \(\mathcal{I}\) be the set of news articles. Given historical interactions \(E_{ui}\subset \mathcal{U}\times\mathcal{I}\), the goal is to recommend a ranked list of unseen articles \(\{i\in\mathcal{I}\}\) for each user \(u\in\mathcal{U}\).
+
+We study implicit feedback where each observed interaction is treated as positive (e.g., comment/reply) and unobserved pairs are treated as potential negatives during training and evaluation.
+
+\section{Heterogeneous Graph Construction}
+\subsection{Node and Edge Types}
+We construct a heterogeneous graph \(G=(V,E)\) with node set
+\begin{equation}
+V = \mathcal{U} \cup \mathcal{I} \cup \mathcal{C} \cup \mathcal{A},
+\end{equation}
+where \(\mathcal{C}\) are category nodes and \(\mathcal{A}\) are author nodes.
+
+We consider four graph variants:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{G1 (Bipartite):} user--article edges \(E_{ui}\).
+  \item \textbf{G2 (+Social):} add user--user edges \(E_{uu}\) induced by direct replies.
+  \item \textbf{G3 (+Category):} add article--category edges \(E_{ic}\).
+  \item \textbf{G4 (+Author):} add article--author edges \(E_{ia}\).
+\end{itemize}
+
+\subsection{Edge Weighting: Engagement and Recency}
+User interactions with news are time-sensitive, and engagement varies. We therefore define a composite weight for each user--article edge:
+\begin{equation}
+w_{ui} = \big(1+\log(1+r_{ui})\big)\cdot \exp(-\lambda \Delta t_{ui}),
+\label{eq:wui}
+\end{equation}
+where \(r_{ui}\) is reaction count and \(\Delta t_{ui}\) is days since interaction. The log term dampens outliers, while the decay term prioritizes recent interactions. We set \(\lambda=0.01\) and later ablate this choice.
+
+\subsection{Social Edges from Replies}
+We create an undirected (or directed) user--user edge \((u,v)\in E_{uu}\) if user \(u\) replies to \(v\) in any thread. We optionally weight social edges by reply frequency and recency:
+\begin{equation}
+w_{uv} = (1+\log(1+f_{uv}))\cdot \exp(-\lambda \Delta t_{uv}),\end{equation}
+where \(f_{uv}\) is the number of replies from \(u\) to \(v\).
+
+\subsection{Discussion: Hub Effects of Categories}
+Category nodes can shorten paths (e.g., \(u\to i\to c\to i'\)) but may also create hubs that over-generalize recommendations. We therefore evaluate G3/G4 carefully and include ablations to isolate when category edges help or hurt.
+
+\section{Models}
+\subsection{LightGCN and CF Baselines}
+\paragraph{LightGCN propagation.}
+Given adjacency \(\mathbf{A}\) for the user--item interaction graph, LightGCN uses:
+\begin{equation}
+\mathbf{E}^{(k)} = \hat{\mathbf{A}}\,\mathbf{E}^{(k-1)}, \quad
+\hat{\mathbf{A}} = \mathbf{D}^{-\frac{1}{2}}\mathbf{A}\mathbf{D}^{-\frac{1}{2}}.
+\label{eq:lightgcn}
+\end{equation}
+Final embeddings are obtained by layer aggregation:
+\begin{equation}
+\mathbf{e}_v = \frac{1}{K+1}\sum_{k=0}^{K}\mathbf{E}^{(k)}_v.
+\end{equation}
+
+\paragraph{Training objective (BPR).}
+We optimize Bayesian Personalized Ranking (BPR):
+\begin{equation}
+\mathcal{L}_{\text{BPR}} = -\sum_{(u,i,j)}\log\sigma\big(s(u,i)-s(u,j)\big),
+\label{eq:bpr}
+\end{equation}
+where \(j\) is a sampled negative item for user \(u\), and \(s(u,i)=\mathbf{e}_u^\top\mathbf{e}_i\).
+
+\subsection{SimGCL and XSimGCL}
+SimGCL augments LightGCN with contrastive learning by generating two perturbed embedding views. A common approach is to add random noise to embeddings at each layer or to the final representation. The contrastive loss is:
+\begin{equation}
+\mathcal{L}_{\text{CL}} = \sum_{v\in\mathcal{U}\cup\mathcal{I}} -\log \frac{\exp(\text{sim}(\mathbf{e}'_v,\mathbf{e}''_v)/\tau)}{\sum_{v'\neq v}\exp(\text{sim}(\mathbf{e}'_v,\mathbf{e}''_{v'})/\tau)}.
+\label{eq:cl}
+\end{equation}
+The total objective is \(\mathcal{L}=\mathcal{L}_{\text{BPR}}+\gamma\mathcal{L}_{\text{CL}}\). XSimGCL focuses on efficiency by simplifying perturbations and training procedures.
+
+\subsection{Multi-Aspect Heterogeneous Modeling}
+We consider two principal aspects:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Interest/behavior aspect:} user--article interactions \(E_{ui}\).
+  \item \textbf{Social aspect:} reply-induced user--user edges \(E_{uu}\).
+\end{itemize}
+Semantic nodes (category/author) are incorporated as additional relations for the interest aspect.
+
+\subsubsection{SimMAHGN (Simple Multi-Aspect Heterogeneous Graph Network)}
+SimMAHGN computes aspect-specific embeddings and fuses them with a stable rule.
+
+\paragraph{Aspect encoders.}
+For each aspect \(a\), we compute embeddings with relation-restricted propagation (e.g., LightGCN-style over the corresponding adjacency):
+\begin{equation}
+\mathbf{H}^{(k)}_a = \hat{\mathbf{A}}_a\,\mathbf{H}^{(k-1)}_a.
+\end{equation}
+
+\paragraph{Fusion.}
+We fuse aspect embeddings by either simple summation/mean or learned weights:
+\begin{equation}
+\mathbf{h}_u = \sum_{a\in\{int,soc\}} \alpha_a\,\mathbf{h}^{(a)}_u,
+\label{eq:fusion}
+\end{equation}
+with \(\alpha_a\) fixed (uniform) for SimMAHGN to improve stability.
+
+\subsubsection{MA-HCL (Multi-Aspect Heterogeneous Contrastive Learning)}
+MA-HCL extends the above by applying contrastive learning across aspect-specific views.
+
+\paragraph{Meta-path views (optional).}
+We can define meta-paths such as:
+\begin{itemize}[leftmargin=*]
+  \item \(\Phi_1\): User--Article--Category--Article (U-I-C-I)
+  \item \(\Phi_2\): User--Article--Author--Article (U-I-A-I)
+  \item \(\Phi_3\): User--User--Article (U-U-I), if mapping social to items.
+\end{itemize}
+Each meta-path yields a view embedding \(\mathbf{h}_u^{\Phi}\).
+
+\paragraph{Hierarchical att

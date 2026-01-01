@@ -1,4 +1,4 @@
-This is LuaHBTeX, Version 1.17.0 (TeX Live 2023/Debian)  (format=lualatex 2025.12.31)  31 DEC 2025 16:14
+This is LuaHBTeX, Version 1.17.0 (TeX Live 2023/Debian)  (format=lualatex 2025.12.31)  31 DEC 2025 16:16
  restricted system commands enabled.
 **main.tex
 (./main.tex
@@ -1443,12 +1443,7 @@ Package biblatex Warning: 'babel/polyglossia' detected but 'csquotes' missing.
 
 \@quotelevel=\count515
 \@quotereset=\count516
-(./main.aux
-! Undefined control sequence.
-l.68 \@writef
-           
-? 
-)
+(./main.aux)
 \openout1 = main.aux
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 97.
@@ -1726,7 +1721,7 @@ No file main.bbl.
 Package biblatex Info: Reference section=0 on input line 97.
 Package biblatex Info: Reference segment=0 on input line 97.
 (./main.nav)
-<assets/images/uit-logo.png, id=51, 1204.5pt x 973.6375pt>
+<assets/images/uit-logo.png, id=79, 1204.5pt x 973.6375pt>
 File: assets/images/uit-logo.png Graphic file (type png)
 <use assets/images/uit-logo.png>
 Package luatex.def Info: assets/images/uit-logo.png  used on input line 99.
@@ -1734,21 +1729,19 @@ Package luatex.def Info: assets/images/uit-logo.png  used on input line 99.
  [1
 
 {/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}<./assets/images/uit-logo.png
->]
-No file main.toc.
+>] (./main.toc)
 File: assets/images/uit-logo.png Graphic file (type png)
 <use assets/images/uit-logo.png>
 Package luatex.def Info: assets/images/uit-logo.png  used on input line 112.
 (luatex.def)             Requested size: 35.19609pt x 28.45274pt.
-[2
+ [2
 
-]
-No file main.toc.
+] (./main.toc)
 File: assets/images/uit-logo.png Graphic file (type png)
 <use assets/images/uit-logo.png>
 Package luatex.def Info: assets/images/uit-logo.png  used on input line 115.
 (luatex.def)             Requested size: 35.19609pt x 28.45274pt.
-[3
+ [3
 
 ]
 File: assets/images/uit-logo.png Graphic file (type png)
@@ -1764,12 +1757,12 @@ Package luatex.def Info: assets/images/uit-logo.png  used on input line 156.
 (luatex.def)             Requested size: 35.19609pt x 28.45274pt.
  [5
 
-]
-No file main.toc.
+] (./main.toc)
 File: assets/images/uit-logo.png Graphic file (type png)
 <use assets/images/uit-logo.png>
 Package luatex.def Info: assets/images/uit-logo.png  used on input line 160.
 (luatex.def)             Requested size: 35.19609pt x 28.45274pt.
+
 [6
 
 ]
@@ -1800,7 +1793,7 @@ Package luatex.def Info: assets/images/uit-logo.png  used on input line 383.
  [9
 
 ]
-<../plots/eda_00_summary_dashboard.png, id=458, 1467.4825pt x 766.865pt>
+<../plots/eda_00_summary_dashboard.png, id=513, 1467.4825pt x 766.865pt>
 File: ../plots/eda_00_summary_dashboard.png Graphic file (type png)
 <use ../plots/eda_00_summary_dashboard.png>
 Package luatex.def Info: ../plots/eda_00_summary_dashboard.png  used on input l
@@ -1813,7 +1806,7 @@ Package luatex.def Info: assets/images/uit-logo.png  used on input line 418.
  [10
 
 <../plots/eda_00_summary_dashboard.png>]
-<../plots/eda_09_metadata_categories.png, id=489, 1123.0758pt x 499.1448pt>
+<../plots/eda_09_metadata_categories.png, id=544, 1123.0758pt x 499.1448pt>
 File: ../plots/eda_09_metadata_categories.png Graphic file (type png)
 <use ../plots/eda_09_metadata_categories.png>
 Package luatex.def Info: ../plots/eda_09_metadata_categories.png  used on input
@@ -1826,7 +1819,7 @@ Package luatex.def Info: assets/images/uit-logo.png  used on input line 431.
  [11
 
 <../plots/eda_09_metadata_categories.png>]
-<../plots/eda_03_user_activity_top.png, id=533, 2389.92876pt x 896.34875pt>
+<../plots/eda_03_user_activity_top.png, id=589, 2389.92876pt x 896.34875pt>
 File: ../plots/eda_03_user_activity_top.png Graphic file (type png)
 <use ../plots/eda_03_user_activity_top.png>
 Package luatex.def Info: ../plots/eda_03_user_activity_top.png  used on input l
@@ -1839,7 +1832,7 @@ Package luatex.def Info: assets/images/uit-logo.png  used on input line 440.
  [12
 
 <../plots/eda_03_user_activity_top.png>]
-<../plots/eda_03_user_activity_bottom.png, id=577, 2389.92876pt x 896.34875pt>
+<../plots/eda_03_user_activity_bottom.png, id=632, 2389.92876pt x 896.34875pt>
 File: ../plots/eda_03_user_activity_bottom.png Graphic file (type png)
 <use ../plots/eda_03_user_activity_bottom.png>
 Package luatex.def Info: ../plots/eda_03_user_activity_bottom.png  used on inpu
@@ -1852,7 +1845,7 @@ Package luatex.def Info: assets/images/uit-logo.png  used on input line 449.
  [13
 
 <../plots/eda_03_user_activity_bottom.png>]
-<../plots/eda_11_engagement_by_category.png, id=620, 1144.7568pt x 499.1448pt>
+<../plots/eda_11_engagement_by_category.png, id=675, 1144.7568pt x 499.1448pt>
 File: ../plots/eda_11_engagement_by_category.png Graphic file (type png)
 <use ../plots/eda_11_engagement_by_category.png>
 Package luatex.def Info: ../plots/eda_11_engagement_by_category.png  used on in
@@ -1865,7 +1858,7 @@ Package luatex.def Info: assets/images/uit-logo.png  used on input line 459.
  [14
 
 <../plots/eda_11_engagement_by_category.png>]
-<../plots/graph_eda_01_degree_distribution.png, id=662, 1292.6694pt x 712.5822p
+<../plots/graph_eda_01_degree_distribution.png, id=718, 1292.6694pt x 712.5822p
 t>
 File: ../plots/graph_eda_01_degree_distribution.png Graphic file (type png)
 <use ../plots/graph_eda_01_degree_distribution.png>
@@ -1878,12 +1871,12 @@ Package luatex.def Info: assets/images/uit-logo.png  used on input line 474.
 (luatex.def)             Requested size: 35.19609pt x 28.45274pt.
  [15
 
-<../plots/graph_eda_01_degree_distribution.png>]
-No file main.toc.
+<../plots/graph_eda_01_degree_distribution.png>] (./main.toc)
 File: assets/images/uit-logo.png Graphic file (type png)
 <use assets/images/uit-logo.png>
 Package luatex.def Info: assets/images/uit-logo.png  used on input line 483.
 (luatex.def)             Requested size: 35.19609pt x 28.45274pt.
+
 [16
 
 ]
@@ -1933,13 +1926,12 @@ Package luatex.def Info: assets/images/uit-logo.png  used on input line 682.
 (luatex.def)             Requested size: 35.19609pt x 28.45274pt.
  [22
 
-]
-No file main.toc.
+] (./main.toc)
 File: assets/images/uit-logo.png Graphic file (type png)
 <use assets/images/uit-logo.png>
 Package luatex.def Info: assets/images/uit-logo.png  used on input line 685.
 (luatex.def)             Requested size: 35.19609pt x 28.45274pt.
-[23
+ [23
 
 ]
 
@@ -1981,7 +1973,7 @@ Package luatex.def Info: assets/images/uit-logo.png  used on input line 765.
 [26
 
 ]
-<assets/images/content-based.png, id=1125, 563.10374pt x 462.72874pt>
+<assets/images/content-based.png, id=1191, 563.10374pt x 462.72874pt>
 File: assets/images/content-based.png Graphic file (type png)
 <use assets/images/content-based.png>
 Package luatex.def Info: assets/images/content-based.png  used on input line 78
@@ -1994,7 +1986,7 @@ Package luatex.def Info: assets/images/uit-logo.png  used on input line 788.
  [27
 
 <./assets/images/content-based.png>]
-<assets/images/user-user-cf-2.png, id=1168, 264.99pt x 356.33125pt>
+<assets/images/user-user-cf-2.png, id=1234, 264.99pt x 356.33125pt>
 File: assets/images/user-user-cf-2.png Graphic file (type png)
 <use assets/images/user-user-cf-2.png>
 Package luatex.def Info: assets/images/user-user-cf-2.png  used on input line 8
@@ -2007,7 +1999,7 @@ Package luatex.def Info: assets/images/uit-logo.png  used on input line 810.
  [28
 
 <./assets/images/user-user-cf-2.png>]
-<assets/images/item-item.drawio.png, id=1212, 283.0575pt x 356.33125pt>
+<assets/images/item-item.drawio.png, id=1276, 283.0575pt x 356.33125pt>
 File: assets/images/item-item.drawio.png Graphic file (type png)
 <use assets/images/item-item.drawio.png>
 Package luatex.def Info: assets/images/item-item.drawio.png  used on input line
@@ -2019,13 +2011,12 @@ Package luatex.def Info: assets/images/uit-logo.png  used on input line 832.
 (luatex.def)             Requested size: 35.19609pt x 28.45274pt.
  [29
 
-<./assets/images/item-item.drawio.png>]
-No file main.toc.
+<./assets/images/item-item.drawio.png>] (./main.toc)
 File: assets/images/uit-logo.png Graphic file (type png)
 <use assets/images/uit-logo.png>
 Package luatex.def Info: assets/images/uit-logo.png  used on input line 836.
 (luatex.def)             Requested size: 35.19609pt x 28.45274pt.
-[30
+ [30
 
 ]
 
@@ -2066,13 +2057,12 @@ Package luatex.def Info: assets/images/uit-logo.png  used on input line 991.
 (luatex.def)             Requested size: 35.19609pt x 28.45274pt.
  [34
 
-]
-No file main.toc.
+] (./main.toc)
 File: assets/images/uit-logo.png Graphic file (type png)
 <use assets/images/uit-logo.png>
 Package luatex.def Info: assets/images/uit-logo.png  used on input line 994.
 (luatex.def)             Requested size: 35.19609pt x 28.45274pt.
-[35
+ [35
 
 ]
 
@@ -2208,13 +2198,12 @@ Package luatex.def Info: assets/images/uit-logo.png  used on input line 1391.
 (luatex.def)             Requested size: 35.19609pt x 28.45274pt.
 [47
 
-]
-No file main.toc.
+] (./main.toc)
 File: assets/images/uit-logo.png Graphic file (type png)
 <use assets/images/uit-logo.png>
 Package luatex.def Info: assets/images/uit-logo.png  used on input line 1397.
 (luatex.def)             Requested size: 35.19609pt x 28.45274pt.
-[48
+ [48
 
 ]
 File: assets/images/uit-logo.png Graphic file (type png)
@@ -2257,7 +2246,7 @@ Package luatex.def Info: assets/images/uit-logo.png  used on input line 1448.
 \tf@snm=\write9
 
 \openout9 = main.snm
- [53] (./main.aux)
+ (./main.aux)
  ***********
 LaTeX2e <2023-11-01> patch level 1
 L3 programming layer <2024-01-22>
@@ -2266,17 +2255,8 @@ L3 programming layer <2024-01-22>
 
 LaTeX Warning: There were undefined references.
 
-
-LaTeX Warning: Temporary extra page added at the end. Rerun to get it removed.
-
-
-Package rerunfilecheck Warning: File `main.out' has changed.
-(rerunfilecheck)                Rerun to get outlines right
-(rerunfilecheck)                or use package `bookmark'.
-
-Package rerunfilecheck Info: Checksums for `main.out':
-(rerunfilecheck)             Before: D41D8CD98F00B204E9800998ECF8427E;0
-(rerunfilecheck)             After:  E17DE1070BA22BAEBFDE8B4D350FD0F5;1455.
+Package rerunfilecheck Info: File `main.out' has not changed.
+(rerunfilecheck)             Checksum: E17DE1070BA22BAEBFDE8B4D350FD0F5;1455.
 
 Package biblatex Warning: Please (re)run Biber on the file:
 (biblatex)                main
@@ -2288,17 +2268,17 @@ Package logreq Info: Writing requests to 'main.run.xml'.
 )
 
 Here is how much of LuaTeX's memory you used:
- 44891 strings out of 476553
+ 44985 strings out of 476553
  125009,2373549 words of node,token memory allocated
  2250 words of node memory still in use:
    36 hlist, 9 vlist, 13 rule, 2 disc, 2 local_par, 33 glue, 6 kern, 9 penalty, 
 14 glyph, 198 attribute, 90 glue_spec, 100 attribute_list, 4 write, 16 pdf_liter
 al, 34 pdf_colorstack nodes
-   avail lists: 1:4,2:8484,3:1952,4:399,5:409,6:306,7:6440,8:53,9:2842,10:15,11:
+   avail lists: 1:4,2:8484,3:1952,4:399,5:409,6:306,7:6440,8:53,9:2842,10:14,11:
 244
- 65459 multiletter control sequences out of 65536+600000
- 110 fonts using 30457159 bytes
- 128i,15n,116p,1128b,1764s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 65513 multiletter control sequences out of 65536+600000
+ 110 fonts using 30456935 bytes
+ 128i,15n,116p,1128b,2415s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/share/texmf/fonts/opentype/public/lm/lmmono10-regular.otf></usr/share/texm
 f/fonts/opentype/public/lm-math/latinmodern-math.otf></usr/share/texmf/fonts/ope
 ntype/public/lm/lmsans9-regular.otf></usr/share/texmf/fonts/opentype/public/lm/l
@@ -2311,10 +2291,10 @@ que.otf></usr/share/texmf/fonts/opentype/public/lm/lmsans8-regular.otf></usr/sha
 re/texmf/fonts/opentype/public/lm/lmsans10-bold.otf></usr/share/texmf/fonts/open
 type/public/lm/lmsans10-regular.otf></usr/share/texmf/fonts/opentype/public/lm/l
 msans12-regular.otf>
-Output written on main.pdf (53 pages, 1246449 bytes).
+Output written on main.pdf (52 pages, 1255778 bytes).
 
-PDF statistics: 2075 PDF objects out of 2487 (max. 8388607)
- 1681 compressed objects within 17 object streams
+PDF statistics: 2155 PDF objects out of 2487 (max. 8388607)
+ 1759 compressed objects within 18 object streams
  112 named destinations out of 1000 (max. 131072)
- 2026 words of extra memory for PDF output out of 10000 (max. 100000000)
+ 2102 words of extra memory for PDF output out of 10000 (max. 100000000)
 
