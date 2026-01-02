@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023/Debian) (preloaded format=xelatex 2025.6.18)  1 JAN 2026 17:37
+This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023/Debian) (preloaded format=xelatex 2025.6.18)  1 JAN 2026 22:27
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -1067,7 +1067,7 @@ Package biblatex Warning: 'babel/polyglossia' detected but 'csquotes' missing.
 
 \@quotelevel=\count521
 \@quotereset=\count522
-(./main.aux)
+No file main.aux.
 \openout1 = `main.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 97.
@@ -1090,7 +1090,6 @@ LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 97.
 LaTeX Font Info:    ... okay on input line 97.
 LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 97.
 LaTeX Font Info:    ... okay on input line 97.
-
 *geometry* driver: auto-detecting
 *geometry* detected driver: xetex
 *geometry* verbose mode - [ preamble ] result:
@@ -1126,9 +1125,11 @@ LaTeX Font Info:    ... okay on input line 97.
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
 Package hyperref Info: Link coloring OFF on input line 97.
-(./main.out) (./main.out)
 \@outlinefile=\write6
 \openout6 = `main.out'.
+
+
+Package hyperref Warning: Rerun to get /PageLabels entry.
 
 
 (/usr/share/texlive/texmf-dist/tex/latex/translator/translator-basic-dictionary
@@ -1417,16 +1418,17 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [1
 
-] (./main.toc)
+]
+No file main.toc.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
-
 [2
 
-] (./main.toc)
+]
+No file main.toc.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [3
+[3
 
 ]
 File: assets/images/uit-logo.png Graphic file (type bmp)
@@ -1438,10 +1440,11 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [5
 
-] (./main.toc)
+]
+No file main.toc.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [6
+[6
 
 ]
 LaTeX Font Info:    Font shape `TU/lmss/m/it' in size <10.95> not available
@@ -1490,8 +1493,7 @@ File: ../plots/eda_03_user_activity_bottom.png Graphic file (type bmp)
 <../plots/eda_03_user_activity_bottom.png>
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
-
-[13
+ [13
 
 ]
 File: ../plots/eda_11_engagement_by_category.png Graphic file (type bmp)
@@ -1509,10 +1511,11 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [15
 
-] (./main.toc)
+]
+No file main.toc.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [16
+[16
 
 ]
 LaTeX Font Info:    Font shape `TU/lmss/m/it' in size <10> not available
@@ -1551,10 +1554,10 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [22
 
-] (./main.toc)
+]
+No file main.toc.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
-
 [23
 
 ]
@@ -1593,10 +1596,11 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [29
 
-] (./main.toc)
+]
+No file main.toc.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [30
+[30
 
 ]
 Overfull \vbox (2.78151pt too high) detected at line 943
@@ -1629,10 +1633,11 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [34
 
-] (./main.toc)
+]
+No file main.toc.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [35
+[35
 
 ]
 File: assets/images/uit-logo.png Graphic file (type bmp)
@@ -1712,10 +1717,11 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
  [47
 
-] (./main.toc)
+]
+No file main.toc.
 File: assets/images/uit-logo.png Graphic file (type bmp)
 <assets/images/uit-logo.png>
- [48
+[48
 
 ]
 File: assets/images/uit-logo.png Graphic file (type bmp)
@@ -1757,24 +1763,42 @@ File: assets/images/uit-logo.png Graphic file (type bmp)
 \tf@snm=\write9
 \openout9 = `main.snm'.
 
- (./main.aux)
+ [54] (./main.aux)
  ***********
 LaTeX2e <2023-11-01> patch level 1
 L3 programming layer <2024-01-22>
  ***********
-Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: C27CC9DF4F1B62E3B191D60E06180E6A;1548.
+
+
+LaTeX Warning: There were undefined references.
+
+
+LaTeX Warning: Temporary extra page added at the end. Rerun to get it removed.
+
+
+Package rerunfilecheck Warning: File `main.out' has changed.
+(rerunfilecheck)                Rerun to get outlines right
+(rerunfilecheck)                or use package `bookmark'.
+
+Package rerunfilecheck Info: Checksums for `main.out':
+(rerunfilecheck)             Before: <no file>
+(rerunfilecheck)             After:  C27CC9DF4F1B62E3B191D60E06180E6A;1548.
+
+Package biblatex Warning: Please (re)run Biber on the file:
+(biblatex)                main
+(biblatex)                and rerun LaTeX afterwards.
+
 Package logreq Info: Writing requests to 'main.run.xml'.
 \openout1 = `main.run.xml'.
 
  ) 
 Here is how much of TeX's memory you used:
- 43417 strings out of 474878
- 906321 string characters out of 5762516
+ 43346 strings out of 474878
+ 904669 string characters out of 5762516
  1958627 words of memory out of 5000000
- 64664 multiletter control sequences out of 15000+600000
+ 64615 multiletter control sequences out of 15000+600000
  566558 words of font info for 130 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
  128i,15n,123p,1129b,5188s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on main.pdf (53 pages).
+Output written on main.pdf (54 pages).

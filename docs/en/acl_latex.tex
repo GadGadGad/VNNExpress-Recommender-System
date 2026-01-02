@@ -1,0 +1,335 @@
+\documentclass[11pt]{article}
+
+% Change "review" to "final" to generate the final (sometimes called camera-ready) version.
+% Change to "preprint" to generate a non-anonymous version with page numbers.
+\usepackage[preprint]{acl}
+
+% Standard package includes
+\usepackage{times}
+\usepackage{latexsym}
+
+% For proper rendering and hyphenation of words containing Latin characters (including in bib files)
+\usepackage[T1]{fontenc}
+% For Vietnamese characters
+\usepackage[T5]{fontenc}
+% See https://www.latex-project.org/help/documentation/encguide.pdf for other character sets
+
+% This assumes your files are encoded as UTF8
+\usepackage[utf8]{inputenc}
+
+% This is not strictly necessary, and may be commented out,
+% but it will improve the layout of the manuscript,
+% and will typically save some space.
+\usepackage{microtype}
+
+% This is also not strictly necessary, and may be commented out.
+% However, it will improve the aesthetics of text in
+% the typewriter font.
+\usepackage{inconsolata}
+
+%Including images in your LaTeX document requires adding
+%additional package(s)
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{bm}
+
+\title{Multi-Aspect Heterogeneous Graph Neural Networks for \\ Vietnamese News Recommendation}
+
+\author{T. Nhat \\
+  Faculty of Computer Science \\
+  University of Information Technology \\
+  \texttt{2252xxxx@gm.uit.edu.vn} \\\And
+  L. M. Nhut \\
+  Faculty of Computer Science \\
+  University of Information Technology \\
+  \texttt{2252xxxx@gm.uit.edu.vn} \\\AND
+  N. H. Phat \\
+  Faculty of Computer Science \\
+  University of Information Technology \\
+  \texttt{2252xxxx@gm.uit.edu.vn}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+  News recommendation in Vietnamese presents unique challenges due to linguistic complexity, sparse user interactions, and the "cold-start" problem. In this work, we propose a comprehensive breakdown of the recommendation pipeline, leveraging Multi-Aspect Heterogeneous Graph Neural Networks (MA-HGN) and Contrastive Learning (CL). We introduce a novel heterogeneous graph construction incorporating users, articles, categories, and authors. We benchmark state-of-the-art Collaborative Filtering (CF) models, including LightGCL, SimGCL, and XSimGCL, alongside our custom implementations of MA-HCL and HGN. Our extensive experiments on a real-world VnExpress dataset utilizing 15,693 users and 3,645 articles demonstrate that while Content-Based methods (PhoBERT) still lead in global retrieval (Recall@10 of 0.0535), our HGN model (G2) achieves superior stability in Leave-One-Out ranking (Recall@10 of 0.4364), efficiently capturing social homophily signals.
+\end{abstract}
+
+\section{Introduction}
+
+In the era of information overload, personalized news recommendation systems (NRS) are essential for helping users discover relevant content. While significant progress has been made in English-language NRS, Vietnamese NRS remains under-explored, primarily due to the lack of large-scale datasets and the complexity of the language.
+
+Traditional approaches often rely on collaborative filtering (CF), which suffers from data sparsity, or content-based (CB) methods, which may lack serendipity. Graph Neural Networks (GNNs) have emerged as a powerful tool to bridge this gap, capable of modeling complex interactions between users and items. However, most existing GNN-based NRS model the data as a bipartite user-item graph, ignoring rich auxiliary information such as article categories, authors, and temporal dynamics.
+
+In this paper, we address these limitations by modeling the news ecosystem as a \textbf{Heterogeneous Information Network (HIN)}. Our key contributions are:
+\begin{enumerate}
+  \item \textbf{Heterogeneous Graph Construction:} We construct extensive graph variants (G1-G3), integrating Author and Category nodes, and introducing weighted edges based on user engagement (comments, replies) and article freshness.
+  \item \textbf{Advanced Modeling:} We implement and adapt \textbf{SimMAHGN} (Simple Multi-Aspect Heterogeneous Graph Network) and \textbf{MA-HCL} (Multi-Aspect Heterogeneous Contrastive Learning) to the Vietnamese context.
+  \item \textbf{Comprehensive Benchmarking:} We provide a rigorous evaluation of various embeddings (VN-SBERT, PhoBERT, BGE-M3) and CF models (SimGCL, XSimGCL, LightGCL).
+  \item \textbf{Deployment:} We develop an interactive Streamlit application demonstrating real-time hybrid recommendation with A/B testing capabilities.
+\end{enumerate}
+
+\section{Related Work}
+
+\subsection{Graph Neural Networks for Recommendation}
+Early graph-based recommendation methods like NGCF \citet{wang2019neural} explicitly modeled high-order connectivities. However, \citet{he2020lightgcn} proposed **LightGCN**, which simplified the architecture by removing non-linear activations, establishing a standard for efficiency. Recent advancements focus on augmenting this structure:
+\begin{itemize}
+  \item \textbf{SimGCL \citet{yu2022graph}:} Integrates contrastive learning (CL) by adding random uniform noise to node embeddings to create auxiliary views, enforcing representation consistency and robustness against sparsity.
+  \item \textbf{LightGCL \citet{cai2023lightgcl}:} Addresses the limitation of local neighborhood aggregation by utilizing Singular Value Decomposition (SVD) to capture global graph context, helping to break "information cocoons" by recommending semantically related yet structurally distant items.
+  \item \textbf{XSimGCL \citet{yu2023xsimgcl}:} Further simplifies SimGCL by directly adding noise to the final representations across layers, achieving state-of-the-art efficiency by eliminating the need for explicit graph augmentation during the contrastive phase.
+\end{itemize}
+
+\subsection{Heterogeneous Graph Recommendation}
+Heterogeneous GNNs (HGNNs) extend standard GNNs to handle graphs with multiple node and edge types. Our work builds upon **HGRec** \citet{shi2020hgrec}, which introduces a dual-level aggregation mechanism:
+\begin{itemize}
+  \item \textbf{Meta-path Aggregation:} Separately aggregates neighbor information for each specific relation type (e.g., User-Reply-User vs. User-Comment-Article), allowing the model to capture distinct social and interest signals.
+  \item \textbf{Semantic Fusion:} Combines these aspect-specific embeddings using an importance-weighted mechanism to form the final user representation.
+\end{itemize}
+This distinction is critical for our G2 (Social) graph, where social edges carry different semantic weight than interaction edges.
+
+\subsection{Pretrained Language Models in SRS}
+Pretrained Language Models (PLMs) like BERT \citet{devlin2018bert} have revolutionized content understanding by generating context-aware dense vectors. In this work, we leverage **PhoBERT** and **VN-SBERT** \citet{reimers2019sentence} to address the **Cold-Start** problem where no interaction history exists.
+\begin{itemize}
+  \item \textbf{Process:} We encode article Titles and Abstracts into fixed-size embeddings.
+  \item \textbf{Mechanism:} Recommendations are generated by computing the Cosine Similarity between the candidate article's embedding and the user's historical content profile.
+\end{itemize}
+This content-based approach ensures that the system can always retrieve semantically relevant items even in the absence of collaborative signals.
+
+\section{Methodology}
+
+\subsection{Data Collection and Preprocessing}
+We crawled data from VnExpress, a major Vietnamese news portal, resulting in 3,645 articles and 40,045 user interactions. To ensure high-quality input for our models, we applied rigorous preprocessing:
+\begin{enumerate}
+  \item \textbf{Text Preprocessing:} We utilized \textbf{VnCoreNLP} for accurate Vietnamese word segmentation, followed by stopword removal and normalization to clean article titles and abstracts.
+  \item \textbf{Implicit Feedback Construction:} As explicit ratings are rare in news consumption, we treated user comments and replies as positive implicit feedback.
+\end{enumerate}
+
+The final dataset consists of:
+\begin{itemize}
+  \item \textbf{Users (15,693):} Anonymized identities with associated activity timestamps.
+  \item \textbf{Articles (3,645):} Rich content features including Title, Description, and Body.
+  \item \textbf{Interactions (40,045):} The resulting user-item matrix has an extreme sparsity of \textbf{99.93\%}, posing a significant challenge for standard CF models.
+\end{itemize}
+
+\subsection{Exploratory Data Analysis (EDA)}
+We analyzed the dataset to understand user behavior and content distribution:
+\begin{itemize}
+  \item \textbf{Category Distribution:} The dataset is relatively well-balanced across 6 major categories, ensuring diverse training samples.
+  \item \textbf{User Engagement (Power Law):} Interaction data exhibits a long-tail distribution where approximately top 20\% of users account for nearly 80\% of all interactions. This confirms the necessity of handling "Cold-Start" users who have very few interactions.
+  \item \textbf{Topic Engagement:} Categories such as "Sports" and "Technology" show significantly higher engagement interaction rates compared to others, suggesting these topics drive the majority of social discussions.
+\end{itemize}
+
+\subsection{Heterogeneous Graph Construction}
+We define a heterogeneous graph $G = (V, E)$ where $V = \mathcal{U} \cup \mathcal{I} \cup \mathcal{C} \cup \mathcal{A}$ consists of user, article, category, and author nodes.
+We experimented with three primary graph tiers to isolate the impact of different signals:
+\begin{enumerate}
+  \item \textbf{G1 - Bipartite Baseline:} Standard User-Article graph ($E_{ui}$) with comment interactions.
+  \item \textbf{G2 - Social Expansion:} Adds User-User edges ($E_{uu}$) based on reply interactions, capturing social homophily. Total edges increase by approx. 61k.
+  \item \textbf{G3 - Semantic Expansion:} Adds Category nodes ($E_{uc}, E_{ci}$), hypothesizing that categories act as semantic hubs to reduce path length.
+\end{enumerate}
+
+\subsection{Model Architecture}
+
+\subsubsection{SimGCL \& XSimGCL}
+We adopted SimGCL \citet{yu2022graph} as a strong baseline foundation. SimGCL simplifies Graph Convolutional Networks (GCN) by removing non-linearities and introducing contrastive learning (CL) noise to regularize embedding representations.
+
+Let $E^{(k)}$ be the embedding matrix at layer $k$. The propagation rule is:
+\begin{equation}
+  E^{(k)} = \frac{1}{2} (D^{-\frac{1}{2}} A D^{-\frac{1}{2}}) E^{(k-1)}
+\end{equation}
+SimGCL augments the representation learning with a contrastive auxiliary task:
+\begin{equation}
+  \mathcal{L}_{CL} = \sum_{i \in \mathcal{U} \cup \mathcal{I}} - \log \frac{\exp(sim(e_i^{'}, e_i^{''}) / \tau)}{\sum_{j \neq i} \exp(sim(e_i^{'}, e_j^{''}) / \tau)}
+\end{equation}
+where $e_i^{'}$ and $e_i^{''}$ are perturbed embeddings with added random noise.
+
+\subsubsection{MA-HCL (Multi-Aspect Heterogenous CL)}
+Adapted from \citet{shi2020hgrec}, MA-HCL handles heterogeneity using meta-path based aggregation. For each meta-path $\Phi$ (e.g., User-Article-Author-Article), we compute a distinct embedding $h_u^{\Phi}$ for user $u$.
+We employ a \textbf{simple summation} to fuse embeddings from different meta-paths:
+\begin{equation}
+  h_u = \sum_{\Phi} h_u^{\Phi}
+\end{equation}
+To improve robustness, we apply contrastive learning on the meta-path views, encouraging consistency between the global representation and aspect-specific representations.
+
+\subsubsection{Hybrid Inference Strategy}
+To address the cold-start problem where graph connectivity is sparse or non-existent (new users/items), we implement a hybrid strategy.
+Let $s_{CF}(u, i)$ be the score from the CF model (SimGCL/MA-HCL).
+Let $s_{CB}(u, i)$ be the cosine similarity between user history and candidate item embedding (VN-SBERT).
+The final score is:
+\begin{equation}
+  s_{final} = \beta \cdot \sigma(s_{CF}) + (1-\beta) \cdot s_{CB}
+\end{equation}
+where $\beta$ is a dynamic weight parameter regulated by user activity level.
+
+\section{Experiments}
+
+\subsection{Experimental Setup}
+\textbf{Dataset Split \& Evaluation Protocols:} To comprehensively assess model robustness, we employ two distinct benchmarks:
+
+\begin{enumerate}
+  \item \textbf{Full Ranking Benchmark (Global Capability):}
+        \begin{itemize}
+          \item \textbf{Setup:} For each test user (80/20 data split), we rank the relevant article against \textbf{all} other candidate articles in the corpus ($\approx$ 3,600+).
+          \item \textbf{Challenge:} This setting introduces high levels of noise, testing the model's ability to discriminate the correct item from the entire global pool.
+          \item \textbf{Goal:} To simulate real-world production scenarios, particularly for Cold-Start and new content discovery.
+        \end{itemize}
+
+  \item \textbf{Leave-One-Out (Loo100) Benchmark:}
+        \begin{itemize}
+          \item \textbf{Setup:} For each positive interaction, we randomly sample 99\ negative items to form a ranking list of size 100.
+          \item \textbf{Challenge:} A localized selection task that measures the model's sensitivity to distinguishing ground truth from standard levels of noise.
+          \item \textbf{Goal:} To evaluate stability and fine-grained ranking precision (Sensitivity Analysis).
+        \end{itemize}
+\end{enumerate}
+
+\textbf{Baselines:} LightGCN \cite{he2020lightgcn}, SimGCL \cite{yu2022graph}, LightGCL \cite{cai2023lightgcl}, XSimGCL \cite{yu2023xsimgcl}, and our HGN (HGRec-based) and HCL (Contrastive).
+
+\subsection{Main Results}
+Table \ref{tab:results_full} and \ref{tab:results_loo} summarize performance.
+
+\begin{table*}[t]
+  \centering
+  \small
+  \caption{Benchmark: Full Ranking (Recovering items from the entire 3,600+ corpus). Best results in \textbf{bold}.}
+  \label{tab:results_full}
+  \begin{tabular}{l|c|cccc}
+    \hline
+    \textbf{Model} & \textbf{Type} & \textbf{R@10}   & \textbf{N@10}   & \textbf{H@10}   & \textbf{MRR}    \\
+    \hline
+    \multicolumn{6}{l}{\textit{Content-Based / Baselines}}                                                 \\
+    PhoBERT        & CB            & \textbf{0.0535} & \textbf{0.0315} & \textbf{0.0929} & \textbf{0.0416} \\
+    TF-IDF         & CB            & 0.0508          & 0.0301          & 0.0951          & 0.0394          \\
+    \hline
+    \multicolumn{6}{l}{\textit{Graph G1 (Bipartite)}}                                                      \\
+    LightGCL       & Graph CL      & 0.0398          & 0.0249          & 0.0685          & 0.0313          \\
+    LightGCN       & Graph GNN     & 0.0263          & 0.0145          & 0.0400          & 0.0174          \\
+    XSimGCL        & Graph CL      & \textbf{0.0439} & \textbf{0.0253} & \textbf{0.0694} & \textbf{0.0289} \\
+    HGN            & Hetero GNN    & 0.0262          & 0.0147          & 0.0451          & 0.0182          \\
+    HCL            & Hetero CL     & 0.0259          & 0.0164          & 0.0471          & 0.0214          \\
+    SimGCL         & Graph CL      & 0.0191          & 0.0115          & 0.0275          & 0.0135          \\
+    \hline
+    \multicolumn{6}{l}{\textit{Graph G2 (Hetero - User-User)}}                                             \\
+    LightGCL       & Graph CL      & \textbf{0.0436} & \textbf{0.0261} & \textbf{0.0739} & \textbf{0.0313} \\
+    XSimGCL        & Graph CL      & 0.0432          & 0.0260          & 0.0688          & 0.0303          \\
+    HGN (Ours)     & Hetero GNN    & 0.0369          & 0.0201          & 0.0596          & 0.0250          \\
+    HCL (Ours)     & Hetero CL     & 0.0320          & 0.0192          & 0.0520          & 0.0233          \\
+    \hline
+    \multicolumn{6}{l}{\textit{Graph G3 (Category Hubs)}}                                                  \\
+    LightGCL       & Graph CL      & 0.0413          & 0.0256          & 0.0710          & 0.0311          \\
+    HGN (Ours)     & Hetero GNN    & 0.0299          & 0.0167          & 0.0464          & 0.0198          \\
+    \hline
+  \end{tabular}
+\end{table*}
+
+\begin{table*}[t]
+  \centering
+  \small
+  \caption{Benchmark: Leave-One-Out (Precision vs Noise). Best results in \textbf{bold}.}
+  \label{tab:results_loo}
+  \begin{tabular}{l|c|cccc}
+    \hline
+    \textbf{Model}      & \textbf{Type}       & \textbf{R@10}   & \textbf{N@10}   & \textbf{H@10}   & \textbf{MRR}    \\
+    \hline
+    \multicolumn{6}{l}{\textit{Graph G1 (Bipartite)}}                                                                 \\
+    LightGCL            & Graph CL            & \textbf{0.3081} & \textbf{0.2021} & \textbf{0.3822} & \textbf{0.2060} \\
+    XSimGCL             & Graph CL            & 0.3009          & 0.1972          & 0.3787          & 0.2063          \\
+    HGN                 & Hetero GNN          & 0.2740          & 0.1668          & 0.3570          & 0.1750          \\
+    \hline
+    \multicolumn{6}{l}{\textit{Graph G2 (Hetero - User-User)}}                                                        \\
+    \textbf{HGN (Ours)} & \textbf{Hetero GNN} & \textbf{0.4364} & \textbf{0.2636} & \textbf{0.5155} & \textbf{0.2518} \\
+    XSimGCL             & Graph CL            & 0.3036          & 0.2002          & 0.3827          & 0.2072          \\
+    LightGCL            & Graph CL            & 0.3017          & 0.1986          & 0.3762          & 0.2034          \\
+    HCL (Ours)          & Hetero CL           & 0.2075          & 0.1355          & 0.2838          & 0.1546          \\
+    \hline
+    \multicolumn{6}{l}{\textit{Graph G3 (Category Hubs)}}                                                             \\
+    HGN (Ours)          & Hetero GNN          & 0.3127          & 0.1957          & 0.3896          & 0.1962          \\
+    LightGCL            & Graph CL            & 0.3024          & 0.1988          & 0.3753          & 0.2022          \\
+    SimGCL              & Graph CL            & 0.2181          & 0.1333          & 0.2998          & 0.1435          \\
+    \hline
+  \end{tabular}
+\end{table*}
+
+In **Full Ranking**, Content-Based methods (PhoBERT) currently lead, indicating that for pure exploration, semantic content matching is reliable. However, in **Leave-One-Out**, our **HGN** model significantly outperforms all baselines (R@10 0.4364 vs 0.3081 for LightGCL), proving that when the search space is constrained, social signals (G2) provide highly accurate specific recommendations.
+
+\subsection{Ablation Studies}
+
+\subsubsection{Impact of Graph Structure}
+We compared G1 (Bipartite), G2 (Social), and G3 (Category).
+\begin{itemize}
+  \item \textbf{G1 (Base):} Density 0.06\%, Recall@10 0.0262.
+  \item \textbf{G2 (Social):} Density 0.064\%, Recall@10 \textbf{0.0369} (+40\% gain). Social edges provide high-quality homophily signals.
+  \item \textbf{G3 (Category):} Density 0.096\%, Recall@10 0.0299. Interestingly, adding category hubs *decreased* performance compared to G2. This suggests that category edges may be too generic, diluting the specific user interests ("Information Overload" at a structural level).
+\end{itemize}
+
+\subsubsection{Impact of GNN Depth ($L$)}
+We investigated the effect of layer depth $L \in \{1, 2, 3, 4\}$ on Recall@10 using the Full Ranking protocol.
+\begin{table}[h]
+  \centering
+  \small
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabular}{lcccc}
+    \hline
+    \textbf{Model} & \textbf{L=1}   & \textbf{L=2}   & \textbf{L=3}   & \textbf{L=4}   \\
+    \hline
+    LightGCL       & 0.032          & \textbf{0.040} & \textbf{0.043} & \textbf{0.042} \\
+    XSimGCL        & 0.028          & 0.035          & 0.039          & 0.041          \\
+    LightGCN       & 0.031          & 0.026          & 0.022          & 0.019          \\
+    HGN (Ours)     & \textbf{0.033} & 0.032          & 0.026          & 0.028          \\
+    \hline
+  \end{tabular}
+  \caption{Model performance across different GNN depths.}
+\end{table}
+Results indicate that while standard \textbf{LightGCN} suffers from over-smoothing at $L > 1$, Contrastive Learning methods (\textbf{LightGCL}, \textbf{XSimGCL}) maintain robustness at deeper layers, effectively capturing global graph context.
+
+\subsubsection{Impact of GNN Architecture}
+We compared different aggregation backbones for our Heterogeneous Graph Network.
+\begin{table}[h]
+  \centering
+  \small
+  \begin{tabular}{lcc}
+    \hline
+    \textbf{Backbone}        & \textbf{Recall@10} & \textbf{Inference (s)} \\
+    \hline
+    GAT                      & 0.0262             & 1.38                   \\
+    GraphSAGE                & 0.0303             & 0.88                   \\
+    \textbf{TransformerConv} & \textbf{0.0454}    & 1.71                   \\
+    \hline
+  \end{tabular}
+  \caption{Comparison of aggregation mechanisms.}
+\end{table}
+\textbf{TransformerConv} significantly outperforms GAT and GraphSAGE, suggesting that its dynamic multi-head attention mechanism is better suited for capturing the complex semantic and social dependencies in our heterogeneous graph, despite a slight increase in inference latency.
+
+\subsubsection{Efficiency Analysis}
+We analyzed the computational cost of training on the dense Social Graph (G2).
+\begin{table}[h]
+  \centering
+  \small
+  \begin{tabular}{lcc}
+    \hline
+    \textbf{Model}   & \textbf{Time per Epoch} & \textbf{Parameters} \\
+    \hline
+    SimGCL           & 46s                     & 1.07M               \\
+    \textbf{XSimGCL} & \textbf{33s}            & \textbf{1.07M}      \\
+    MA-HCL (Ours)    & 1m 10s                  & 1.07M               \\
+    MA-HGN (Ours)    & 2m 23s                  & 1.27M               \\
+    \hline
+  \end{tabular}
+  \caption{Training efficiency on Graph G2.}
+\end{table}
+\textbf{XSimGCL} demonstrates superior efficiency (33s/epoch). Our \textbf{MA-HGN} model, while offering better ranking, incurs a 4x computational overhead due to the complex meta-path aggregation steps.
+
+\section{Conclusion}
+We presented a comprehensive study of Graph Neural Networks for Vietnamese news recommendation. Our work underscores the value of heterogeneous graphs, specifically the inclusion of social reply networks (G2). While global retrieval remains challenging due to extreme sparsity (99.93\%), our HGN model demonstrates state-of-the-art stability in personalized ranking tasks.
+
+\textbf{Future Directions:} Future work will focus on integrating \textbf{Dynamic Graph Learning (dyHGCN)} to capture evolving user interests over time and employing \textbf{Knowledge Distillation} to compress the large GNN model into a lightweight student model for faster real-time inference.
+
+\section*{Limitations}
+Our dataset is relatively small (15k users). The "Full Ranking" performance (Recall $\sim$ 3-5\%) highlights the difficulty of purely structural learning in ultra-sparse environments without hybrid content injection. GNN training on denser graphs (G2/G3) also faces scalability challenges, with MA-HGN taking 2-3x longer than XSimGCL.
+
+\bibliography{custom}
+
+\end{document}
