@@ -699,7 +699,9 @@ Một điểm đáng chú ý trong kết quả thực nghiệm là sự chênh l
 \label{sec:conclusion}
 
 \subsection{Kết luận}
-Báo cáo xây dựng hệ gợi ý bài báo tiếng Việt dựa trên học đồ thị từ dữ liệu VnExpress: pipeline thu thập, EDA, ba cấu trúc đồ thị G1--G3, benchmark các mô hình đồ thị hiện đại và thử nghiệm heterogeneous. Kết quả chỉ ra rằng mở rộng social graph giúp cải thiện đáng kể cho mô hình heterogeneous; trong khi đó, content-based vẫn là thành phần quan trọng trong bối cảnh cold-start.
+Báo cáo này trình bày một nghiên cứu toàn diện về hệ thống gợi ý bài báo tiếng Việt dựa trên học đồ thị dị thể (Heterogeneous Graph Learning), với mục tiêu giải quyết các thách thức cố hữu của bài toán recommendation trong lĩnh vực tin tức, bao gồm: dữ liệu thưa thớt, vòng đời nội dung ngắn, và sự thiếu hụt tương tác trực tiếp của người dùng. Dựa trên dữ liệu thực tế từ VnExpress với hơn 15.000 người dùng và 3.600 bài viết, nhóm đã xây dựng một pipeline thu thập – xử lý – chuẩn hóa dữ liệu hoàn chỉnh, kèm theo các phân tích khám phá (EDA) nhằm nhận diện đặc trưng thống kê, phân bố và mức độ thưa của tập dữ liệu.
+
+Về mặt mô hình, nhóm đề xuất một hướng tiếp cận theo tầng (G1–G3), mở rộng dần cấu trúc đồ thị từ dạng hai phần (bipartite) truyền thống sang đồ thị xã hội (user–user) và đồ thị có trung tâm chuyên mục (category hubs). Dựa trên nền tảng đó, mô hình Heterogeneous Graph Network (HGN) được thiết kế để khai thác đồng thời hai loại tín hiệu quan trọng: (i) sở thích cá nhân thể hiện qua tương tác user–article, và (ii) ảnh hưởng xã hội phản ánh qua quan hệ reply giữa người dùng. Ngoài ra, nhóm cũng thử nghiệm mô hình Heterogeneous Contrastive Learning (HCL) để đánh giá khả năng tăng độ ổn định của embedding trong môi trường dữ liệu cực thưa.
 
 \subsection{Hạn chế}
 \begin{itemize}
