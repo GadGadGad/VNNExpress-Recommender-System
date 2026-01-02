@@ -505,44 +505,101 @@ Với dữ liệu tin tức, tương tác có tính thời gian mạnh. Khi xây
 \label{sec:method}
 
 \subsection{Bài toán và ký hiệu}
-Gọi $U$ là tập người dùng, $A$ là tập bài viết. Mục tiêu là dự đoán mức phù hợp giữa user $u$ và article $a$ dựa trên lịch sử tương tác, sau đó xếp hạng và đề xuất Top-$K$ bài mà user chưa tương tác.
+Gọi $U$ là tập người dùng và $A$ là tập bài viết.
+Các tương tác quan sát được đến từ hành vi bình luận và trả lời,
+do đó chúng tôi xem đây là bài toán \textbf{implicit feedback recommendation}.
+Mục tiêu là học một hàm scoring $f(u,a)$
+để ước lượng mức độ phù hợp giữa người dùng $u \in U$ và bài viết $a \in A$,
+sau đó xếp hạng và đề xuất Top-$K$ bài viết mà $u$ chưa từng tương tác.
+
+Trong các mô hình dựa trên đồ thị,
+mỗi người dùng và bài viết được biểu diễn bởi một embedding trong không gian tiềm ẩn.
+Điểm phù hợp $f(u,a)$ được tính bằng tích vô hướng giữa embedding của $u$ và $a$,
+phù hợp với thiết lập chuẩn của các mô hình collaborative filtering trên đồ thị.
 
 \subsection{Baseline Content-Based}
-Để đánh giá hiệu quả của các mô hình đồ thị, chúng tôi so sánh với các phương pháp Content-Based mạnh mẽ, bao gồm:
+Để đánh giá vai trò của tín hiệu cấu trúc so với nội dung,
+chúng tôi so sánh với các phương pháp Content-Based mạnh,
+chỉ dựa trên thông tin văn bản của bài viết:
 \begin{itemize}
-    \item \textbf{TF-IDF:} Phương pháp thống kê tần suất từ khóa truyền thống để biểu diễn văn bản dưới dạng vector thưa.
-    \item \textbf{PhoBERT:} Mô hình ngôn ngữ tiền huấn luyện (Pre-trained Language Model) state-of-the-art cho tiếng Việt, được sử dụng để trích xuất đặc trưng ngữ nghĩa (dense embedding) từ tiêu đề và mô tả bài viết.
-    \item \textbf{VnDoc:} Mô hình embedding chuyên dụng cho xử lý văn bản tiếng Việt, tối ưu cho các tác vụ phân loại và tìm kiếm.
-    \item \textbf{BGE-M3:} Mô hình embedding đa ngôn ngữ hiện đại, hỗ trợ biểu diễn đa chiều (dense, sparse, multi-vector), nổi tiếng với khả năng retrieval vượt trội trên nhiều benchmark.
+    \item \textbf{TF-IDF:} Phương pháp thống kê tần suất từ khóa truyền thống,
+    biểu diễn văn bản dưới dạng vector thưa và đo độ tương đồng bằng cosine similarity.
+    \item \textbf{PhoBERT:} Mô hình ngôn ngữ tiền huấn luyện state-of-the-art cho tiếng Việt,
+    được sử dụng để trích xuất embedding ngữ nghĩa dense từ tiêu đề và mô tả bài viết.
+    \item \textbf{VnDoc:} Mô hình embedding chuyên dụng cho văn bản tiếng Việt,
+    tối ưu cho các tác vụ phân loại và tìm kiếm.
+    \item \textbf{BGE-M3:} Mô hình embedding đa ngôn ngữ hiện đại,
+    hỗ trợ biểu diễn đa chiều (dense, sparse, multi-vector)
+    và đạt hiệu quả retrieval cao trên nhiều benchmark.
 \end{itemize}
+Các phương pháp này đóng vai trò baseline mạnh trong bối cảnh cold-start,
+khi tín hiệu tương tác lịch sử rất hạn chế.
 
 \subsection{Baseline đồ thị}
 \paragraph{LightGCN.}
-LightGCN lan truyền embedding tuyến tính theo adjacency chuẩn hóa:
+LightGCN là baseline phổ biến cho recommendation trên đồ thị bipartite user--item,
+nhờ tối giản kiến trúc GCN.
+Mô hình loại bỏ phi tuyến và biến đổi tham số giữa các lớp,
+chỉ giữ lại phép lan truyền tuyến tính theo ma trận kề chuẩn hoá:
 \[
     \mathbf{E}^{(k)} = \hat{\mathbf{A}} \mathbf{E}^{(k-1)}, \quad
     \mathbf{E}^{*}=\sum_{k=0}^{K}\alpha_k \mathbf{E}^{(k)}.
 \]
-Đây là baseline hiệu quả cho recommendation trên đồ thị tương tác.
+Thiết kế này giúp LightGCN vừa hiệu quả vừa ổn định trong nhiều bài toán recommendation.
 
-\paragraph{SimGCL / XSimGCL / LightGCL.}
-Nhóm mô hình contrastive thêm ràng buộc InfoNCE để tạo embedding ổn định hơn trong dữ liệu thưa. SimGCL thêm nhiễu/perturbation trong quá trình propagation. XSimGCL tối giản hóa thiết kế để giảm chi phí nhưng vẫn duy trì lợi ích từ CL. LightGCL bổ sung thông tin global context nhằm vượt hạn chế chỉ dựa vào lân cận cục bộ.
+\paragraph{SimGCL, XSimGCL và LightGCL.}
+Nhóm mô hình này mở rộng LightGCN bằng cách bổ sung contrastive learning
+nhằm tăng độ bền vững của embedding trong dữ liệu thưa.
+SimGCL áp dụng perturbation trực tiếp lên embedding trong quá trình lan truyền.
+XSimGCL tối giản hoá thiết kế contrastive để giảm chi phí huấn luyện
+nhưng vẫn duy trì hiệu quả.
+LightGCL bổ sung thành phần global context
+để khắc phục hạn chế của việc chỉ học từ lân cận cục bộ.
 
 \subsection{HGN: Heterogeneous GNN đa-aspect}
-Dữ liệu chứa ít nhất hai quan hệ khác nhau: tương tác user--article (sở thích) và reply user--user (xã hội). HGN tách lan truyền thành hai nhánh:
+Dữ liệu của chúng tôi chứa ít nhất hai loại quan hệ khác nhau:
+(i) tương tác user--article phản ánh sở thích trực tiếp,
+và (ii) quan hệ reply user--user phản ánh ảnh hưởng xã hội và \textit{social homophily}.
+Để tránh trộn lẫn ngữ nghĩa của các quan hệ này,
+chúng tôi đề xuất mô hình \textbf{HGN} với cơ chế lan truyền hai nhánh (dual-path).
+
+Cụ thể, HGN tách quá trình message passing thành hai đồ thị con:
 \begin{itemize}
-    \item \textbf{Interest path}: lan truyền trên $\mathcal{G}_{u-a}$.
-    \item \textbf{Social path}: lan truyền trên $\mathcal{G}_{u-u}$.
+    \item \textbf{Interest path:} lan truyền embedding trên đồ thị $\mathcal{G}_{u-a}$,
+    tập trung vào tín hiệu sở thích trực tiếp từ tương tác người dùng--bài viết.
+    \item \textbf{Social path:} lan truyền embedding trên đồ thị $\mathcal{G}_{u-u}$,
+    khai thác quan hệ xã hội giữa người dùng thông qua reply.
 \end{itemize}
-Sau đó hợp nhất bằng phép cộng:
+
+Trong mỗi nhánh, chúng tôi áp dụng cùng một backbone GNN
+để lan truyền embedding qua nhiều lớp.
+Embedding cuối cùng của mỗi nhánh lần lượt được ký hiệu là
+$\mathbf{h}_{int}$ và $\mathbf{h}_{soc}$,
+sau đó được hợp nhất bằng phép cộng:
 \begin{equation}
     \mathbf{h}_u = \mathbf{h}_{int} + \mathbf{h}_{soc}.
     \label{eq:fusion}
 \end{equation}
-Thiết kế này giúp tránh trộn lẫn ý nghĩa quan hệ, đồng thời giữ pipeline đơn giản để huấn luyện trên dữ liệu tương đối thưa.
+Thiết kế này cho phép kiểm soát riêng biệt luồng lan truyền từ
+tín hiệu sở thích và tín hiệu xã hội,
+giúp mô hình học biểu diễn ổn định hơn trong bối cảnh dữ liệu cực thưa,
+đồng thời vẫn giữ pipeline huấn luyện đơn giản và hiệu quả.
 
 \subsection{HCL: thử nghiệm heterogeneous contrastive learning}
-HCL kết hợp heterogeneity (tách nhánh) và contrastive loss. Trong dữ liệu thưa, contrastive learning có thể nhạy với negative sampling và nhiệt độ (temperature), dẫn đến dao động trong huấn luyện. Chúng tôi giữ HCL như một thử nghiệm để quan sát và so sánh độ ổn định.
+HCL mở rộng HGN bằng cách kết hợp cơ chế đồ thị dị thể
+với contrastive learning.
+Ngoài loss chính cho recommendation,
+mô hình bổ sung contrastive loss
+để ép embedding từ các view khác nhau trở nên nhất quán.
+
+Tuy nhiên, trong dữ liệu cực thưa,
+contrastive learning tỏ ra nhạy cảm với chiến lược negative sampling
+và siêu tham số như temperature,
+dẫn đến hiện tượng dao động và khó hội tụ ổn định.
+Do đó, HCL không được xem là đóng góp chính của nghiên cứu,
+mà được sử dụng như một phép đối chứng
+để phân tích tác động của contrastive learning
+trong bối cảnh đồ thị dị thể và dữ liệu thưa.
 
 % ==========================================================
 \section{Thiết lập thí nghiệm}
