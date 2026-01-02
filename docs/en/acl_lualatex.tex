@@ -456,11 +456,11 @@ For each test user, we select 1 positive interaction and 99 randomly sampled neg
 \subsection{Full Ranking results}
 \tabref{tab:full-ranking} summarizes results across graphs. Under cold-start, content-based baselines often have an advantage because they rely on semantic similarity rather than interaction history. For graph models, expanding to G2 (adding social edges) typically helps propagate signals better than G1.
 
-\begin{table*}[t]
+\begin{table}[!htbp]
 \centering
 \scriptsize
-\setlength{\tabcolsep}{2.6pt}
-\renewcommand{\arraystretch}{1.02}
+\setlength{\tabcolsep}{1.5pt}
+\renewcommand{\arraystretch}{1.1}
 \begin{tabularx}{\linewidth}{l|c|*4{>{\centering\arraybackslash}X}}
 \toprule
 \textbf{Model} & \textbf{Type} & \textbf{R@10} & \textbf{N@10} & \textbf{H@10} & \textbf{MRR}\\
@@ -496,16 +496,16 @@ SimGCL   & Graph CL & 0.0222 & 0.0122 & 0.0322 & 0.0137\\
 \end{tabularx}
 \caption{Full Ranking results for the three graph variants.}
 \label{tab:full-ranking}
-\end{table*}
+\end{table}
 
 \subsection{Loo100 results}
 In Loo100, HGN on G2 achieves the highest Recall@10, indicating that separating the social and interest paths improves discrimination between positives and negatives under a small candidate set.
 
-\begin{table*}[t]
+\begin{table}[!htbp]
 \centering
 \scriptsize
-\setlength{\tabcolsep}{2.6pt}
-\renewcommand{\arraystretch}{1.02}
+\setlength{\tabcolsep}{1.5pt}
+\renewcommand{\arraystretch}{1.1}
 \begin{tabularx}{\linewidth}{l|c|*4{>{\centering\arraybackslash}X}}
 \toprule
 \textbf{Model} & \textbf{Type} & \textbf{R@10} & \textbf{N@10} & \textbf{H@10} & \textbf{MRR}\\
@@ -537,7 +537,7 @@ SimGCL   & Graph CL & 0.2181 & 0.1333 & 0.2998 & 0.1435\\
 \end{tabularx}
 \caption{Leave-One-Out (Loo100) results for the three graph variants.}
 \label{tab:loo100}
-\end{table*}
+\end{table}
 
 \subsection{Topology impact and HGN analysis}
 To quantify the effect of graph expansion on HGN, \tabref{tab:impact-graph} compares Recall@10 for HGN across graph variants. The results suggest that adding social edges improves performance, while category hubs may overly broaden the signal.
@@ -658,6 +658,16 @@ Categories are coarse-grained. When users connect to categories and categories c
 
 \subsection{Why is HCL unstable?}
 In sparse regimes, few positives and sensitive negative sampling make InfoNCE hard to stabilize. When combined with heterogeneity (two propagation branches), balancing losses and hyperparameters becomes harder, often causing convergence instability.
+
+% ==========================================================
+\subsection{Limitations and Risks of Leave-One-Out Evaluation}
+Although Leave-One-Out (LOO) is a standard evaluation protocol in many recommendation studies, its usage comes with certain risks and limitations widely discussed in the research community:
+\begin{itemize}
+    \item \textbf{Sensitivity to splitting strategy:} \citet{meng2020splitting} demonstrated that the performance of state-of-the-art models can vary significantly depending on the data splitting strategy (random vs.\ chronological). Random LOO may overestimate performance as it does not correctly simulate real-world deployment scenarios.
+    \item \textbf{Lack of global context (Local vs. Global):} As discussed above and effectively argued by \citet{sun2023evaluation}, evaluating on a small candidate set (1 positive vs.\ 99 negatives) turns the retrieval task into a local discrimination problem. This can obscure the model's true ability to find relevant items from the entire diverse corpus (global retrieval).
+    \item \textbf{Data Leakage Risk:} \citet{wang2023leakage} warned about the risk of data leakage in offline evaluation, especially when using random Leave-One-Out on time-series data (such as news). Using future information to evaluate the past can lead to over-optimistic and unrealistic results.
+\end{itemize}
+Therefore, in this report, we have considered using both Full Ranking (with chronological split) alongside LOO to obtain a multidimensional and more objective view of model performance.
 
 % ==========================================================
 \section{Conclusion and Future Work}
