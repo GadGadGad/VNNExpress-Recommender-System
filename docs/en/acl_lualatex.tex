@@ -165,7 +165,21 @@ The data source is VnExpress\footnote{\url{https://vnexpress.net}} with six cate
 \end{itemize}
 
 \subsection{Crawler pipeline}
-\figref{fig:crawler-pipeline} illustrates a four-step pipeline, exported into \texttt{.csv} intermediate tables to facilitate normalization and graph construction.
+\autoref{fig:crawler-pipeline} illustrates the data collection and normalization workflow in four steps.
+(1) \textbf{Discovery} scans category pages to obtain a list of article URLs and basic attributes,
+and stores them in \texttt{articles.csv}.
+(2) \textbf{Metadata crawl} retrieves the category and tags for each article,
+and stores them in \texttt{metadata.csv}.
+(3) \textbf{Deep crawl comments} downloads the full comment threads for each article,
+including the parent--child reply structure, and normalizes them into interaction records in \texttt{replies.csv}.
+(4) \textbf{User enrichment} collects public user attributes,
+and stores them in \texttt{user\_profiles.csv}.
+
+The pipeline is designed with a separated-table schema to (i) reduce data redundancy when an article has many comments,
+(ii) simplify data cleaning and key matching by URL and user\_id,
+and (iii) facilitate constructing multiple graph structures
+in subsequent experiments (G1--G3).
+
 
 \begin{figure*}[t]
     \centering
@@ -230,7 +244,9 @@ The data source is VnExpress\footnote{\url{https://vnexpress.net}} with six cate
 \end{figure*}
 
 \subsection{Data schema}
-\tabref{tab:schema} summarizes the schema of the four normalized tables.
+\autoref{tab:schema} summarizes the schema of the normalized tables,
+which are used as inputs for graph construction and model training.
+
 
 \begin{table}[t]
     \centering
