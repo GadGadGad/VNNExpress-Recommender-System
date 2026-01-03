@@ -128,7 +128,7 @@ GVHD: ThS. Huỳnh Văn Tín
 \tightv
 \begin{abstract}
     \noindent
-    Gợi ý tin tức tiếng Việt đặt ra những thách thức do sự phức tạp của ngôn ngữ, tương tác người dùng cực kỳ thưa thớt và vấn đề \textit{cold-start}. Trong bài báo cáo này, nhóm trình bày một \textbf{phân tích toàn diện} cho bài toán gợi ý, tận dụng Multi-Aspect Heterogeneous Graph Neural Networks (MA-HGN) và Contrastive Learning (CL). Nhóm xây dựng một đồ thị Heterogeneous mới kết hợp người dùng, bài viết, danh mục. Nhóm tiến hành so sánh với các mô hình Collaborative Filtering (CF) tiên tiến, bao gồm LightGCL, SimGCL và XSimGCL, cũng như các baseline Content-Based mạnh. Các thực nghiệm trên bộ dữ liệu VnExpress thực tế gồm \textbf{15,693 người dùng} và \textbf{3,645 bài viết} cho thấy một sự phân hóa rõ rệt theo protocol đánh giá: trong khi các phương pháp Content-Based đạt hiệu quả cao nhất trong truy xuất toàn cục, đặc biệt là BGE-M3 (Full Ranking, Recall@10 = 0.0535), mô hình \textbf{HGN} của nhóm, khi mở rộng đồ thị với các cạnh \textit{liên kết xã hội (G2)}, đạt hiệu năng vượt trội và ổn định trong thiết lập Leave-One-Out (Recall@10 = 0.4364), nhờ khai thác hiệu quả các tín hiệu \textit{tương đồng xã hội (social homophily)}.
+    Gợi ý tin tức tiếng Việt đặt ra những thách thức do sự phức tạp của ngôn ngữ, tương tác người dùng cực kỳ thưa thớt và vấn đề \textit{cold-start}. Trong bài báo cáo này, nhóm trình bày một \textbf{phân tích toàn diện} cho bài toán gợi ý, tận dụng Multi-Aspect Heterogeneous Graph Neural Networks (MA-HGN) và Contrastive Learning (CL). Nhóm xây dựng một đồ thị heterogeneous mới kết hợp người dùng, bài viết, chuyên mục. Nhóm tiến hành so sánh với các mô hình Collaborative Filtering (CF) tiên tiến, bao gồm LightGCL, SimGCL và XSimGCL, cũng như các baseline Content-Based mạnh. Các thực nghiệm trên bộ dữ liệu VnExpress thực tế gồm \textbf{15,693 người dùng} và \textbf{3,645 bài viết} cho thấy một sự phân hóa rõ rệt theo protocol đánh giá: trong khi các phương pháp Content-Based đạt hiệu quả cao nhất trong truy xuất toàn cục, đặc biệt là BGE-M3 (Full Ranking, Recall@10 = 0.0535), mô hình \textbf{HGN} của nhóm, khi mở rộng đồ thị với các cạnh \textit{liên kết xã hội (G2)}, đạt hiệu năng vượt trội và ổn định trong thiết lập Leave-One-Out (Recall@10 = 0.4364), nhờ khai thác hiệu quả các tín hiệu \textit{tương đồng xã hội (social homophily)}.
 \end{abstract}
 
 % ==========================================================
@@ -137,29 +137,29 @@ GVHD: ThS. Huỳnh Văn Tín
 
 Nền tảng tin tức số tạo ra lượng nội dung khổng lồ mỗi ngày, dẫn tới \textbf{quá tải thông tin} và khiến người dùng khó nhanh chóng tìm được bài viết phù hợp. Vì vậy, hệ gợi ý đóng vai trò then chốt để cá nhân hóa nội dung, tăng tương tác và cải thiện trải nghiệm. Tuy nhiên, gợi ý tin tức có những đặc thù khiến các phương pháp gợi ý truyền thống gặp khó khăn: (i) \textbf{vòng đời tin ngắn} và xu hướng thay đổi nhanh, (ii) \textbf{cold-start} cho người dùng/bài viết mới, và đặc biệt (iii) \textbf{tương tác cực kỳ thưa thớt} do phần lớn người đọc không để lại tương tác rõ ràng ngoài các tín hiệu tương tác hạn chế như bình luận hoặc trả lời.
 
-Trong dự án này, nhóm xây dựng bộ dữ liệu thực tế từ VnExpress dựa trên tín hiệu bình luận/trả lời. Kết quả cho thấy dữ liệu có \textbf{độ thưa rất cao} (xấp xỉ \textbf{99.93\%}), khiến ma trận user--article gần như rỗng và làm suy yếu hiệu quả của các mô hình collaborative filtering thuần túy. Đồng thời, dữ liệu cũng thể hiện hiện tượng \textbf{power-law}: một nhóm nhỏ người dùng đóng góp phần lớn tương tác, trong khi đa số người dùng có bậc (degree) rất thấp, làm tăng rủi ro cold-start.
+Trong dự án này, nhóm xây dựng bộ dữ liệu thực tế từ VnExpress dựa trên tín hiệu bình luận/trả lời. Kết quả cho thấy dữ liệu có \textbf{độ thưa rất cao} (xấp xỉ \textbf{99.93\%}), khiến ma trận user--article gần như rỗng và làm suy yếu hiệu quả của các mô hình collaborative filtering thuần túy. Đồng thời, dữ liệu cũng thể hiện hiện tượng \textbf{power-law}: một nhóm nhỏ người dùng đóng góp phần lớn tương tác, trong khi đa số người dùng có bậc rất thấp, làm tăng rủi ro cold-start.
 
 Để khai thác tín hiệu hiệu quả hơn trong bối cảnh cực thưa, nhóm tiếp cận bài toán theo hướng \textbf{học biểu diễn trên đồ thị}, và đặc biệt là \textbf{đồ thị heterogeneous} nhằm tách biệt ý nghĩa của các quan hệ khác nhau. Cụ thể, nhóm sử dụng hai nguồn tín hiệu chính:
 (i) \textbf{tương tác user--article} (người dùng bình luận bài đăng) phản ánh sở thích trực tiếp, và
-(ii) \textbf{quan hệ reply user--user} (người dùng phản hồi bình luận với nhau) phản ánh ảnh hưởng xã hội hoặc \textit{social homophily} trong thảo luận.
-Từ đó, nhóm thiết kế một chiến lược mở rộng đồ thị theo ba tầng \textbf{G1--G3} để kiểm soát mức độ phong phú của cấu trúc đồ thị: G1 là đồ thị bipartite user--article; G2 bổ sung các cạnh xã hội user--user từ reply; và G3 bổ sung \textit{category hubs} nhằm rút ngắn đường đi giữa người dùng và nhóm bài cùng chuyên mục.
+(ii) \textbf{quan hệ reply user--user} (người dùng phản hồi bình luận với nhau) phản ánh sở thích tương đồng xã hội (\textit{social homophily}) trong thảo luận.
+Từ đó, nhóm thiết kế một chiến lược mở rộng đồ thị theo ba tầng \textbf{G1--G3} để kiểm soát mức độ phong phú của cấu trúc đồ thị: G1 là đồ thị \textit{hai phía user--article}; G2 bổ sung \textit{các cạnh nối xã hội user--user} từ reply; và G3 bổ sung \textit{các nút chuyên mục} nhằm rút ngắn đường đi giữa người dùng và nhóm bài cùng chuyên mục.
 
-Bên cạnh các thách thức về độ thưa, việc đánh giá mô hình gợi ý tin tức cũng dễ bị sai lệch nếu tách train/test ngẫu nhiên, vì có thể gây \textbf{data leakage} theo thời gian (mô hình ``học'' từ tương tác tương lai). Do đó, nhóm nhấn mạnh kiểm soát protocol đánh giá và so sánh mô hình trên các thiết lập chuẩn (Full Ranking và Leave-One-Out).
+Bên cạnh các thách thức về độ thưa, việc đánh giá mô hình gợi ý tin tức cũng dễ bị sai lệch nếu tách train/test ngẫu nhiên, vì có thể gây \textbf{rò rỉ dữ liệu (data leakage)} theo thời gian (mô hình ``học'' từ tương tác tương lai). Do đó, nhóm nhấn mạnh kiểm soát protocol đánh giá và so sánh mô hình trên các thiết lập chuẩn (Full Ranking và Leave-One-Out).
 
 \textbf{Đóng góp chính} của báo cáo bao gồm:
 \begin{itemize}
     \item Xây dựng pipeline thu thập dữ liệu VnExpress gồm bài viết, metadata, bình luận/trả lời và hồ sơ người dùng; thực hiện EDA để mô tả tính thưa và hiện tượng power-law trong tương tác.
-    \item Thiết kế ba tầng đồ thị \textbf{G1--G3} nhằm khảo sát tác động của việc mở rộng cấu trúc đồ thị: G1 (bipartite), G2 (thêm social edges), G3 (thêm category hubs).
+    \item Thiết kế ba tầng đồ thị \textbf{G1--G3} nhằm khảo sát tác động của việc mở rộng cấu trúc đồ thị: G1 (hai phía user--article), G2 (thêm cạnh nối xã hội), G3 (thêm các nút chuyên mục).
     \item Benchmark các mô hình Collaborative Filtering (CF) và graph-based SOTA gồm LightGCN~\citep{he2020lightgcn}, SimGCL~\citep{yu2022graph}, XSimGCL~\citep{yu2023xsimgcl}, LightGCL~\citep{cai2023lightgcl}, đồng thời so sánh với các baseline content-based mạnh.
-    \item Đề xuất mô hình \textbf{HGN} (dual-path propagation, tách social và interest) và thử nghiệm \textbf{HCL} (hetero + contrastive) để đánh giá độ ổn định trong dữ liệu cực thưa.
+    \item Đề xuất mô hình \textbf{HGN} (lan truyền hai nhánh, tách social và interest) và thử nghiệm \textbf{HCL} (hetero + contrastive) để đánh giá độ ổn định trong dữ liệu cực thưa.
 \end{itemize}
 
 % ==========================================================
 \section{Công trình liên quan}
 \label{sec:related}
 
-\paragraph{GNN cho recommendation.}
-LightGCN~\citep{he2020lightgcn} là baseline phổ biến nhờ tối giản hóa kiến trúc GCN trong recommendation: loại bỏ phi tuyến và biến đổi tham số, chỉ giữ message passing tuyến tính và tổng hợp nhiều lớp embedding.
+\paragraph{GNN cho khuyến nghị.}
+LightGCN~\citep{he2020lightgcn} là baseline phổ biến nhờ tối giản hóa kiến trúc GCN trong khuyến nghị: loại bỏ phi tuyến và biến đổi tham số, chỉ giữ cơ chế lan truyền thông tin (message passing) tuyến tính và tổng hợp nhiều lớp embedding.
 
 \paragraph{Graph contrastive learning.}
 Trong dữ liệu thưa, contrastive learning giúp tăng độ bền vững của embedding bằng cách tạo các ``view'' và tối ưu InfoNCE. SimGCL~\citep{yu2022graph} dùng perturbation trên embedding; XSimGCL~\citep{yu2023xsimgcl} hướng tới thiết kế cực đơn giản và hiệu quả. LightGCL~\citep{cai2023lightgcl} bổ sung góc nhìn global context để bù hạn chế khi chỉ học từ lân cận cục bộ.
@@ -172,15 +172,15 @@ Khi đồ thị có nhiều loại nút/cạnh, mô hình homogeneous dễ trộ
 \label{sec:data}
 
 \subsection{Thu thập dữ liệu và phạm vi}
-Nguồn dữ liệu được thu thập từ VnExpress\footnote{\url{https://vnexpress.net}}, bao gồm 6 chuyên mục chính: Thế giới, Thời sự, Kinh doanh, Giáo dục, Thể thao và Khoa học công nghệ.
+Nguồn dữ liệu được thu thập từ VnExpress\footnote{\url{https://vnexpress.net}}, bao gồm 6 chuyên mục chính: \textit{Thế giới}, \textit{Thời sự}, \textit{Kinh doanh}, \textit{Giáo dục}, \textit{Thể thao} và \textit{Khoa học công nghệ}.
 Nhóm tập trung vào các tín hiệu tương tác công khai dựa trên bình luận và trả lời,
 nhằm xây dựng một bộ dữ liệu phản ánh hành vi thảo luận thực tế của người đọc.
 Dữ liệu thu thập gồm bốn thành phần chính:
 \begin{itemize}
     \item \textbf{Articles}: tiêu đề, mô tả ngắn, tác giả, thời gian đăng và nội dung bài viết.
     \item \textbf{Metadata}: chuyên mục và tags của bài viết.
-    \item \textbf{Comments/Replies}: thông tin người dùng, nội dung bình luận và cấu trúc trả lời (parent--child).
-    \item \textbf{User Profiles}: thông tin công khai của người dùng (user id, username, join date).
+    \item \textbf{Comments/Replies}: thông tin người dùng, nội dung bình luận và cấu trúc trả lời (bình luận cha--con).
+    \item \textbf{User Profiles}: thông tin công khai của người dùng.
 \end{itemize}
 
 \subsection{Pipeline crawler}
@@ -257,13 +257,13 @@ trong các thực nghiệm tiếp theo (G1--G3).
         \node[text=gray, font=\tiny, align=center, below=0.05cm of s2] {Thread crawl};
         \node[text=gray, font=\tiny, align=center, below=0.1cm of s3] {Profile fetch};
     \end{tikzpicture}
-    \caption{Pipeline thu thập dữ liệu và xuất các bảng trung gian phục vụ dựng đồ thị.}
+    \caption{Pipeline thu thập dữ liệu và xuất các bảng trung gian phục vụ xây dựng đồ thị.}
     \label{fig:crawler-pipeline}
 \end{figure*}
 
 \subsection{Schema dữ liệu}
 \autoref{tab:schema} tóm tắt schema của các bảng dữ liệu sau khi chuẩn hoá,
-được sử dụng làm đầu vào cho quá trình dựng đồ thị và huấn luyện mô hình.
+được sử dụng làm đầu vào cho quá trình xây dựng đồ thị và huấn luyện mô hình.
 
 \begin{table}[t]
     \centering
@@ -304,7 +304,7 @@ mỗi nhóm chiếm khoảng 16--18\% tổng số bài.
 Sự cân bằng này giúp hạn chế thiên lệch dữ liệu theo số lượng bài,
 tuy nhiên không đảm bảo sự đồng đều về mức độ tương tác,
 vì hành vi bình luận phụ thuộc mạnh vào bản chất chủ đề.
-Do đó, các phân tích tiếp theo tập trung vào phân phối tương tác và degree
+Do đó, các phân tích tiếp theo tập trung vào phân phối tương tác và bậc
 để đánh giá rõ hơn độ thưa và hành vi người dùng.
 
 \begin{figure}[t]
@@ -317,12 +317,12 @@ Do đó, các phân tích tiếp theo tập trung vào phân phối tương tác
 \subsection{Hoạt động người dùng và tính chất đuôi dài}
 \autoref{fig:eda-user-bottom} minh hoạ phân phối hoạt động người dùng theo dạng Pareto/power-law:
 một nhóm nhỏ người dùng đóng góp phần lớn tương tác,
-trong khi đa số người dùng chỉ có rất ít bình luận.
+trong khi đa số người dùng chỉ có rất ít bình luận (hiện tượng long-tail).
 Đặc điểm này dẫn tới hai hệ quả quan trọng:
 (i) embedding của nhóm người dùng ít tương tác rất khó học ổn định,
-và (ii) một số ít user có bậc lớn dễ trở thành hub,
+và (ii) một số ít người dùng có bậc lớn dễ trở thành nút trung tâm,
 chi phối quá trình lan truyền thông tin trong đồ thị.
-Vì vậy, chỉ dựa trên đồ thị bipartite user--article (G1)
+Vì vậy, chỉ dựa trên đồ thị hai phía user--article (G1)
 sẽ gặp hạn chế rõ rệt trong bối cảnh dữ liệu cực thưa,
 tạo động cơ mở rộng đồ thị bằng các cạnh xã hội user--user (G2)
 để lan truyền tín hiệu gián tiếp giữa người dùng.
@@ -330,7 +330,7 @@ tạo động cơ mở rộng đồ thị bằng các cạnh xã hội user--use
 \begin{figure}[t]
     \centering
     \includegraphics[width=\linewidth]{eda_03_user_activity_bottom.png}
-    \caption{Mẫu hình hoạt động người dùng (2/2): tương tác có xu hướng power-law.}
+    \caption{Mẫu hình hoạt động người dùng: tương tác có xu hướng power-law.}
     \label{fig:eda-user-bottom}
 \end{figure}
 
@@ -341,7 +341,7 @@ Một số chuyên mục có cường độ thảo luận cao,
 trong khi các chuyên mục khác có mức độ tương tác thấp hơn.
 Điều này cho thấy chuyên mục là một tín hiệu ngữ nghĩa mang tính khái quát,
 nhưng không đồng nhất về hành vi tương tác.
-Do đó, việc bổ sung \textit{category hubs} (G3)
+Do đó, việc bổ sung \textit{các nút chuyên mục} (G3)
 có thể giúp rút ngắn khoảng cách trong đồ thị,
 nhưng cũng tiềm ẩn nguy cơ over-generalization
 khi các nút category có bậc cao kéo embedding về các đặc trưng chung,
@@ -355,15 +355,15 @@ làm suy giảm tính cá nhân hoá.
 \end{figure}
 
 \subsection{Phân phối bậc và tác động đến học đồ thị}
-\autoref{fig:degree} minh hoạ phân phối degree của cả người dùng và bài viết trong đồ thị tương tác.
-Phía người dùng, phần lớn có degree rất nhỏ,
+\autoref{fig:degree} minh hoạ phân phối bậc của cả người dùng và bài viết trong đồ thị tương tác.
+Phía người dùng, phần lớn có bậc rất nhỏ,
 phản ánh rủi ro cold-start cao.
 Phía bài viết, đa số bài chỉ nhận được ít bình luận,
-trong khi một số ít bài ``hot'' có degree lớn,
+trong khi một số ít bài ``hot'' có bậc lớn,
 phù hợp với tính thời điểm và vòng đời ngắn của tin tức.
-Các phân phối lệch này gây thách thức cho message passing:
-node degree nhỏ thiếu tín hiệu để học biểu diễn,
-trong khi node degree lớn làm tăng nguy cơ over-smoothing khi tăng độ sâu mô hình.
+Các phân phối lệch này gây thách thức cho lan truyền tín hiệu:
+nút có bậc nhỏ thiếu tín hiệu để học biểu diễn,
+trong khi nút có bậc lớn làm tăng nguy cơ over-smoothing khi tăng độ sâu mô hình.
 Những quan sát này củng cố việc khảo sát nhiều cấu trúc đồ thị (G1--G3)
 và các mô hình có cơ chế ổn định embedding như graph contrastive learning.
 
@@ -379,14 +379,14 @@ và các mô hình có cơ chế ổn định embedding như graph contrastive l
         \includegraphics[width=\linewidth]{articles_dis.png}
         \caption{Articles}
     \end{subfigure}
-    \caption{Phân phối degree trong đồ thị tương tác.}
+    \caption{Phân phối bậc trong đồ thị tương tác.}
     \label{fig:degree}
 \end{figure}
 
 \paragraph{Tổng kết.}
 Tổng hợp các phân tích EDA cho thấy dữ liệu VnExpress vừa cực kỳ thưa,
 vừa mang tính long-tail mạnh ở cả người dùng và bài viết,
-đồng thời thể hiện sự khác biệt đáng kể về mức độ engagement theo chuyên mục.
+đồng thời thể hiện sự khác biệt đáng kể về mức độ tương tác theo chuyên mục.
 Những đặc điểm này giải thích hạn chế của các mô hình collaborative filtering thuần tuý,
 đồng thời tạo động cơ rõ ràng cho việc mở rộng đồ thị bằng tín hiệu xã hội (G2)
 và kiểm soát lan truyền trong đồ thị heterogeneous.
@@ -396,28 +396,28 @@ và kiểm soát lan truyền trong đồ thị heterogeneous.
 \label{sec:graph}
 
 \subsection{Ý tưởng tổng quát}
-Với sparsity rất cao (\eqref{eq:sparsity}), đồ thị user--article thuần túy khó lan truyền thông tin cho user ít tương tác. Do đó, nhóm thiết kế ba cấu trúc đồ thị tăng dần mức độ phong phú của tín hiệu:
+Với độ thưa rất cao (\eqref{eq:sparsity}), đồ thị user--article thuần túy khó lan truyền thông tin cho người dùng ít tương tác. Do đó, nhóm thiết kế ba cấu trúc đồ thị tăng dần mức độ phong phú của tín hiệu:
 \begin{itemize}
-    \item \textbf{G1 (Bipartite):} chỉ gồm user và article với cạnh tương tác.
-    \item \textbf{G2 (Social expansion):} bổ sung cạnh user--user từ quan hệ reply trong thảo luận.
-    \item \textbf{G3 (Category hubs):} bổ sung node category để rút ngắn đường đi giữa user và nhóm bài cùng chuyên mục.
+    \item \textbf{G1 (Hai phía):} chỉ gồm user và article với cạnh tương tác.
+    \item \textbf{G2 (Mở rộng liên kết xã hội):} bổ sung cạnh user--user từ quan hệ reply trong thảo luận.
+    \item \textbf{G3 (Kết nối nút chuyên mục):} bổ sung nút chuyên mục để rút ngắn đường đi giữa người dùng và nhóm bài cùng chuyên mục.
 \end{itemize}
 
 \subsection{Định nghĩa nút/cạnh và quy ước dựng đồ thị}
-Để thống nhất giữa các cấu hình, nhóm ký hiệu $\mathcal{G}=(\mathcal{V},\mathcal{E})$ với các tập nút gồm người dùng ($U$), bài viết ($A$) và (tuỳ cấu hình) danh mục ($C$). Tín hiệu tương tác quan sát được đến từ hành vi \textit{bình luận/trả lời}, do đó nhóm coi đây là \textbf{implicit feedback}.
+Để thống nhất giữa các cấu hình, nhóm ký hiệu $\mathcal{G}=(\mathcal{V},\mathcal{E})$ với các tập nút gồm người dùng ($U$), bài viết ($A$) và (tuỳ cấu hình) chuyên mục ($C$). Tín hiệu tương tác quan sát được đến từ hành vi \textit{bình luận/trả lời}, do đó nhóm coi đây là \textbf{implicit feedback}.
 
-\textbf{Cạnh user--article.} Một cạnh $(u,a)\in \mathcal{E}_{u-a}$ được tạo nếu người dùng $u$ có ít nhất một bình luận (hoặc tham gia thread) dưới bài viết $a$. Trong thiết lập cơ bản, cạnh được xem là \textbf{không hướng} và \textbf{không trọng số} (binary), nhằm tập trung đánh giá tác động của cấu trúc đồ thị; các biến thể có trọng số theo số lượt bình luận/reaction được để dành cho hướng phát triển. Lựa chọn này giúp tách biệt tác động của cấu trúc đồ thị khỏi ảnh hưởng của trọng số cạnh,
+\textbf{Cạnh user--article.} Một cạnh $(u,a)\in \mathcal{E}_{u-a}$ được tạo nếu người dùng $u$ có ít nhất một bình luận dưới bài viết $a$. Trong thiết lập cơ bản, cạnh được xem là \textbf{không hướng} và \textbf{không trọng số}, nhằm tập trung đánh giá tác động của cấu trúc đồ thị; các biến thể có trọng số theo số lượt bình luận/reaction được để dành cho hướng phát triển. Lựa chọn này giúp tách biệt tác động của cấu trúc đồ thị khỏi ảnh hưởng của trọng số cạnh,
 đồng thời giữ thiết lập nhất quán giữa các mô hình được so sánh.
 
 
-\textbf{Cạnh user--user (social).} Từ cấu trúc thread, nếu $u_i$ trả lời bình luận của $u_j$ thì tạo cạnh $(u_i,u_j)\in \mathcal{E}_{u-u}$. Do mục tiêu là lan truyền tín hiệu sở thích trong cộng đồng thảo luận, nhóm \textbf{đối xứng hoá} cạnh (coi như undirected) để phản ánh \textit{social homophily} thay vì quan hệ nhân quả một chiều.
+\textbf{Cạnh user--user (social).} Từ cấu trúc luồng thảo luận, nếu $u_i$ trả lời bình luận của $u_j$ thì tạo cạnh $(u_i,u_j)\in \mathcal{E}_{u-u}$. Do mục tiêu là lan truyền tín hiệu sở thích trong cộng đồng thảo luận, nhóm \textbf{đối xứng hoá} cạnh để phản ánh \textit{social homophily} thay vì quan hệ nhân quả một chiều.
 
 \subsection{Ba cấu hình đồ thị và trực giác thiết kế}
-\textbf{G1 (Bipartite).} Đây là cấu hình chuẩn cho collaborative filtering trên đồ thị, phù hợp để benchmark các phương pháp như LightGCN/SimGCL/XSimGCL/LightGCL. Tuy nhiên với sparsity $\approx 99.93\%$, nhiều người dùng có bậc rất nhỏ khiến message passing khó lan truyền và embedding dễ thiếu thông tin.
+\textbf{G1 (Hai phía).} Đây là cấu hình chuẩn cho collaborative filtering trên đồ thị, phù hợp để benchmark các phương pháp như LightGCN/SimGCL/XSimGCL/LightGCL. Tuy nhiên với sparsity $\approx 99.93\%$, nhiều người dùng có bậc rất nhỏ khiến message passing khó lan truyền và embedding dễ thiếu thông tin.
 
-\textbf{G2 (Social expansion).} G2 bổ sung các cạnh $\mathcal{E}_{u-u}$ để \textbf{giảm số lượng thành phần liên thông nhỏ} và tạo thêm đường đi giữa các user có cùng chủ đề thảo luận. Trực giác là: ngay cả khi một user ít tương tác với bài viết, họ vẫn có thể nhận tín hiệu qua cộng đồng reply (homophily), từ đó cải thiện khả năng học embedding trong dữ liệu cực thưa.
+\textbf{G2 (Mở rộng liên kết xã hội).} G2 bổ sung các cạnh $\mathcal{E}_{u-u}$ để \textbf{giảm số lượng thành phần liên thông nhỏ} và tạo thêm đường đi giữa các user có cùng chủ đề thảo luận. Trực giác là: ngay cả khi một user ít tương tác với bài viết, họ vẫn có thể nhận tín hiệu qua cộng đồng reply (homophily), từ đó cải thiện khả năng học embedding trong dữ liệu cực thưa.
 
-\textbf{G3 (Category hubs).} G3 thêm nút danh mục $C$ và hai loại cạnh: $(u,c)\in \mathcal{E}_{u-c}$ và $(c,a)\in \mathcal{E}_{c-a}$. Trong đó $(c,a)$ là quan hệ \textbf{thuộc chuyên mục} từ metadata; còn $(u,c)$ được suy ra từ lịch sử tương tác của $u$ (ví dụ: $u$ từng tương tác với ít nhất một bài thuộc $c$). Cấu trúc hub này làm \textbf{ngắn hoá đường đi} giữa người dùng và các bài cùng chuyên mục, nhưng cũng tiềm ẩn rủi ro \textit{over-generalization} do nút category có bậc cao.
+\textbf{G3 (Kết nối nút chuyên mục).} G3 thêm nút chuyên mục $C$ và hai loại cạnh: $(u,c)\in \mathcal{E}_{u-c}$ và $(c,a)\in \mathcal{E}_{c-a}$. Trong đó $(c,a)$ là quan hệ \textbf{thuộc chuyên mục} từ metadata; còn $(u,c)$ được suy ra từ lịch sử tương tác của $u$ (ví dụ: $u$ từng tương tác với ít nhất một bài thuộc $c$). Cấu trúc hub này làm \textbf{ngắn hoá đường đi} giữa người dùng và các bài cùng chuyên mục, nhưng cũng tiềm ẩn rủi ro \textit{over-generalization} do nút category có bậc cao.
 
 
 \subsection{Minh hoạ cấu trúc G1--G3}
@@ -721,7 +721,7 @@ Trong Loo100, HGN trên G2 đạt kết quả vượt trội, cho thấy sự đ
 \end{table}
 
 \subsection{Tác động cấu trúc đồ thị và phân tích HGN}
-Để định lượng tác động của mở rộng đồ thị lên HGN, \autoref{tab:impact-graph} so sánh Recall@10 của HGN theo từng cấu trúc. Kết quả trên G2 cải thiện đáng kể so với G1, củng cố giả thuyết về Social Homophily trong lan truyền tin tức. Tuy nhiên, G3 (Category) lại không mang lại hiệu quả tương đương; nhóm suy đoán rằng các "Category Hubs" có bậc quá cao (high-degree nodes) có thể đã gây ra hiện tượng nhiễu hoặc over-smoothing, làm mất đi tính cá nhân hóa của tín hiệu được lan truyền. Mặc dù vậy, thông tin danh mục vẫn có thể hữu ích khi được khai thác theo cách có kiểm soát (ví dụ như đặc trưng nội dung hoặc các loại quan hệ chọn lọc), thay vì đưa trực tiếp các nút category bậc cao vào cấu trúc đồ thị.
+Để định lượng tác động của mở rộng đồ thị lên HGN, \autoref{tab:impact-graph} so sánh Recall@10 của HGN theo từng cấu trúc. Kết quả trên G2 cải thiện đáng kể so với G1, củng cố giả thuyết về Social Homophily trong lan truyền tin tức. Tuy nhiên, G3 (Category) lại không mang lại hiệu quả tương đương; nhóm suy đoán rằng các "Category Hubs" có bậc quá cao (high-degree nodes) có thể đã gây ra hiện tượng nhiễu hoặc over-smoothing, làm mất đi tính cá nhân hóa của tín hiệu được lan truyền. Mặc dù vậy, thông tin chuyên mục vẫn có thể hữu ích khi được khai thác theo cách có kiểm soát (ví dụ như đặc trưng nội dung hoặc các loại quan hệ chọn lọc), thay vì đưa trực tiếp các nút category bậc cao vào cấu trúc đồ thị.
 
 
 \begin{table}[!htbp]
