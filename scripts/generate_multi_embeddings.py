@@ -37,6 +37,11 @@ NEURAL_MODELS = {
         'name': 'keepitreal/vietnamese-sbert',
         'trust_remote_code': False,
         'dim': 768
+    },
+    'phobert': {
+        'name': 'vinai/phobert-base',
+        'trust_remote_code': True,
+        'dim': 768
     }
 }
 

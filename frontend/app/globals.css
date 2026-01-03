@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0f172a; /* Slate 950 */
+  --foreground: #f8fafc; /* Slate 50 */
+  
+  --card: #1e293b; /* Slate 800 */
+  --card-foreground: #f1f5f9;
+  
+  --primary: #6366f1; /* Indigo 500 */
+  --primary-foreground: #ffffff;
+  
+  --secondary: #334155; /* Slate 700 */
+  --secondary-foreground: #e2e8f0;
+
+  --accent: #8b5cf6; /* Violet 500 */
+  --accent-foreground: #ffffff;
+
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+
+  --border: #334155;
+  --input: #334155;
+  --ring: #6366f1;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), sans-serif;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.15) 0px, transparent 50%);
+  background-attachment: fixed;
+}
+
+@layer utilities {
+  .glass-panel {
+    @apply bg-slate-900/70 backdrop-blur-xl border border-slate-700/50 shadow-2xl;
+  }
+  
+  .glass-card {
+    @apply bg-slate-800/40 backdrop-blur-md border border-slate-700/50 hover:bg-slate-800/60 transition-all duration-300;
+  }
+
+  .text-glow {
+    text-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+  }
+  
+  .card-hover {
+    @apply hover:-translate-y-1 hover:shadow-indigo-500/10 hover:border-indigo-500/30;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}

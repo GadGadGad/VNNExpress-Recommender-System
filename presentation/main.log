@@ -1,4 +1,4 @@
-This is LuaHBTeX, Version 1.17.0 (TeX Live 2023/Debian)  (format=lualatex 2025.6.18)  3 JAN 2026 12:20
+This is LuaHBTeX, Version 1.17.0 (TeX Live 2023/Debian)  (format=lualatex 2025.6.18)  3 JAN 2026 12:22
  restricted system commands enabled.
 **main.tex
 (./main.tex
@@ -2214,7 +2214,7 @@ literal, 3 pdf_dest, 64 pdf_colorstack nodes
    avail lists: 1:6,2:8070,3:1918,4:369,5:381,6:300,7:5806,8:55,9:2822,10:16,11:
 259
  65635 multiletter control sequences out of 65536+600000
- 112 fonts using 30714087 bytes
+ 112 fonts using 30714423 bytes
  128i,15n,116p,1128b,2415s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/share/texmf/fonts/opentype/public/lm/lmromancaps10-regular.otf></usr/share
 /texmf/fonts/opentype/public/lm/lmmono10-regular.otf></usr/share/texmf/fonts/ope
