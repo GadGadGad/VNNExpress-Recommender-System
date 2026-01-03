@@ -288,10 +288,9 @@ class GNNDataConverter:
 
     
     def _get_split_indices(self, seed=42):
-        """Get indices split by Time or Randomly."""
+        """Get indices split by Time (Chronological) OR Randomly."""
         import numpy as np
         
-        # Consistent cache filename
         filename = f'split_indices_{self.split_strategy}.pt' 
         split_file = self.output_dir / filename
         num_positives = len(self.replies)
@@ -301,9 +300,18 @@ class GNNDataConverter:
             if len(indices) == num_positives:
                 return indices.numpy() if torch.is_tensor(indices) else indices
         
-        # Default: Random split
-        np.random.seed(seed)
-        indices = np.random.permutation(num_positives)
+        # --- SỬA ĐỔI TẠI ĐÂY ---
+        if self.split_strategy == 'time': # Hoặc mặc định luôn nếu bạn muốn ép cứng
+            print("   -> Splitting Chronologically (Past -> Future)...")
+            # Vì self.replies đã sort theo date rồi, ta chỉ cần lấy index tuần tự
+            indices = np.arange(num_positives) 
+        else:
+            # Random split (Code cũ)
+            print("   -> Splitting Randomly (Shuffled)...")
+            np.random.seed(seed)
+            indices = np.random.permutation(num_positives)
+        # -----------------------
+
         torch.save(indices, split_file)
         return indices
 

@@ -115,7 +115,7 @@
 \large DS300.Q11 -- Báo cáo Đồ án Cuối kỳ}
 
 \author{
-\textbf{T.~Nhat \quad L.~M.~Nhut \quad N.~H.~Phat}\\
+\textbf{T.~Nhất \quad L.~M.~Nhựt \quad N.~H.~Phát}\\
 Trường Đại học Công nghệ Thông tin(VNU-UIT)\\
 GVHD: ThS. Huỳnh Văn Tín
 }
@@ -413,12 +413,32 @@ Với độ thưa rất cao (\eqref{eq:sparsity}), đồ thị user--article thu
 \textbf{Cạnh user--user (social).} Từ cấu trúc luồng thảo luận, nếu $u_i$ trả lời bình luận của $u_j$ thì tạo cạnh $(u_i,u_j)\in \mathcal{E}_{u-u}$. Do mục tiêu là lan truyền tín hiệu sở thích trong cộng đồng thảo luận, nhóm \textbf{đối xứng hoá} cạnh để phản ánh \textit{social homophily} thay vì quan hệ nhân quả một chiều.
 
 \subsection{Ba cấu hình đồ thị và trực giác thiết kế}
-\textbf{G1 (Hai phía).} Đây là cấu hình chuẩn cho collaborative filtering trên đồ thị, phù hợp để benchmark các phương pháp như LightGCN/SimGCL/XSimGCL/LightGCL. Tuy nhiên với sparsity $\approx 99.93\%$, nhiều người dùng có bậc rất nhỏ khiến message passing khó lan truyền và embedding dễ thiếu thông tin.
+\label{sec:graph_configs}
 
-\textbf{G2 (Mở rộng liên kết xã hội).} G2 bổ sung các cạnh $\mathcal{E}_{u-u}$ để \textbf{giảm số lượng thành phần liên thông nhỏ} và tạo thêm đường đi giữa các user có cùng chủ đề thảo luận. Trực giác là: ngay cả khi một user ít tương tác với bài viết, họ vẫn có thể nhận tín hiệu qua cộng đồng reply (homophily), từ đó cải thiện khả năng học embedding trong dữ liệu cực thưa.
+Dựa trên các phân tích EDA, nhóm thiết kế ba cấu hình đồ thị $\mathcal{G}_1, \mathcal{G}_2, \mathcal{G}_3$ với độ phức tạp tăng dần, nhằm đánh giá tác động của từng loại tín hiệu cấu trúc đối với bài toán gợi ý trong môi trường thưa dữ liệu.
 
-\textbf{G3 (Kết nối nút chuyên mục).} G3 thêm nút chuyên mục $C$ và hai loại cạnh: $(u,c)\in \mathcal{E}_{u-c}$ và $(c,a)\in \mathcal{E}_{c-a}$. Trong đó $(c,a)$ là quan hệ \textbf{thuộc chuyên mục} từ metadata; còn $(u,c)$ được suy ra từ lịch sử tương tác của $u$ (ví dụ: $u$ từng tương tác với ít nhất một bài thuộc $c$). Cấu trúc hub này làm \textbf{ngắn hoá đường đi} giữa người dùng và các bài cùng chuyên mục, nhưng cũng tiềm ẩn rủi ro \textit{over-generalization} do nút chuyên mục có bậc cao.
+\paragraph{G1: Đồ thị Bipartite cơ bản (Baseline).}
+Đây là cấu hình tiêu chuẩn cho các mô hình Collaborative Filtering. Đồ thị chỉ bao gồm tập nút người dùng $U$ và bài viết $A$, với tập cạnh $\mathcal{E}_{u-a}$ biểu thị tương tác bình luận.
+\begin{itemize}
+    \item \textbf{Cấu trúc:} Homogeneous Bipartite Graph.
+    \item \textbf{Trực giác:} Phản ánh sở thích trực tiếp (first-order connectivity). Tuy nhiên, với độ thưa $99.93\%$, đồ thị này chứa nhiều thành phần liên thông rời rạc, khiến việc lan truyền tín hiệu (message passing) bị hạn chế đối với người dùng thuộc nhóm long-tail.
+\end{itemize}
 
+\paragraph{G2: Đồ thị Mở rộng Xã hội (Social-Enhanced).}
+Để khắc phục sự đứt gãy thông tin trong G1, nhóm mở rộng đồ thị bằng cách khai thác các mối quan hệ giữa người dùng với nhau, biến đồ thị thành dạng Heterogeneous (đa quan hệ). Cụ thể, G2 bổ sung hai loại cạnh user--user:
+\begin{itemize}
+    \item \textbf{Explicit Social (Reply):} Cạnh $(u_i, u_j)$ được tạo nếu $u_i$ trả lời bình luận của $u_j$. Đây là tín hiệu xã hội trực tiếp, phản ánh sự tương tác trong thảo luận.
+    \item \textbf{Implicit Homophily (Shared Interest):} Cạnh $(u_i, u_j)$ được tạo nếu hai người dùng cùng tương tác với ít nhất $k$ bài viết giống nhau (trong thực nghiệm, $k=2$). Đây là tín hiệu đồng sở thích tiềm ẩn, giúp kết nối những người dùng có hành vi tương đồng dù chưa từng đối thoại trực tiếp.
+\end{itemize}
+\textbf{Trực giác:} Việc bổ sung các cạnh ngang ($u-u$) giúp tạo ra các "cầu nối" (bridges) để lan truyền embedding giữa các người dùng, làm giàu biểu diễn ngay cả khi dữ liệu tương tác user--article rất thưa.
+
+\paragraph{G3: Đồ thị Ngữ nghĩa Chuyên mục (Category Hubs).}
+G3 tiếp cận vấn đề thưa dữ liệu từ góc độ nội dung. Nhóm bổ sung tập nút chuyên mục $C$ và hai loại cạnh mới:
+\begin{itemize}
+    \item \textbf{Article--Category:} Quan hệ thuộc tính cứng từ metadata (ví dụ: bài viết $a$ thuộc mục \textit{Thể thao}).
+    \item \textbf{User--Category:} Quan hệ sở thích được tổng hợp từ lịch sử tương tác (trọng số cạnh tỉ lệ với số bài viết thuộc chuyên mục mà user đã bình luận).
+\end{itemize}
+\textbf{Trực giác:} Các nút chuyên mục đóng vai trò là "Semantic Hubs" (trung tâm ngữ nghĩa). Chúng tạo ra các đường dẫn ngắn bậc 2 ($u \to c \to a'$) kết nối người dùng với các bài viết mới cùng chủ đề, giúp giải quyết vấn đề cold-start cho các bài viết mới đăng tải (khi chưa có nhiều tương tác user--article nhưng đã có thông tin chuyên mục).
 
 \subsection{Minh hoạ cấu trúc G1--G3}
 \autoref{fig:g123} cho thấy khi chuyển từ G1 sang G2, người dùng được liên kết thêm bởi các cạnh xã hội, giúp tăng khả năng lan truyền embedding giữa các user có cùng hành vi thảo luận. Với G3, việc đưa chuyên mục vào vai trò \textit{semantic hub} tạo thêm các đường đi ngắn giữa user và nhóm bài viết cùng chuyên mục, nhưng đồng thời làm xuất hiện các nút bậc cao dễ gây nhiễu.
