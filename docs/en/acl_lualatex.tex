@@ -404,7 +404,7 @@ To evaluate the role of structural signals versus content, we compare against st
 \begin{itemize}
     \item \textbf{TF-IDF:} Traditional keyword frequency statistics using sparse vectors and cosine similarity.
     \item \textbf{PhoBERT:} State-of-the-art pre-trained language model for Vietnamese, extracting dense semantic embeddings from titles and descriptions.
-    \item \textbf{VnDoc:} Specialized embedding model for Vietnamese text, optimized for classification and search tasks.
+    \item \textbf{VnDoc} (\texttt{dangvantuan/vietnamese-document-embedding}): Specialized embedding model for Vietnamese text, optimized for classification and search tasks.
     \item \textbf{BGE-M3:} Modern multilingual embedding model supporting multi-vector representations, achieving high retrieval performance on various benchmarks.
 \end{itemize}
 These methods serve as strong baselines in cold-start scenarios where historical interaction signals are scarce.
@@ -451,12 +451,11 @@ Users are split 80/20. On the test set, the system ranks candidate articles and 
 \paragraph{Leave-One-Out (Loo100).}
 For each test user, we select 1 positive interaction and 99 randomly sampled negatives to evaluate ranking quality within a small candidate set.
 
-\subsection{Metrics}
 \begin{itemize}
-    \item \textbf{Recall@10}: fraction of relevant items retrieved in top-10.
-    \item \textbf{Hit@10}: whether any relevant item appears in top-10.
-    \item \textbf{NDCG@10}: rewards relevant items ranked higher.
-    \item \textbf{MRR}: sensitive to the rank position of the first relevant item.
+    \item \textbf{Recall@10}: Measures system coverage. This metric is selected to evaluate the ability to retrieve the correct item within a short list, which is critical for two-stage retrieval models.
+    \item \textbf{Hit Rate@10 (HR)}: Measures basic user experience - whether the user finds at least one relevant article in the top 10.
+    \item \textbf{NDCG@10}: Evaluates ranking quality. Unlike Recall which treats all positions equally, NDCG heavily penalizes models if relevant articles are ranked lower, thus reflecting the priority of displaying the best content at the top.
+    \item \textbf{MRR}: Key metric for news recommendation where users typically care about the first relevant result (Quick Satisfaction). MRR assesses how quickly the system satisfies this need.
 \end{itemize}
 
 % ==========================================================

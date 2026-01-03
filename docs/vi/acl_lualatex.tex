@@ -512,7 +512,7 @@ chỉ dựa trên thông tin văn bản của bài viết:
           biểu diễn văn bản dưới dạng vector thưa và đo độ tương đồng bằng cosine similarity.
     \item \textbf{PhoBERT:} Mô hình ngôn ngữ tiền huấn luyện state-of-the-art cho tiếng Việt,
           được sử dụng để trích xuất embedding ngữ nghĩa dense từ tiêu đề và mô tả bài viết.
-    \item \textbf{VnDoc:} Mô hình embedding chuyên dụng cho văn bản tiếng Việt,
+    \item \textbf{VnDoc} (\texttt{dangvantuan/vietnamese-document-embedding}): Mô hình embedding chuyên dụng cho văn bản tiếng Việt,
           tối ưu cho các tác vụ phân loại và tìm kiếm.
     \item \textbf{BGE-M3:} Mô hình embedding đa ngôn ngữ hiện đại,
           hỗ trợ biểu diễn đa chiều (dense, sparse, multi-vector)
@@ -620,14 +620,10 @@ phù hợp để so sánh chi tiết giữa các phương pháp.
 Hiệu năng của mô hình được đánh giá bằng các metric chuẩn
 trong recommendation:
 \begin{itemize}
-    \item \textbf{Recall@10}: tỷ lệ bài viết đúng
-          được truy xuất trong top-10 kết quả.
-    \item \textbf{Hit@10}: xác định liệu có ít nhất
-          một bài viết đúng xuất hiện trong top-10.
-    \item \textbf{NDCG@10}: đánh giá chất lượng xếp hạng,
-          ưu tiên các bài viết đúng ở vị trí cao.
-    \item \textbf{MRR}: nhạy với vị trí xuất hiện
-          của bài viết đúng đầu tiên trong danh sách.
+    \item \textbf{Recall@10}: Đo lường độ phủ của hệ thống (Coverage). Chỉ số này được chọn để đánh giá khả năng tìm kiếm được item đúng trong danh sách ngắn, vốn cực kỳ quan trọng đối với các mô hình two-stage retrieval.
+    \item \textbf{Hit Rate@10 (HR)}: Đo lường trải nghiệm người dùng cơ bản (User Experience) - liệu người dùng có tìm thấy ít nhất một bài viết phù hợp trong top 10 hay không.
+    \item \textbf{NDCG@10}: Đánh giá chất lượng xếp hạng (Ranking Quality). Khác với Recall coi mọi vị trí là như nhau, NDCG phạt nặng các mô hình nếu bài viết đúng bị xếp thấp, qua đó phản ánh mức độ ưu tiên hiển thị nội dung tốt nhất lên đầu.
+    \item \textbf{MRR}: Chỉ số quan trọng cho bài toán gợi ý tin tức, nơi người dùng thường chỉ quan tâm đến kết quả phù hợp đầu tiên (Quick Satisfaction). MRR đánh giá tốc độ hệ thống đáp ứng nhu cầu này.
 \end{itemize}
 
 % ==========================================================
@@ -863,15 +859,15 @@ Một điểm đáng chú ý trong kết quả thực nghiệm là sự chênh l
     \setlength{\tabcolsep}{4pt}
     \begin{tabular}{l|c|c|c|c}
         \toprule
-        \textbf{Dataset}                  & \textbf{\#Users} & \textbf{\#Items} & \textbf{Density} & \textbf{SOTA R@20}    \\
+        \textbf{Dataset}   & \textbf{\#Users} & \textbf{\#Items} & \textbf{Density} & \textbf{SOTA R@20}    \\
         \midrule
-        ML-10M                            & 69k              & 10k              & \textbf{0.982\%} & $\sim$ 0.2613         \\
-        Yelp                              & 29k              & 24k              & 0.146\%          & $\sim$ 0.0793         \\
-        Gowalla                           & 50k              & 57k              & 0.040\%          & $\sim$ 0.1578         \\
-        Amazon-Book                       & 78k              & 77k              & \textbf{0.037\%} & \textbf{0.0585}       \\
-        Tmall                             & 47k              & 41k              & 0.119\%          & 0.0528                \\
+        ML-10M             & 69k              & 10k              & \textbf{0.982\%} & $\sim$ 0.2613         \\
+        Yelp               & 29k              & 24k              & 0.146\%          & $\sim$ 0.0793         \\
+        Gowalla            & 50k              & 57k              & 0.040\%          & $\sim$ 0.1578         \\
+        Amazon-Book        & 78k              & 77k              & \textbf{0.037\%} & \textbf{0.0585}       \\
+        Tmall              & 47k              & 41k              & 0.119\%          & 0.0528                \\
         \midrule
-        \textbf{Ours (G2)}                & \textbf{13k}     & \textbf{3.6k}    & \textbf{0.064\%} & \textbf{0.0436} (@10) \\
+        \textbf{Ours (G2)} & \textbf{13k}     & \textbf{3.6k}    & \textbf{0.064\%} & \textbf{0.0436} (@10) \\
         \bottomrule
     \end{tabular}
     \caption{So sánh mật độ và hiệu năng với các bộ dữ liệu chuẩn \citet{he2020lightgcn, yu2022graph}.}
