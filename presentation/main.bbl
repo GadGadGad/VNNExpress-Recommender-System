@@ -213,6 +213,40 @@
       \field{title}{XSimGCL: Towards Extremely Simple Graph Contrastive Learning for Recommendation}
       \field{year}{2023}
     \endentry
+    \entry{xiao2023bgem3}{article}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{3}{}{%
+        {{hash=d71b1119f50662a9107099735aa4912f}{%
+           family={Xiao},
+           familyi={X\bibinitperiod},
+           given={Shitao},
+           giveni={S\bibinitperiod}}}%
+        {{hash=7e48bdec050a7bea1bb0d4acff3023eb}{%
+           family={Liu},
+           familyi={L\bibinitperiod},
+           given={Zheng},
+           giveni={Z\bibinitperiod}}}%
+        {{hash=caa6681753bd9f2dba4443aa540a22a6}{%
+           family={Zhang},
+           familyi={Z\bibinitperiod},
+           given={Yukun},
+           giveni={Y\bibinitperiod}}}%
+      }
+      \strng{namehash}{25af959a4ec0afc923cf69d19000c153}
+      \strng{fullhash}{25af959a4ec0afc923cf69d19000c153}
+      \strng{bibnamehash}{25af959a4ec0afc923cf69d19000c153}
+      \strng{authorbibnamehash}{25af959a4ec0afc923cf69d19000c153}
+      \strng{authornamehash}{25af959a4ec0afc923cf69d19000c153}
+      \strng{authorfullhash}{25af959a4ec0afc923cf69d19000c153}
+      \field{sortinit}{5}
+      \field{sortinithash}{20e9b4b0b173788c5dace24730f47d8c}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{arXiv preprint arXiv:2312.10997}
+      \field{title}{BGE-M3: Towards General Embedding Models for Retrieval}
+      \field{year}{2023}
+    \endentry
     \entry{shi2020hgrec}{inproceedings}{}
       \name{author}{6}{}{%
         {{hash=6915348ef57457be2b9c87e7cb24d070}{%
@@ -252,8 +286,8 @@
       \strng{authorbibnamehash}{3b1101cd77e22bbc59cfaaca799754d3}
       \strng{authornamehash}{f5994f1c318b339fb5bca1e052d5873c}
       \strng{authorfullhash}{3b1101cd77e22bbc59cfaaca799754d3}
-      \field{sortinit}{5}
-      \field{sortinithash}{20e9b4b0b173788c5dace24730f47d8c}
+      \field{sortinit}{6}
+      \field{sortinithash}{b33bc299efb3c36abec520a4c896a66d}
       \field{labelnamesource}{author}
       \field{labeltitlesource}{title}
       \field{booktitle}{Proceedings of the 37th International Conference on Machine Learning (ICML)}

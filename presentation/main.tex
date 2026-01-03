@@ -770,14 +770,14 @@
     \item \textbf{Contrastive Learning (CL):}
           \begin{itemize}
             \item \textbf{SimGCL \cite{yu2022graph} (2022):} Augments graph structure with noise to learn robust representations. Handles sparsity better than pure GNNs.
-            \item \item \textbf{LightGCL \cite{cai2023lightgcl} (2023):} Efficient Global Context Learning via SVD for better structural alignment.
+            \item \textbf{LightGCL \cite{cai2023lightgcl} (2023):} Efficient Global Context Learning via SVD for better structural alignment.
             \item \textbf{XSimGCL \cite{yu2023xsimgcl} (2023):} Extreme Simple Graph Contrastive Learning using noise perturbation instead of graph augmentation.
           \end{itemize}
 
           \vspace{0.2cm}
     \item \textbf{Content-Based \& Hybrid:}
           \begin{itemize}
-            \item \textbf{PhoBERT:} State-of-the-art BERT model for Vietnamese, capturing deep semantic text features.
+            \item \textbf{BGE-M3 \cite{xiao2023bgem3} (2023):} A strong multilingual embedding model supporting dense, sparse, and multi-vector representations, showing robust semantic retrieval performance on Vietnamese text despite its low-resource and morphologically rich nature.
           \end{itemize}
   \end{enumerate}
 \end{frame}
@@ -846,7 +846,7 @@
       \begin{block}{Process Flow}
         \begin{itemize}
           \item \textbf{Input:} Title, Abstract.
-          \item \textbf{Method:} PhoBERT $\rightarrow$ Dense Vectors.
+          \item \textbf{Method:} BGE-M3 $\rightarrow$ Dense Vectors.
           \item \textbf{Metric:} Cosine Similarity.
           \item \textbf{Output:} Top-K semantically similar items.
         \end{itemize}
@@ -1165,7 +1165,7 @@
       \textbf{Model}                        & \textbf{Type} & \textbf{R@10}   & \textbf{N@10}   & \textbf{H@10}   & \textbf{MRR}    \\
       \midrule
       \multicolumn{6}{l}{\textit{\textbf{Content-Based / Baselines}}}                                                               \\
-      \rowcolor{yellow!20} \textbf{PhoBERT} & \textbf{CB}   & \textbf{0.0535} & \textbf{0.0315} & \textbf{0.0929} & \textbf{0.0416} \\
+      \rowcolor{yellow!20} \textbf{BGE-M3} & \textbf{CB}   & \textbf{0.0535} & \textbf{0.0315} & \textbf{0.0929} & \textbf{0.0416} \\
       TF-IDF                                & CB            & 0.0508          & 0.0301          & 0.0951          & 0.0394          \\
       \midrule
       \multicolumn{6}{l}{\textit{\textbf{Graph G1 (Bipartite)}}}                                                                    \\
