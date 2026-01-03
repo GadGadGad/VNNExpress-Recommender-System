@@ -119,12 +119,16 @@ Instructor: Master. Huynh Van Tin
 \section{Introduction}
 \label{sec:intro}
 
-Digital news platforms continuously generate a large volume of content over time, making it difficult for users to find relevant articles quickly. Recommender systems play a key role in personalizing content, increasing engagement, and improving user experience. However, news has several unique characteristics: a short life cycle, rapidly changing trends, and highly sparse interactions because most readers do not leave explicit traces.
+Digital news platforms generate an enormous volume of content every day, leading to \textbf{information overload} and making it difficult for users to quickly find relevant articles. Therefore, recommender systems play a crucial role in personalizing content, increasing engagement, and improving user experience. However, news recommendation has distinctive characteristics that make traditional recommendation methods struggle: (i) a \textbf{short news lifecycle} and rapidly shifting trends, (ii) \textbf{cold-start} for new users/articles, and in particular (iii) \textbf{extremely sparse interactions}, since most readers leave little explicit feedback beyond limited signals such as comments or replies.
 
-In this project, we approach Vietnamese news recommendation using two primary signal sources:
-(i) \textbf{user--article interactions} (comments) that directly reflect preferences,
-(ii) \textbf{user--user reply relations} that reflect social influence or opinion similarity in discussions.
-Accordingly, we build a graph-based and heterogeneous-graph-based system to separate relationship semantics and fuse them in a controlled manner.
+In this project, we build a real-world dataset from VnExpress based on comment/reply signals. The results show that the data exhibits \textbf{very high sparsity} (approximately \textbf{99.93\%}), making the user--article matrix nearly empty and weakening the effectiveness of purely collaborative filtering models. Meanwhile, the data also demonstrates a \textbf{power-law} phenomenon: a small group of users contributes the majority of interactions, while most users have very low degrees, increasing the risk of cold-start.
+
+To better exploit signals in an extremely sparse setting, we tackle the problem through \textbf{graph representation learning}, and in particular \textbf{heterogeneous graphs} to distinguish the semantics of different relations. Specifically, we use two main sources of signals:
+(i) \textbf{user--article interactions} (comments) that reflect direct preferences, and
+(ii) \textbf{reply-based user--user relations} that capture social influence or \textit{social homophily} in discussions.
+Based on this, we design a three-level graph expansion strategy, \textbf{G1--G3}, to control the richness of the graph structure: G1 is a bipartite user--article graph; G2 adds social user--user edges from replies; and G3 introduces \textit{category hubs} to shorten paths between users and groups of articles within the same category.
+
+Beyond sparsity-related challenges, evaluating news recommender models can also be biased if train/test splits are randomized, as this may cause temporal \textbf{data leakage} (the model ``learns'' from future interactions). Therefore, we emphasize controlling evaluation protocols and comparing models under standard settings (Full Ranking and Leave-One-Out).
 
 \textbf{Main contributions}:
 \begin{itemize}
@@ -154,10 +158,10 @@ When the graph contains multiple node/edge types, homogeneous models may mix rel
 \subsection{Data collection and scope}
 The data source is VnExpress\footnote{\url{https://vnexpress.net}} with six categories: World, Current Affairs, Business, Education, Sports, and Science \& Technology. The collected data includes:
 \begin{itemize}
-    \item \textbf{Articles}: title, short description, author, publish time, and content.
-    \item \textbf{Metadata}: category and tags.
-    \item \textbf{Comments/Replies}: user id, text, reactions, and thread structure.
-    \item \textbf{User Profiles}: user id, username, and join date (if publicly available).
+    \item \textbf{Articles}: title, short description, author, publication time, and article content.
+    \item \textbf{Metadata}: the article's category and tags.
+    \item \textbf{Comments/Replies}: user information, comment text, and the reply structure (parent--child).
+    \item \textbf{User Profiles}: public user information (user id, username, join date).
 \end{itemize}
 
 \subsection{Crawler pipeline}
