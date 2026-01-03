@@ -343,8 +343,8 @@ trong khi các chuyên mục khác có mức độ tương tác thấp hơn.
 nhưng không đồng nhất về hành vi tương tác.
 Do đó, việc bổ sung \textit{các nút chuyên mục} (G3)
 có thể giúp rút ngắn khoảng cách trong đồ thị,
-nhưng cũng tiềm ẩn nguy cơ over-generalization
-khi các nút category có bậc cao kéo embedding về các đặc trưng chung,
+nhưng cũng tiềm ẩn nguy cơ khái quát hóa quá mức (over-generalization)
+khi các nút chuyên mục có bậc cao kéo embedding về các đặc trưng chung,
 làm suy giảm tính cá nhân hoá.
 
 \begin{figure}[t]
@@ -417,11 +417,11 @@ Với độ thưa rất cao (\eqref{eq:sparsity}), đồ thị user--article thu
 
 \textbf{G2 (Mở rộng liên kết xã hội).} G2 bổ sung các cạnh $\mathcal{E}_{u-u}$ để \textbf{giảm số lượng thành phần liên thông nhỏ} và tạo thêm đường đi giữa các user có cùng chủ đề thảo luận. Trực giác là: ngay cả khi một user ít tương tác với bài viết, họ vẫn có thể nhận tín hiệu qua cộng đồng reply (homophily), từ đó cải thiện khả năng học embedding trong dữ liệu cực thưa.
 
-\textbf{G3 (Kết nối nút chuyên mục).} G3 thêm nút chuyên mục $C$ và hai loại cạnh: $(u,c)\in \mathcal{E}_{u-c}$ và $(c,a)\in \mathcal{E}_{c-a}$. Trong đó $(c,a)$ là quan hệ \textbf{thuộc chuyên mục} từ metadata; còn $(u,c)$ được suy ra từ lịch sử tương tác của $u$ (ví dụ: $u$ từng tương tác với ít nhất một bài thuộc $c$). Cấu trúc hub này làm \textbf{ngắn hoá đường đi} giữa người dùng và các bài cùng chuyên mục, nhưng cũng tiềm ẩn rủi ro \textit{over-generalization} do nút category có bậc cao.
+\textbf{G3 (Kết nối nút chuyên mục).} G3 thêm nút chuyên mục $C$ và hai loại cạnh: $(u,c)\in \mathcal{E}_{u-c}$ và $(c,a)\in \mathcal{E}_{c-a}$. Trong đó $(c,a)$ là quan hệ \textbf{thuộc chuyên mục} từ metadata; còn $(u,c)$ được suy ra từ lịch sử tương tác của $u$ (ví dụ: $u$ từng tương tác với ít nhất một bài thuộc $c$). Cấu trúc hub này làm \textbf{ngắn hoá đường đi} giữa người dùng và các bài cùng chuyên mục, nhưng cũng tiềm ẩn rủi ro \textit{over-generalization} do nút chuyên mục có bậc cao.
 
 
 \subsection{Minh hoạ cấu trúc G1--G3}
-\autoref{fig:g123} cho thấy khi chuyển từ G1 sang G2, người dùng được liên kết thêm bởi các cạnh xã hội, giúp tăng khả năng lan truyền embedding giữa các user có cùng hành vi thảo luận. Với G3, việc đưa category vào vai trò \textit{semantic hub} tạo thêm các đường đi ngắn giữa user và nhóm bài viết cùng chuyên mục, nhưng đồng thời làm xuất hiện các nút bậc cao dễ gây nhiễu.
+\autoref{fig:g123} cho thấy khi chuyển từ G1 sang G2, người dùng được liên kết thêm bởi các cạnh xã hội, giúp tăng khả năng lan truyền embedding giữa các user có cùng hành vi thảo luận. Với G3, việc đưa chuyên mục vào vai trò \textit{semantic hub} tạo thêm các đường đi ngắn giữa user và nhóm bài viết cùng chuyên mục, nhưng đồng thời làm xuất hiện các nút bậc cao dễ gây nhiễu.
 
 \begin{figure*}[!t]
     \centering
@@ -464,7 +464,7 @@ Với độ thưa rất cao (\eqref{eq:sparsity}), đồ thị user--article thu
         \draw[-Stealth, thick, cathub!80] (c2)--(a3);
         \node[below=0.2cm of u2, font=\scriptsize] {G3: +Category hubs};
     \end{tikzpicture}
-    \caption{Minh họa ba tầng đồ thị G1--G3 (bipartite, social expansion, Category hubs).}
+    \caption{Minh họa ba tầng đồ thị G1--G3.}
     \label{fig:g123}
 \end{figure*}
 
@@ -721,7 +721,7 @@ Trong Loo100, HGN trên G2 đạt kết quả vượt trội, cho thấy sự đ
 \end{table}
 
 \subsection{Tác động cấu trúc đồ thị và phân tích HGN}
-Để định lượng tác động của mở rộng đồ thị lên HGN, \autoref{tab:impact-graph} so sánh Recall@10 của HGN theo từng cấu trúc. Kết quả trên G2 cải thiện đáng kể so với G1, củng cố giả thuyết về Social Homophily trong lan truyền tin tức. Tuy nhiên, G3 (Category) lại không mang lại hiệu quả tương đương; nhóm suy đoán rằng các "Category Hubs" có bậc quá cao (high-degree nodes) có thể đã gây ra hiện tượng nhiễu hoặc over-smoothing, làm mất đi tính cá nhân hóa của tín hiệu được lan truyền. Mặc dù vậy, thông tin chuyên mục vẫn có thể hữu ích khi được khai thác theo cách có kiểm soát (ví dụ như đặc trưng nội dung hoặc các loại quan hệ chọn lọc), thay vì đưa trực tiếp các nút category bậc cao vào cấu trúc đồ thị.
+Để định lượng tác động của mở rộng đồ thị lên HGN, \autoref{tab:impact-graph} so sánh Recall@10 của HGN theo từng cấu trúc. Kết quả trên G2 cải thiện đáng kể so với G1, củng cố giả thuyết về Social Homophily trong lan truyền tin tức. Tuy nhiên, G3 lại không mang lại hiệu quả tương đương; nhóm suy đoán rằng các "nút chuyên mục" có bậc quá cao (high-degree nodes) có thể đã gây ra hiện tượng nhiễu hoặc over-smoothing, làm mất đi tính cá nhân hóa của tín hiệu được lan truyền. Mặc dù vậy, thông tin chuyên mục vẫn có thể hữu ích khi được khai thác theo cách có kiểm soát (ví dụ như đặc trưng nội dung hoặc các loại quan hệ chọn lọc), thay vì đưa trực tiếp các nút chuyên mục bậc cao vào cấu trúc đồ thị.
 
 
 \begin{table}[!htbp]
@@ -821,20 +821,20 @@ XSimGCL có thời gian/epoch nhanh nhất trong thiết lập so sánh. Mô hì
 \section{Thảo luận}
 \label{sec:discussion}
 
-\subsection{Tác động trái ngược của Social và Category}
+\subsection{Tác động trái ngược của liên kết xã hội và kết nối chuyên mục}
 Việc mở rộng đồ thị mang lại những tác động trái chiều tùy thuộc vào loại quan hệ được bổ sung.
 
 \textbf{Social edges (G2):} Tăng cường kết nối giữa người dùng ngay cả khi họ không tương tác cùng bài viết, giúp lan truyền embedding tốt hơn trong dữ liệu thưa. Với thiết kế dual-path, tín hiệu xã hội được khai thác hiệu quả mà không làm nhiễu tín hiệu sở thích trực tiếp.
 
-\textbf{Category hubs (G3):} Ngược lại, việc thêm Category hubs có thể gây ra sự không ổn định. Category mang tính khái quát cao; khi liên kết user với category và category với nhiều bài viết, mô hình có thể bị bias về các gợi ý ``cùng chuyên mục'' nhưng kém tính cá nhân hóa, dẫn đến hiện tượng over-generalization và làm giảm độ chính xác xếp hạng cụ thể.
+\textbf{Category hubs (G3):} Ngược lại, việc thêm kết nối chuyên mục có thể gây ra sự không ổn định. Chuyên mục mang tính khái quát cao; khi liên kết người dùng với chuyên mục và chuyên mục với nhiều bài viết, mô hình có thể bị thiên lệch về các gợi ý ``cùng chuyên mục'' nhưng kém tính cá nhân hóa, dẫn đến hiện tượng khái quát hóa quá mức (over-generalization) và làm giảm độ chính xác xếp hạng cụ thể.
 
 Những quan sát này cho thấy không phải mọi loại quan hệ đều nên được đưa trực tiếp vào cấu trúc đồ thị; hiệu quả của từng loại cạnh phụ thuộc mạnh vào bậc nút, mật độ liên kết và cách tín hiệu được hợp nhất trong mô hình heterogeneous.
 
 \subsection{Vì sao HCL dễ dao động?}
-Trong regime thưa, số positive ít và negative sampling nhạy cảm khiến InfoNCE khó ổn định. Khi kết hợp thêm heterogeneity (hai nhánh lan truyền), việc cân bằng loss và hyper-parameter trở nên khó hơn, dẫn đến hiện tượng khó hội tụ ổn định. Điều này cho thấy việc kết hợp contrastive learning với đồ thị dị thể trong bối cảnh dữ liệu cực thưa đòi hỏi các chiến lược ổn định hơn về negative sampling và thiết kế loss, thay vì áp dụng trực tiếp các công thức từ đồ thị homogeneous.
+Trong bối cảnh dữ liệu thưa, số positive ít và negative sampling nhạy cảm khiến InfoNCE khó ổn định. Khi kết hợp thêm heterogeneity (hai nhánh lan truyền), việc cân bằng loss và hyper-parameter trở nên khó hơn, dẫn đến hiện tượng khó hội tụ ổn định. Điều này cho thấy việc kết hợp contrastive learning với đồ thị dị thể trong bối cảnh dữ liệu cực thưa đòi hỏi các chiến lược ổn định hơn về negative sampling và thiết kế loss, thay vì áp dụng trực tiếp các công thức từ đồ thị homogeneous.
 
 \subsection{Hạn chế và rủi ro của Leave-One-Out}
-Mặc dù Leave-One-Out (LOO) là một protocol đánh giá tiêu chuẩn trong nhiều nghiên cứu recommendation, việc sử dụng nó cũng đi kèm với những rủi ro và hạn chế nhất định đã được cộng đồng nghiên cứu chỉ ra:
+Mặc dù Leave-One-Out (LOO) là một protocol đánh giá tiêu chuẩn trong nhiều nghiên cứu khuyến nghị, việc sử dụng nó cũng đi kèm với những rủi ro và hạn chế nhất định đã được cộng đồng nghiên cứu chỉ ra:
 \begin{itemize}
     \item \textbf{Độ nhạy với chiến lược split:} \citet{meng2020splitting} đã chỉ ra rằng hiệu năng của các mô hình state-of-the-art có thể thay đổi đáng kể tuỳ thuộc vào chiến lược chia dữ liệu (random vs.\ chronological). LOO ngẫu nhiên có thể đánh giá quá cao hiệu năng do không mô phỏng đúng bối cảnh triển khai thực tế.
     \item \textbf{Thiếu ngữ cảnh toàn cục (Local vs. Global):} Như đã thảo luận ở trên và phù hợp với quan điểm của \citet{sun2023evaluation}, việc đánh giá trên tập ứng viên nhỏ (1 dương vs.\ 99 âm) biến bài toán retrieval thành local discrimination. Điều này có thể làm lu mờ khả năng thực sự của mô hình trong việc tìm kiếm item phù hợp từ toàn bộ kho dữ liệu (global retrieval).
