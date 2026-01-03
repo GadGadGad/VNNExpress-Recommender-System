@@ -578,21 +578,21 @@ Trong đó:
 Cơ chế tổng hợp tại mỗi lớp (layer-wise aggregation) này cho phép HGN hòa trộn mềm dẻo tín hiệu xã hội vào tín hiệu sở thích ngay trong quá trình học, tạo ra các embedding giàu ngữ nghĩa và bền vững hơn trước vấn đề thưa dữ liệu.
 
 \subsection{HCL: Thử nghiệm Heterogeneous Contrastive Learning}
-HCL được xây dựng như một phương pháp đối chứng, kết hợp kiến trúc \textbf{Dual-path} với tư tưởng của SimGCL để tăng cường độ phân biệt của biểu diễn. Thay vì tổng hợp ngay lập tức, HCL tách biệt quá trình lan truyền thành hai luồng độc lập nhằm bảo toàn đặc trưng riêng của từng aspect:
+HCL được xây dựng như một phương pháp đối chứng, kết hợp kiến trúc \textbf{Dual-path} với tư tưởng của SimGCL để tăng cường độ phân biệt của biểu diễn. Thay vì tổng hợp ngay lập tức như HGN, HCL tách biệt quá trình lan truyền thành hai luồng độc lập nhằm bảo toàn đặc trưng riêng của từng aspect trong quá trình học biểu diễn:
 \begin{itemize}
     \item \textbf{Interest view:} Lan truyền embedding trên đồ thị bipartite $\mathcal{G}_{u-a}$ sử dụng \textbf{LightGCN} để tối ưu hóa hiệu năng tính toán.
     \item \textbf{Social view:} Lan truyền embedding trên đồ thị xã hội $\mathcal{G}_{u-u}$ để khai thác cấu trúc cộng đồng người dùng.
 \end{itemize}
 
-Hai luồng thông tin này sau đó được hợp nhất thông qua cơ chế \textit{learnable weighted sum}, cho phép mô hình tự học cách cân bằng giữa tín hiệu cá nhân và tín hiệu xã hội:
+Hai luồng thông tin này sau đó được hợp nhất thông qua cơ chế \textit{learnable weighted fusion}, cho phép mô hình tự động điều chỉnh mức độ đóng góp của tín hiệu cá nhân và tín hiệu xã hội đối với từng người dùng:
 \begin{equation}
-    \mathbf{h}_u^{final} = \alpha \cdot \mathbf{h}_u^{int} + (1-\alpha) \cdot \mathbf{h}_u^{soc}
+    \mathbf{h}_u^{final} = w_{int} \cdot \mathbf{h}_u^{int} + w_{soc} \cdot \mathbf{h}_u^{soc}
 \end{equation}
-Để huấn luyện, HCL tối ưu hóa hàm mục tiêu đa nhiệm:
+Trong đó $w_{int}$ và $w_{soc}$ là các tham số trọng số được học (learnable parameters). Để huấn luyện, HCL tối ưu hóa hàm mục tiêu đa nhiệm kết hợp BPR Loss và Contrastive Loss:
 \begin{equation}
     \mathcal{L} = \mathcal{L}_{BPR} + \lambda \cdot \mathcal{L}_{InfoNCE} + \gamma \cdot \mathcal{L}_{Reg}
 \end{equation}
-Trong đó, $\mathcal{L}_{InfoNCE}$ thực hiện đối sánh giữa các view được tạo sinh bằng cách thêm nhiễu ngẫu nhiên (random noise perturbation) vào embedding, giúp mô hình chống lại nhiễu và over-fitting. Tuy nhiên, thực nghiệm cho thấy HCL nhạy cảm với siêu tham số trong bối cảnh dữ liệu cực thưa của VnExpress, do đó HGN vẫn là mô hình chủ đạo được nhóm đề xuất.
+Trong đó, $\mathcal{L}_{InfoNCE}$ thực hiện đối sánh giữa các view được tạo sinh bằng cách thêm nhiễu ngẫu nhiên (random noise perturbation) vào embedding. Tuy nhiên, thực nghiệm cho thấy HCL nhạy cảm với việc tinh chỉnh siêu tham số trong bối cảnh dữ liệu cực thưa của VnExpress, do đó HGN vẫn là mô hình chủ đạo được nhóm đề xuất.
 
 \section{Thiết lập thực nghiệm}
 \label{sec:exp}
