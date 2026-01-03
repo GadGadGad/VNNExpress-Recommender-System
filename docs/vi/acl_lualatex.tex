@@ -97,7 +97,7 @@
 \newcommand{\figref}[1]{Hình~\ref{#1}}
 \newcommand{\tabref}[1]{Bảng~\ref{#1}}
 \newcommand{\secref}[1]{Mục~\ref{#1}}
-
+\renewcommand{\abstractname}{Tóm tắt}
 % =========================
 % Small helpers for compact spacing
 % =========================
@@ -128,7 +128,7 @@ GVHD: ThS. Huỳnh Văn Tín
 \tightv
 \begin{abstract}
     \noindent
-    Gợi ý tin tức tiếng Việt đặt ra những thách thức do sự phức tạp của ngôn ngữ, tương tác người dùng cực kỳ thưa thớt và vấn đề \textit{cold-start}. Trong bài báo cáo này, nhóm trình bày một \textbf{phân tích toàn diện} cho bài toán gợi ý, tận dụng Multi-Aspect Heterogeneous Graph Neural Networks (MA-HGN) và Contrastive Learning (CL). Nhóm xây dựng một đồ thị heterogeneous mới kết hợp người dùng, bài viết, chuyên mục. Nhóm tiến hành so sánh với các mô hình Collaborative Filtering (CF) tiên tiến, bao gồm LightGCL, SimGCL và XSimGCL, cũng như các baseline Content-Based mạnh. Các thực nghiệm trên bộ dữ liệu VnExpress thực tế gồm \textbf{15,693 người dùng} và \textbf{3,645 bài viết} cho thấy một sự phân hóa rõ rệt theo protocol đánh giá: trong khi các phương pháp Content-Based đạt hiệu quả cao nhất trong truy xuất toàn cục, đặc biệt là BGE-M3 (Full Ranking, Recall@10 = 0.0535), mô hình \textbf{HGN} của nhóm, khi mở rộng đồ thị với các cạnh \textit{liên kết xã hội (G2)}, đạt hiệu năng vượt trội và ổn định trong thiết lập Leave-One-Out (Recall@10 = 0.4364), nhờ khai thác hiệu quả các tín hiệu \textit{tương đồng xã hội (social homophily)}.
+    Gợi ý tin tức tiếng Việt đặt ra những thách thức do sự phức tạp của ngôn ngữ, tương tác người dùng cực kỳ thưa thớt và vấn đề \textit{cold-start}. Báo cáo này trình bày một \textbf{phân tích toàn diện} cho bài toán gợi ý, tận dụng Multi-Aspect Heterogeneous Graph Neural Networks (MA-HGN) và Contrastive Learning (CL). Nhóm xây dựng một đồ thị heterogeneous mới kết hợp người dùng, bài viết, chuyên mục. Các mô hình Collaborative Filtering dựa trên đồ thị (LightGCN, LightGCL, SimGCL và XSimGCL) được so sánh với các baseline Content-Based mạnh. Các thực nghiệm trên bộ dữ liệu VnExpress thực tế gồm \textbf{15,693 người dùng} và \textbf{3,645 bài viết} cho thấy một sự phân hóa rõ rệt theo protocol đánh giá: trong khi các phương pháp Content-Based đạt hiệu quả cao trong truy xuất toàn cục, đặc biệt là BGE-M3 (Full Ranking, Recall@10 = 0.0535), mô hình \textbf{HGN} của nhóm, khi mở rộng đồ thị với các cạnh \textit{liên kết xã hội (G2)}, đạt hiệu năng vượt trội và ổn định trong thiết lập Leave-One-Out (Recall@10 = 0.4364), nhờ khai thác hiệu quả các tín hiệu \textit{tương đồng xã hội (social homophily)}.
 \end{abstract}
 
 % ==========================================================
