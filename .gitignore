@@ -75,3 +75,23 @@ Thumbs.db
 
 # --- Temp Files ---
 *.temp_ipynb
+
+# --- Node/Frontend ---
+node_modules/
+frontend/node_modules/
+.next/
+frontend/.next/
+out/
+build/
+dist/
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- Misc ---
+backend.spec

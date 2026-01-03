@@ -1,5 +1,5 @@
 % $ biblatex auxiliary file $
-% $ biblatex bbl format version 3.2 $
+% $ biblatex bbl format version 3.3 $
 % Do not modify the above lines!
 %
 % This is an auxiliary file used by the 'biblatex' package.
@@ -18,8 +18,8 @@
 
 
 \refsection{0}
-  \datalist[entry]{none/global//global/global}
-    \entry{he2020lightgcn}{inproceedings}{}
+  \datalist[entry]{none/global//global/global/global}
+    \entry{he2020lightgcn}{inproceedings}{}{}
       \name{author}{6}{}{%
         {{hash=cf3f1b6bfe8e9131a8c719c1af0dce5d}{%
            family={He},
@@ -55,12 +55,14 @@
       \list{publisher}{1}{%
         {ACM}%
       }
-      \strng{namehash}{b33d4b1c210bdf046c8ead92d34e427b}
+      \strng{namehash}{5288584512ef6ddfdb0f4e97d3bced50}
       \strng{fullhash}{12b20ff8201a14d0bd8a5d3035833b2a}
+      \strng{fullhashraw}{12b20ff8201a14d0bd8a5d3035833b2a}
       \strng{bibnamehash}{12b20ff8201a14d0bd8a5d3035833b2a}
       \strng{authorbibnamehash}{12b20ff8201a14d0bd8a5d3035833b2a}
-      \strng{authornamehash}{b33d4b1c210bdf046c8ead92d34e427b}
+      \strng{authornamehash}{5288584512ef6ddfdb0f4e97d3bced50}
       \strng{authorfullhash}{12b20ff8201a14d0bd8a5d3035833b2a}
+      \strng{authorfullhashraw}{12b20ff8201a14d0bd8a5d3035833b2a}
       \field{sortinit}{1}
       \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
       \field{labelnamesource}{author}
@@ -74,7 +76,7 @@
       \verb 10.1145/3397271.3401063
       \endverb
     \endentry
-    \entry{yu2022graph}{inproceedings}{}
+    \entry{yu2022graph}{inproceedings}{}{}
       \name{author}{6}{}{%
         {{hash=2f77368a25dacefba7f868b398b1c2da}{%
            family={Yu},
@@ -110,12 +112,15 @@
       \list{publisher}{1}{%
         {ACM}%
       }
-      \strng{namehash}{bb4f8d208d06fa3f095b29e640890c4f}
+      \strng{namehash}{4110d32e948c870f2121f9775141c5c9}
       \strng{fullhash}{2ef11ffd3227836183badd57cabdf5f8}
+      \strng{fullhashraw}{2ef11ffd3227836183badd57cabdf5f8}
       \strng{bibnamehash}{2ef11ffd3227836183badd57cabdf5f8}
       \strng{authorbibnamehash}{2ef11ffd3227836183badd57cabdf5f8}
-      \strng{authornamehash}{bb4f8d208d06fa3f095b29e640890c4f}
+      \strng{authornamehash}{4110d32e948c870f2121f9775141c5c9}
       \strng{authorfullhash}{2ef11ffd3227836183badd57cabdf5f8}
+      \strng{authorfullhashraw}{2ef11ffd3227836183badd57cabdf5f8}
+      \field{extraname}{1}
       \field{sortinit}{2}
       \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
       \field{labelnamesource}{author}
@@ -126,7 +131,7 @@
       \field{pages}{1294\bibrangedash 1303}
       \range{pages}{10}
     \endentry
-    \entry{cai2023lightgcl}{inproceedings}{}
+    \entry{cai2023lightgcl}{inproceedings}{}{}
       \name{author}{4}{}{%
         {{hash=5eda4a17d85f6719cc457714b798c570}{%
            family={Cai},
@@ -149,12 +154,14 @@
            given={Xubin},
            giveni={X\bibinitperiod}}}%
       }
-      \strng{namehash}{657b9e0dbe516bb7720855bdcc8a213e}
+      \strng{namehash}{813f78654d9834d8180fdf96ed892533}
       \strng{fullhash}{92cbb1c6e348e3b898985e7d986d0c1c}
+      \strng{fullhashraw}{92cbb1c6e348e3b898985e7d986d0c1c}
       \strng{bibnamehash}{92cbb1c6e348e3b898985e7d986d0c1c}
       \strng{authorbibnamehash}{92cbb1c6e348e3b898985e7d986d0c1c}
-      \strng{authornamehash}{657b9e0dbe516bb7720855bdcc8a213e}
+      \strng{authornamehash}{813f78654d9834d8180fdf96ed892533}
       \strng{authorfullhash}{92cbb1c6e348e3b898985e7d986d0c1c}
+      \strng{authorfullhashraw}{92cbb1c6e348e3b898985e7d986d0c1c}
       \field{sortinit}{3}
       \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
       \field{labelnamesource}{author}
@@ -163,7 +170,7 @@
       \field{title}{LightGCL: Simple Yet Effective Graph Contrastive Learning for Recommendation}
       \field{year}{2023}
     \endentry
-    \entry{yu2023xsimgcl}{article}{}
+    \entry{yu2023xsimgcl}{article}{}{}
       \name{author}{6}{}{%
         {{hash=2f77368a25dacefba7f868b398b1c2da}{%
            family={Yu},
@@ -199,12 +206,15 @@
       \list{publisher}{1}{%
         {IEEE}%
       }
-      \strng{namehash}{e38d0b55297edc2f78fb51d608e45669}
+      \strng{namehash}{4110d32e948c870f2121f9775141c5c9}
       \strng{fullhash}{f81263a7db5bd933f4534ae7340b987a}
+      \strng{fullhashraw}{f81263a7db5bd933f4534ae7340b987a}
       \strng{bibnamehash}{f81263a7db5bd933f4534ae7340b987a}
       \strng{authorbibnamehash}{f81263a7db5bd933f4534ae7340b987a}
-      \strng{authornamehash}{e38d0b55297edc2f78fb51d608e45669}
+      \strng{authornamehash}{4110d32e948c870f2121f9775141c5c9}
       \strng{authorfullhash}{f81263a7db5bd933f4534ae7340b987a}
+      \strng{authorfullhashraw}{f81263a7db5bd933f4534ae7340b987a}
+      \field{extraname}{2}
       \field{sortinit}{4}
       \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
       \field{labelnamesource}{author}
@@ -213,7 +223,7 @@
       \field{title}{XSimGCL: Towards Extremely Simple Graph Contrastive Learning for Recommendation}
       \field{year}{2023}
     \endentry
-    \entry{shi2020hgrec}{inproceedings}{}
+    \entry{shi2020hgrec}{inproceedings}{}{}
       \name{author}{6}{}{%
         {{hash=6915348ef57457be2b9c87e7cb24d070}{%
            family={Shi},
@@ -246,12 +256,14 @@
            given={Jun},
            giveni={J\bibinitperiod}}}%
       }
-      \strng{namehash}{f5994f1c318b339fb5bca1e052d5873c}
+      \strng{namehash}{ede5734b0643303a85841477290f4d39}
       \strng{fullhash}{3b1101cd77e22bbc59cfaaca799754d3}
+      \strng{fullhashraw}{3b1101cd77e22bbc59cfaaca799754d3}
       \strng{bibnamehash}{3b1101cd77e22bbc59cfaaca799754d3}
       \strng{authorbibnamehash}{3b1101cd77e22bbc59cfaaca799754d3}
-      \strng{authornamehash}{f5994f1c318b339fb5bca1e052d5873c}
+      \strng{authornamehash}{ede5734b0643303a85841477290f4d39}
       \strng{authorfullhash}{3b1101cd77e22bbc59cfaaca799754d3}
+      \strng{authorfullhashraw}{3b1101cd77e22bbc59cfaaca799754d3}
       \field{sortinit}{5}
       \field{sortinithash}{20e9b4b0b173788c5dace24730f47d8c}
       \field{labelnamesource}{author}
