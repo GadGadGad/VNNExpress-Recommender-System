@@ -835,7 +835,7 @@ Việc mở rộng đồ thị mang lại những tác động trái chiều tù
 Những quan sát này cho thấy không phải mọi loại quan hệ đều nên được đưa trực tiếp vào cấu trúc đồ thị; hiệu quả của từng loại cạnh phụ thuộc mạnh vào bậc nút, mật độ liên kết và cách tín hiệu được hợp nhất trong mô hình heterogeneous.
 
 \subsection{Vì sao HCL dễ dao động?}
-Trong bối cảnh dữ liệu thưa, số positive ít và negative sampling nhạy cảm khiến InfoNCE khó ổn định. Khi kết hợp thêm heterogeneity (hai nhánh lan truyền), việc cân bằng loss và hyper-parameter trở nên khó hơn, dẫn đến hiện tượng khó hội tụ ổn định. Điều này cho thấy việc kết hợp contrastive learning với đồ thị dị thể trong bối cảnh dữ liệu cực thưa đòi hỏi các chiến lược ổn định hơn về negative sampling và thiết kế loss, thay vì áp dụng trực tiếp các công thức từ đồ thị homogeneous.
+Trong bối cảnh dữ liệu thưa, số lượng positive hạn chế khiến contrastive loss (InfoNCE) trở nên nhạy cảm với negative sampling. Khi kết hợp thêm tính dị thể và lan truyền hai nhánh, việc cân bằng loss và lựa chọn hyper-parameter trở nên khó khăn hơn, dẫn đến hiện tượng hội tụ kém ổn định. Điều này cho thấy việc áp dụng contrastive learning trực tiếp từ đồ thị homogeneous sang đồ thị dị thể trong dữ liệu cực thưa cần các chiến lược ổn định hơn.
 
 \subsection{Hạn chế và rủi ro của Leave-One-Out}
 Mặc dù Leave-One-Out (LOO) là một protocol đánh giá tiêu chuẩn trong nhiều nghiên cứu khuyến nghị, việc sử dụng nó cũng đi kèm với những rủi ro và hạn chế nhất định đã được cộng đồng nghiên cứu chỉ ra:
@@ -884,20 +884,25 @@ Một điểm đáng chú ý trong kết quả thực nghiệm là sự chênh l
 \subsection{Kết luận}
 Báo cáo xây dựng hệ gợi ý bài báo tiếng Việt dựa trên học đồ thị từ dữ liệu VnExpress: pipeline thu thập, EDA, ba cấu trúc đồ thị G1--G3, benchmark các mô hình đồ thị hiện đại và thử nghiệm heterogeneous. Kết quả chỉ ra rằng mở rộng social graph giúp cải thiện đáng kể cho mô hình heterogeneous; trong khi đó, content-based vẫn là thành phần quan trọng trong bối cảnh cold-start. Qua đó, nghiên cứu nhấn mạnh vai trò của thiết kế đồ thị và protocol đánh giá trong việc hiểu đúng hiệu quả của các mô hình gợi ý dựa trên học đồ thị.
 
-\subsection{Hạn chế}
-\begin{itemize}
-    \item Dữ liệu dựa trên bình luận/trả lời có thể thiên lệch vì nhiều lượt đọc không tạo tương tác.
-    \item Chi phí huấn luyện tăng khi đồ thị mở rộng, đặc biệt với mô hình heterogeneous.
-    \item Mô hình hiện tại là static, chưa xử lý cập nhật online khi tin mới xuất hiện.
-\end{itemize}
+\subsection{Hạn chế và hướng phát triển}
+Nghiên cứu này vẫn tồn tại một số hạn chế, đồng thời gợi mở các hướng phát triển tương ứng.
+Thứ nhất, dữ liệu dựa trên tín hiệu bình luận/trả lời có thể gây thiên lệch,
+do phần lớn lượt đọc không tạo tương tác rõ ràng;
+điều này cho thấy nhu cầu mở rộng các nguồn tín hiệu ngữ nghĩa như tags, tác giả hoặc thực thể
+để làm giàu biểu diễn nội dung.
 
-\subsection{Hướng phát triển}
-\begin{itemize}
-    \item Học đồ thị động để nắm bắt sự thay đổi sở thích theo thời gian.
-    \item Mở rộng các loại quan hệ bằng tags/author/entity để tăng mức độ ngữ nghĩa chi tiết hơn category.
-    \item Thiết kế self-supervised learning ổn định hơn trong dữ liệu cực thưa.
-    \item Distillation/nén mô hình để giảm chi phí inference khi triển khai.
-\end{itemize}
+Thứ hai, chi phí huấn luyện tăng khi mở rộng đồ thị,
+đặc biệt với các mô hình heterogeneous nhiều quan hệ,
+gợi ý việc nghiên cứu các phương pháp self-supervised learning ổn định hơn
+cũng như distillation hoặc nén mô hình để giảm chi phí suy luận.
+
+Cuối cùng, mô hình hiện tại được thiết kế theo hướng static,
+chưa xử lý kịch bản cập nhật liên tục của tin tức;
+do đó, học đồ thị động là một hướng tiềm năng
+nhằm nắm bắt sự thay đổi sở thích theo thời gian
+và mô phỏng sát hơn bối cảnh triển khai thực tế.
+
+
 
 % ==========================================================
 \section*{Tài liệu tham khảo}
