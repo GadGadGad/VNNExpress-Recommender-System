@@ -128,7 +128,7 @@ Instructor: Master. Huynh Van Tin
 \tightv
 \begin{abstract}
     \noindent
-    Gợi ý tin tức tiếng Việt đặt ra những thách thức đặc thù do sự phức tạp của ngôn ngữ, tương tác người dùng thưa thớt và vấn đề \textit{cold-start}. Trong bài báo này, nhóm đề xuất một \textbf{phân tích chi tiết và toàn diện về} quy trình gợi ý, tận dụng Multi-Aspect Heterogeneous Graph Neural Networks (MA-HGN) và Contrastive Learning (CL). Nhóm giới thiệu một phương pháp xây dựng Heterogeneous Graph mới kết hợp người dùng, bài viết, danh mục và tác giả. Nhóm đánh giá so sánh các mô hình Collaborative Filtering (CF) tiên tiến, bao gồm LightGCL, SimGCL, và XSimGCL, cùng với các triển khai tùy chỉnh MA-HCL và HGN của nhóm. Các thực nghiệm \textbf{trên diện rộng} với bộ dữ liệu VnExpress thực tế gồm 15.693 người dùng và 3.645 bài viết chứng minh rằng: trong khi các phương pháp Content-Based (PhoBERT) vẫn dẫn đầu về truy xuất toàn cục (Recall@10 đạt 0.0535), mô hình HGN (G2) của nhóm đạt độ ổn định vượt trội trong xếp hạng Leave-One-Out (Recall@10 đạt 0.4364), nhờ nắm bắt hiệu quả các tín hiệu social homophily.
+    Gợi ý tin tức tiếng Việt đặt ra những thách thức do sự phức tạp của ngôn ngữ, tương tác người dùng cực kỳ thưa thớt và vấn đề \textit{cold-start}. Trong bài báo này, nhóm trình bày một \textbf{phân tích toàn diện} cho bài toán gợi ý, tận dụng Multi-Aspect Heterogeneous Graph Neural Networks (MA-HGN) và Contrastive Learning (CL). Nhóm xây dựng một Heterogeneous Graph mới kết hợp người dùng, bài viết hoặc danh mục. Nhóm tiến hành so sánh với các mô hình Collaborative Filtering (CF) tiên tiến, bao gồm LightGCL, SimGCL và XSimGCL, cũng như các baseline Content-Based mạnh. Các thực nghiệm trên bộ dữ liệu VnExpress thực tế gồm \textbf{15,693 người dùng} và \textbf{3,645 bài viết} cho thấy một sự phân hóa rõ rệt theo protocol đánh giá: trong khi các phương pháp Content-Based (PhoBERT) đạt hiệu quả cao nhất trong truy xuất toàn cục (Full Ranking, Recall@10 = 0.0535), mô hình \textbf{HGN} của nhóm, khi mở rộng đồ thị với các cạnh \textit{liên kết xã hội (G2)}, đạt hiệu năng vượt trội và ổn định trong thiết lập Leave-One-Out (Recall@10 = 0.4364), nhờ khai thác hiệu quả các tín hiệu \textit{social homophily}.
 \end{abstract}
 
 % ==========================================================
@@ -137,17 +137,14 @@ Instructor: Master. Huynh Van Tin
 
 Nền tảng tin tức số tạo ra lượng nội dung khổng lồ mỗi ngày, dẫn tới \textbf{quá tải thông tin} và khiến người dùng khó nhanh chóng tìm được bài viết phù hợp. Vì vậy, hệ gợi ý đóng vai trò then chốt để cá nhân hóa nội dung, tăng tương tác và cải thiện trải nghiệm. Tuy nhiên, gợi ý tin tức có những đặc thù khiến các phương pháp gợi ý truyền thống gặp khó khăn: (i) \textbf{vòng đời tin ngắn} và xu hướng thay đổi nhanh, (ii) \textbf{cold-start} cho người dùng/bài viết mới, và đặc biệt (iii) \textbf{tương tác cực kỳ thưa thớt} do phần lớn người đọc không để lại tương tác rõ ràng ngoài các tín hiệu tương tác hạn chế như bình luận hoặc trả lời.
 
-Trong dự án này, nhóm tiếp cận bài toán gợi ý bài báo tiếng Việt từ hai nguồn tín hiệu chính:
-(i) \textbf{tương tác user--article} (bình luận) phản ánh sở thích trực tiếp,
-(ii) \textbf{quan hệ reply giữa user} phản ánh ảnh hưởng xã hội (social influence) hoặc sự tương đồng quan điểm trong thảo luận.
-Từ đó, hệ thống được xây dựng theo hướng đồ thị và đồ thị dị thể (heterogeneous) để tách biệt các loại quan hệ và hợp nhất chúng một cách có kiểm soát.
+Trong dự án này, nhóm xây dựng bộ dữ liệu thực tế từ VnExpress dựa trên tín hiệu bình luận/trả lời. Kết quả cho thấy dữ liệu có \textbf{độ thưa rất cao} (xấp xỉ \textbf{99.93\%}), khiến ma trận user--article gần như rỗng và làm suy yếu hiệu quả của các mô hình collaborative filtering thuần túy. Đồng thời, dữ liệu cũng thể hiện hiện tượng \textbf{power-law}: một nhóm nhỏ người dùng đóng góp phần lớn tương tác, trong khi đa số người dùng có bậc (degree) rất thấp, làm tăng rủi ro cold-start.
 
-Để khai thác tín hiệu hiệu quả hơn trong bối cảnh cực thưa, nhóm tiếp cận bài toán theo hướng \textbf{học biểu diễn trên đồ thị}, và đặc biệt là \textbf{đồ thị dị thể} nhằm tách biệt ý nghĩa của các quan hệ khác nhau. Cụ thể, nhóm sử dụng hai nguồn tín hiệu chính:
+Để khai thác tín hiệu hiệu quả hơn trong bối cảnh cực thưa, nhóm tiếp cận bài toán theo hướng \textbf{học biểu diễn trên đồ thị}, và đặc biệt là \textbf{đồ thị heterogeneous} nhằm tách biệt ý nghĩa của các quan hệ khác nhau. Cụ thể, nhóm sử dụng hai nguồn tín hiệu chính:
 (i) \textbf{tương tác user--article} (comment) phản ánh sở thích trực tiếp, và
 (ii) \textbf{quan hệ reply user--user} phản ánh ảnh hưởng xã hội hoặc \textit{social homophily} trong thảo luận.
-Từ đó, chúng tôi thiết kế một chiến lược mở rộng đồ thị theo ba tầng \textbf{G1--G3} để kiểm soát mức độ phong phú của cấu trúc đồ thị: G1 là đồ thị bipartite user--article; G2 bổ sung các cạnh xã hội user--user từ reply; và G3 bổ sung \textit{category hubs} nhằm rút ngắn đường đi giữa người dùng và nhóm bài cùng chuyên mục.
+Từ đó, nhóm thiết kế một chiến lược mở rộng đồ thị theo ba tầng \textbf{G1--G3} để kiểm soát mức độ phong phú của cấu trúc đồ thị: G1 là đồ thị bipartite user--article; G2 bổ sung các cạnh xã hội user--user từ reply; và G3 bổ sung \textit{category hubs} nhằm rút ngắn đường đi giữa người dùng và nhóm bài cùng chuyên mục.
 
-Bên cạnh các thách thức về sparsity, việc đánh giá mô hình gợi ý tin tức cũng dễ bị sai lệch nếu tách train/test ngẫu nhiên, vì có thể gây \textbf{data leakage} theo thời gian (mô hình ``học'' từ tương tác tương lai). Do đó, chúng tôi nhấn mạnh kiểm soát protocol đánh giá và so sánh mô hình trên các thiết lập chuẩn (Full Ranking và Leave-One-Out).
+Bên cạnh các thách thức về sparsity, việc đánh giá mô hình gợi ý tin tức cũng dễ bị sai lệch nếu tách train/test ngẫu nhiên, vì có thể gây \textbf{data leakage} theo thời gian (mô hình ``học'' từ tương tác tương lai). Do đó, nhóm nhấn mạnh kiểm soát protocol đánh giá và so sánh mô hình trên các thiết lập chuẩn (Full Ranking và Leave-One-Out).
 
 \textbf{Đóng góp chính} của báo cáo bao gồm:
 \begin{itemize}
@@ -168,7 +165,7 @@ LightGCN~\citep{he2020lightgcn} là baseline phổ biến nhờ tối giản hó
 Trong dữ liệu thưa, contrastive learning giúp tăng độ bền vững của embedding bằng cách tạo các ``view'' và tối ưu InfoNCE. SimGCL~\citep{yu2022graph} dùng perturbation trên embedding; XSimGCL~\citep{yu2023xsimgcl} hướng tới thiết kế cực đơn giản và hiệu quả. LightGCL~\citep{cai2023lightgcl} bổ sung góc nhìn global context để bù hạn chế khi chỉ học từ lân cận cục bộ.
 
 \paragraph{Heterogeneous recommendation.}
-Khi đồ thị có nhiều loại nút/cạnh, mô hình homogeneous dễ trộn lẫn ý nghĩa quan hệ. HGRec~\citep{shi2020hgrec} đề xuất cách tổng hợp theo meta-path và kết hợp đa ngữ nghĩa, phù hợp để xử lý dữ liệu có cả tín hiệu sở thích và tín hiệu xã hội. Cách tiếp cận này tạo nền tảng trực tiếp cho kiến trúc HGN và HCL được đề xuất trong nghiên cứu của chúng tôi.
+Khi đồ thị có nhiều loại nút/cạnh, mô hình homogeneous dễ trộn lẫn ý nghĩa quan hệ. HGRec~\citep{shi2020hgrec} đề xuất cách tổng hợp theo meta-path và kết hợp đa ngữ nghĩa, phù hợp để xử lý dữ liệu có cả tín hiệu sở thích và tín hiệu xã hội. Cách tiếp cận này tạo nền tảng trực tiếp cho kiến trúc HGN và HCL được đề xuất trong nghiên cứu của nhóm.
 
 % ==========================================================
 \section{Dữ liệu và phân tích khám phá (EDA)}
@@ -176,7 +173,7 @@ Khi đồ thị có nhiều loại nút/cạnh, mô hình homogeneous dễ trộ
 
 \subsection{Thu thập dữ liệu và phạm vi}
 Nguồn dữ liệu được thu thập từ VnExpress, bao gồm 6 chuyên mục chính: Thế giới, Thời sự, Kinh doanh, Giáo dục, Thể thao và Khoa học công nghệ.
-Chúng tôi tập trung vào các tín hiệu tương tác công khai dựa trên bình luận và trả lời,
+Nhóm tập trung vào các tín hiệu tương tác công khai dựa trên bình luận và trả lời,
 nhằm xây dựng một bộ dữ liệu phản ánh hành vi thảo luận thực tế của người đọc.
 Dữ liệu thu thập gồm bốn thành phần chính:
 \begin{itemize}
@@ -310,26 +307,12 @@ vì hành vi bình luận phụ thuộc mạnh vào bản chất chủ đề.
 Do đó, các phân tích tiếp theo tập trung vào phân phối tương tác và degree
 để đánh giá rõ hơn độ thưa và hành vi người dùng.
 
-% \begin{figure}[t]
-%     \centering
-%     \includegraphics[width=\linewidth]{eda_00_summary_dashboard.png}
-%     \caption{Dashboard tổng quan EDA.}
-%     \label{fig:eda-summary}
-% \end{figure}
-
 \begin{figure}[t]
     \centering
     \includegraphics[width=\linewidth]{eda_09_metadata_categories.png}
     \caption{Phân phối số bài theo chuyên mục.}
     \label{fig:eda-category}
 \end{figure}
-
-% \begin{figure}[t]
-%     \centering
-%     \includegraphics[width=\linewidth]{eda_03_user_activity_top.png}
-%     \caption{Mẫu hình hoạt động người dùng (1/2).}
-%     \label{fig:eda-user-top}
-% \end{figure}
 
 \subsection{EDA: hoạt động người dùng và hiện tượng long-tail}
 \autoref{fig:eda-user-bottom} minh hoạ phân phối hoạt động người dùng theo dạng Pareto/power-law:
@@ -421,13 +404,13 @@ Với sparsity rất cao (\eqref{eq:sparsity}), đồ thị user--article thuầ
 \end{itemize}
 
 \subsection{Định nghĩa nút/cạnh và quy ước dựng đồ thị}
-Để thống nhất giữa các cấu hình, chúng tôi ký hiệu $\mathcal{G}=(\mathcal{V},\mathcal{E})$ với các tập nút gồm người dùng ($U$), bài viết ($A$) và (tuỳ cấu hình) danh mục ($C$). Tín hiệu tương tác quan sát được đến từ hành vi \textit{bình luận/trả lời}, do đó chúng tôi coi đây là \textbf{implicit feedback}.
+Để thống nhất giữa các cấu hình, nhóm ký hiệu $\mathcal{G}=(\mathcal{V},\mathcal{E})$ với các tập nút gồm người dùng ($U$), bài viết ($A$) và (tuỳ cấu hình) danh mục ($C$). Tín hiệu tương tác quan sát được đến từ hành vi \textit{bình luận/trả lời}, do đó nhóm coi đây là \textbf{implicit feedback}.
 
 \textbf{Cạnh user--article.} Một cạnh $(u,a)\in \mathcal{E}_{u-a}$ được tạo nếu người dùng $u$ có ít nhất một bình luận (hoặc tham gia thread) dưới bài viết $a$. Trong thiết lập cơ bản, cạnh được xem là \textbf{không hướng} và \textbf{không trọng số} (binary), nhằm tập trung đánh giá tác động của topology; các biến thể có trọng số theo số lượt bình luận/reaction được để dành cho hướng phát triển. Lựa chọn này giúp tách biệt tác động của cấu trúc đồ thị khỏi ảnh hưởng của trọng số cạnh,
 đồng thời giữ thiết lập nhất quán giữa các mô hình được so sánh.
 
 
-\textbf{Cạnh user--user (social).} Từ cấu trúc thread, nếu $u_i$ trả lời bình luận của $u_j$ thì tạo cạnh $(u_i,u_j)\in \mathcal{E}_{u-u}$. Do mục tiêu là lan truyền tín hiệu sở thích trong cộng đồng thảo luận, chúng tôi \textbf{đối xứng hoá} cạnh (coi như undirected) để phản ánh \textit{social homophily} thay vì quan hệ nhân quả một chiều.
+\textbf{Cạnh user--user (social).} Từ cấu trúc thread, nếu $u_i$ trả lời bình luận của $u_j$ thì tạo cạnh $(u_i,u_j)\in \mathcal{E}_{u-u}$. Do mục tiêu là lan truyền tín hiệu sở thích trong cộng đồng thảo luận, nhóm \textbf{đối xứng hoá} cạnh (coi như undirected) để phản ánh \textit{social homophily} thay vì quan hệ nhân quả một chiều.
 
 \subsection{Ba cấu hình đồ thị và trực giác thiết kế}
 \textbf{G1 (Bipartite).} Đây là cấu hình chuẩn cho collaborative filtering trên đồ thị, phù hợp để benchmark các phương pháp như LightGCN/SimGCL/XSimGCL/LightGCL. Tuy nhiên với sparsity $\approx 99.93\%$, nhiều người dùng có bậc rất nhỏ khiến message passing khó lan truyền và embedding dễ thiếu thông tin.
@@ -486,7 +469,7 @@ Với sparsity rất cao (\eqref{eq:sparsity}), đồ thị user--article thuầ
 \end{figure*}
 
 \subsection{Tách theo thời gian để hạn chế leakage}
-Với dữ liệu tin tức, tương tác có tính thời gian mạnh. Khi xây dựng tập train/test, việc đảm bảo train thuộc quá khứ và test thuộc tương lai giúp mô phỏng đúng bối cảnh triển khai \cite{wang2023leakage}. Trong thực nghiệm, chúng tôi sử dụng \textbf{chronological split}: các tương tác trong khoảng thời gian sớm hơn được dùng để huấn luyện và các tương tác muộn hơn dùng để kiểm tra, với một mốc $T_{\text{split}}$ như \autoref{fig:temporal-split}. Cách tách này hạn chế việc mô hình vô tình quan sát thông tin tương lai (ví dụ: người dùng tương tác với bài mới) trong giai đoạn huấn luyện.
+Với dữ liệu tin tức, tương tác có tính thời gian mạnh. Khi xây dựng tập train/test, việc đảm bảo train thuộc quá khứ và test thuộc tương lai giúp mô phỏng đúng bối cảnh triển khai \cite{wang2023leakage}. Trong thực nghiệm, nhóm sử dụng \textbf{chronological split}: các tương tác trong khoảng thời gian sớm hơn được dùng để huấn luyện và các tương tác muộn hơn dùng để kiểm tra, với một mốc $T_{\text{split}}$ như \autoref{fig:temporal-split}. Cách tách này hạn chế việc mô hình vô tình quan sát thông tin tương lai (ví dụ: người dùng tương tác với bài mới) trong giai đoạn huấn luyện.
 
 \begin{figure}[t]
     \centering
@@ -508,128 +491,9 @@ Với dữ liệu tin tức, tương tác có tính thời gian mạnh. Khi xây
 \label{sec:method}
 
 \subsection{Bài toán và ký hiệu}
-Gọi $U$ là tập người dùng, $A$ là tập bài viết. Mục tiêu là dự đoán mức phù hợp giữa user $u$ và article $a$ dựa trên lịch sử tương tác, sau đó xếp hạng và đề xuất Top-$K$ bài mà user chưa tương tác.
-
-\subsection{Baseline Content-Based}
-Để đánh giá hiệu quả của các mô hình đồ thị, nhóm so sánh với các phương pháp Content-Based mạnh mẽ, bao gồm:
-\begin{itemize}
-    \item \textbf{TF-IDF:} Phương pháp thống kê tần suất từ khóa truyền thống để biểu diễn văn bản dưới dạng vector thưa.
-    \item \textbf{PhoBERT:} Mô hình ngôn ngữ tiền huấn luyện (Pre-trained Language Model) state-of-the-art cho tiếng Việt, được sử dụng để trích xuất đặc trưng ngữ nghĩa (dense embedding) từ tiêu đề và mô tả bài viết.
-    \item \textbf{VnDoc:} Mô hình embedding chuyên dụng cho xử lý văn bản tiếng Việt, tối ưu cho các tác vụ phân loại và tìm kiếm.
-    \item \textbf{BGE-M3:} Mô hình embedding đa ngôn ngữ hiện đại, hỗ trợ biểu diễn đa chiều (dense, sparse, multi-vector), nổi tiếng với khả năng retrieval vượt trội trên nhiều benchmark.
-\end{itemize}
-
-\subsection{Baseline đồ thị}
-\paragraph{LightGCN.}
-LightGCN lan truyền embedding tuyến tính theo adjacency chuẩn hóa:
-\[
-    \mathbf{E}^{(k)} = \hat{\mathbf{A}} \mathbf{E}^{(k-1)}, \quad
-    \mathbf{E}^{*}=\sum_{k=0}^{K}\alpha_k \mathbf{E}^{(k)}.
-\]
-Đây là baseline hiệu quả cho recommendation trên đồ thị tương tác.
-
-\paragraph{SimGCL / XSimGCL / LightGCL.}
-Nhóm mô hình contrastive thêm ràng buộc InfoNCE để tạo embedding ổn định hơn trong dữ liệu thưa. SimGCL thêm nhiễu/perturbation trong quá trình propagation. XSimGCL tối giản hóa thiết kế để giảm chi phí nhưng vẫn duy trì lợi ích từ CL. LightGCL bổ sung thông tin global context nhằm vượt hạn chế chỉ dựa vào lân cận cục bộ.
-
-\subsection{HGN: Heterogeneous GNN đa-aspect}
-Dữ liệu chứa ít nhất hai quan hệ khác nhau: tương tác user--article (sở thích) và reply user--user (xã hội). HGN tách lan truyền thành hai nhánh:
-\begin{itemize}
-    \item \textbf{Interest path}: lan truyền trên $\mathcal{G}_{u-a}$.
-    \item \textbf{Social path}: lan truyền trên $\mathcal{G}_{u-u}$.
-\end{itemize}
-Sau đó hợp nhất bằng phép cộng:
-\begin{equation}
-    \mathbf{h}_u = \mathbf{h}_{int} + \mathbf{h}_{soc}.
-    \label{eq:fusion}
-\end{equation}
-Thiết kế này giúp tránh trộn lẫn ý nghĩa quan hệ, đồng thời giữ pipeline đơn giản để huấn luyện trên dữ liệu tương đối thưa.
-
-\subsection{HCL: thử nghiệm heterogeneous contrastive learning}
-HCL kết hợp heterogeneity (tách nhánh) và contrastive loss. Trong dữ liệu thưa, contrastive learning có thể nhạy với negative sampling và nhiệt độ (temperature), dẫn đến dao động trong huấn luyện. Nhóm giữ HCL như một thử nghiệm để quan sát và so sánh độ ổn định.
-
-% ==========================================================
-\section{Thiết lập thí nghiệm}
-\label{sec:exp}
-
-\subsection{Thiết lập huấn luyện}
-Các mô hình được huấn luyện với 100 epochs, batch size 2048. Loss chính là BPR cho implicit feedback; các mô hình contrastive bổ sung InfoNCE.
-
-\subsection{Protocol đánh giá}
-\paragraph{Full Ranking (cold-start).}
-Chia user theo tỉ lệ 80/20. Trên tập test, hệ thống xếp hạng các bài ứng viên và đo Recall@10, NDCG@10, Hit@10 và MRR.
-
-\paragraph{Leave-One-Out (Loo100).}
-Với mỗi user test, chọn 1 tương tác dương tính và 99 mẫu âm tính ngẫu nhiên để đánh giá chất lượng xếp hạng trong tập ứng viên nhỏ.
-
-\subsection{Metric}
-\begin{itemize}
-    \item \textbf{Recall@10}: tỷ lệ thu hồi item đúng trong top-10.
-    \item \textbf{Hit@10}: có/không item đúng trong top-10.
-    \item \textbf{NDCG@10}: ưu tiên item đúng nằm ở vị trí cao.
-    \item \textbf{MRR}: nhạy với vị trí item đúng đầu tiên.
-\end{itemize}
-
-% ==========================================================
-\section{Kết quả và phân tích}
-\label{sec:results}
-
-\subsection{Kết quả Full Ranking}
-\tabref{tab:results_full} tổng hợp kết quả theo từng đồ thị. Trong bối cảnh cold-start, các mô hình Content-Based thể hiện ưu thế vượt trội nhờ khả năng so khớp ngữ nghĩa sâu (Category matching), ít phụ thuộc vào độ thưa của đồ thị. Điều này cho thấy với bài toán tìm kiếm không gian lớn (Global Retrieval), nội dung bài viết là tín hiệu tin cậy nhất. Ngược lại, đối với mô hình đồ thị, việc mở rộng G2 (thêm social edges) giúp cải thiện khả năng lan truyền tín hiệu so với G1, tuy nhiên vẫn gặp hạn chế do vấn đề sparsity.
-\begin{table}[!htbp]
-    \centering
-    % Use slightly larger font if possible, footnote size is clearer than scriptsize
-    \scriptsize
-    \setlength{\tabcolsep}{1.5pt}
-    \renewcommand{\arraystretch}{1.1}
-    % Add zebra striping for better readability (requires \usepackage[table]{xcolor})
-    \rowcolors{2}{gray!5}{white}
-    \caption{Benchmark: Full Ranking (Recovering items from the entire 3,600+ corpus). Best results in \textbf{bold}.}
-    \label{tab:results_full}
-    \begin{tabularx}{\linewidth}{l|c|*4{>{\centering\arraybackslash}X}}
-        \toprule
-        \textbf{Model} & \textbf{Type} & \textbf{R@10}   & \textbf{N@10}   & \textbf{H@10}   & \textbf{MRR}    \\
-        \midrule
-        \multicolumn{6}{l}{\textit{\textbf{Content-Based / Baselines}}}                                        \\
-        BGE-M3         & CB            & \textbf{0.0535} & \textbf{0.0315} & \textbf{0.0929} & \textbf{0.0416} \\
-        TF-IDF         & CB            & 0.0508          & 0.0301          & 0.0951          & 0.0394          \\
-        VnDoc          & CB            & 0.0485          & 0.0287          & 0.0832          & 0.0362          \\
-        PhoBERT        & CB            & 0.0452          & 0.0253          & 0.0850          & 0.0335          \\
-        \midrule
-        \multicolumn{6}{l}{\textit{\textbf{Graph G1 (Bipartite)}}}                                             \\
-        LightGCL       & G-CL          & 0.0398          & 0.0249          & 0.0685          & 0.0313          \\
-        LightGCN       & G-GNN         & 0.0263          & 0.0145          & 0.0400          & 0.0174          \\
-        XSimGCL        & G-CL          & \textbf{0.0439} & \textbf{0.0253} & \textbf{0.0694} & \textbf{0.0289} \\
-        HGN            & H-GNN         & 0.0262          & 0.0147          & 0.0451          & 0.0182          \\
-        HCL            & H-CL          & 0.0259          & 0.0164          & 0.0471          & 0.0214          \\
-        SimGCL         & G-CL          & 0.0191          & 0.0115          & 0.0275          & 0.0135          \\
-        \midrule
-        \multicolumn{6}{l}{\textit{\textbf{Graph G2 (User--User Social)}}}                                     \\
-        LightGCL       & G-CL          & \textbf{0.0436} & \textbf{0.0261} & \textbf{0.0739} & \textbf{0.0313} \\
-        LightGCN       & G-GNN         & 0.0272          & 0.0156          & 0.0404          & 0.0186          \\
-        XSimGCL        & G-CL          & 0.0432          & 0.0260          & 0.0688          & 0.0303          \\
-        HGN (Ours)     & H-GNN         & 0.0369          & 0.0201          & 0.0596          & 0.0250          \\
-        HCL (Ours)     & H-CL          & 0.0320          & 0.0192          & 0.0520          & 0.0233          \\
-        SimGCL         & G-CL          & 0.0228          & 0.0131          & 0.0312          & 0.0144          \\
-        \midrule
-        \multicolumn{6}{l}{\textit{\textbf{Graph G3 (Category Hubs)}}}                                         \\
-        LightGCL       & G-CL          & \textbf{0.0413} & \textbf{0.0256} & \textbf{0.0710} & \textbf{0.0311} \\
-        LightGCN       & G-GNN         & 0.0258          & 0.0145          & 0.0388          & 0.0175          \\
-        XSimGCL        & G-CL          & 0.0379          & 0.0232          & 0.0643          & 0.0289          \\
-        HGN (Ours)     & H-GNN         & 0.0299          & 0.0167          & 0.0464          & 0.0198          \\
-        HCL (Ours)     & H-CL          & 0.0250          & 0.0152          & 0.0471          & 0.0205          \\
-        SimGCL         & G-CL          & 0.0222          & 0.0122          & 0.0322          & 0.0137          \\
-        \bottomrule
-    \end{tabularx}
-\end{table}
-
-\FloatBarrier
-\subsection{Kết quả Loo100}
-Trong Loo100, HGN trên G2 đạt kết quả vượt trội, cho thấy sự đảo chiều so với Full Ranking. Nhóm cho rằng trong không gian ứng viên hẹp (Local Discrimination), các tín hiệu cấu trúc tinh tế (như quan hệ xã hội trên G2) trở thành các đặc trưng phân loại (discriminative features) mạnh mẽ hơn nội dung thuần túy, giúp tách biệt tích cực item mục tiêu khỏi các mẫu âm ngẫu nhiên.
-
-\subsection{Bài toán và ký hiệu}
 Gọi $U$ là tập người dùng và $A$ là tập bài viết.
 Các tương tác quan sát được đến từ hành vi bình luận và trả lời,
-do đó chúng tôi xem đây là bài toán \textbf{implicit feedback recommendation}.
+do đó nhóm xem đây là bài toán \textbf{implicit feedback recommendation}.
 Mục tiêu là học một hàm scoring $f(u,a)$
 để ước lượng mức độ phù hợp giữa người dùng $u \in U$ và bài viết $a \in A$,
 sau đó xếp hạng và đề xuất Top-$K$ bài viết mà $u$ chưa từng tương tác.
@@ -641,18 +505,18 @@ phù hợp với thiết lập chuẩn của các mô hình collaborative filter
 
 \subsection{Baseline Content-Based}
 Để đánh giá vai trò của tín hiệu cấu trúc so với nội dung,
-chúng tôi so sánh với các phương pháp Content-Based mạnh,
+nhóm so sánh với các phương pháp Content-Based mạnh,
 chỉ dựa trên thông tin văn bản của bài viết:
 \begin{itemize}
     \item \textbf{TF-IDF:} Phương pháp thống kê tần suất từ khóa truyền thống,
-          biểu diễn văn bản dưới dạng vector thưa và đo độ tương đồng bằng cosine similarity.
+    biểu diễn văn bản dưới dạng vector thưa và đo độ tương đồng bằng cosine similarity.
     \item \textbf{PhoBERT:} Mô hình ngôn ngữ tiền huấn luyện state-of-the-art cho tiếng Việt,
-          được sử dụng để trích xuất embedding ngữ nghĩa dense từ tiêu đề và mô tả bài viết.
+    được sử dụng để trích xuất embedding ngữ nghĩa dense từ tiêu đề và mô tả bài viết.
     \item \textbf{VnDoc:} Mô hình embedding chuyên dụng cho văn bản tiếng Việt,
-          tối ưu cho các tác vụ phân loại và tìm kiếm.
+    tối ưu cho các tác vụ phân loại và tìm kiếm.
     \item \textbf{BGE-M3:} Mô hình embedding đa ngôn ngữ hiện đại,
-          hỗ trợ biểu diễn đa chiều (dense, sparse, multi-vector)
-          và đạt hiệu quả retrieval cao trên nhiều benchmark.
+    hỗ trợ biểu diễn đa chiều (dense, sparse, multi-vector)
+    và đạt hiệu quả retrieval cao trên nhiều benchmark.
 \end{itemize}
 Các phương pháp này đóng vai trò baseline mạnh trong bối cảnh cold-start,
 khi tín hiệu tương tác lịch sử rất hạn chế.
@@ -679,21 +543,21 @@ LightGCL bổ sung thành phần global context
 để khắc phục hạn chế của việc chỉ học từ lân cận cục bộ.
 
 \subsection{HGN: Heterogeneous GNN đa-aspect}
-Dữ liệu của chúng tôi chứa ít nhất hai loại quan hệ khác nhau:
+Dữ liệu của nhóm chứa ít nhất hai loại quan hệ khác nhau:
 (i) tương tác user--article phản ánh sở thích trực tiếp,
 và (ii) quan hệ reply user--user phản ánh ảnh hưởng xã hội và \textit{social homophily}.
 Để tránh trộn lẫn ngữ nghĩa của các quan hệ này,
-chúng tôi đề xuất mô hình \textbf{HGN} với cơ chế lan truyền hai nhánh (dual-path).
+nhóm đề xuất mô hình \textbf{HGN} với cơ chế lan truyền hai nhánh (dual-path).
 
 Cụ thể, HGN tách quá trình message passing thành hai đồ thị con:
 \begin{itemize}
     \item \textbf{Interest path:} lan truyền embedding trên đồ thị $\mathcal{G}_{u-a}$,
-          tập trung vào tín hiệu sở thích trực tiếp từ tương tác người dùng--bài viết.
+    tập trung vào tín hiệu sở thích trực tiếp từ tương tác người dùng--bài viết.
     \item \textbf{Social path:} lan truyền embedding trên đồ thị $\mathcal{G}_{u-u}$,
-          khai thác quan hệ xã hội giữa người dùng thông qua reply.
+    khai thác quan hệ xã hội giữa người dùng thông qua reply.
 \end{itemize}
 
-Trong mỗi nhánh, chúng tôi áp dụng cùng một backbone GNN
+Trong mỗi nhánh, nhóm áp dụng cùng một backbone GNN
 để lan truyền embedding qua nhiều lớp.
 Embedding cuối cùng của mỗi nhánh lần lượt được ký hiệu là
 $\mathbf{h}_{int}$ và $\mathbf{h}_{soc}$,
@@ -722,46 +586,6 @@ Do đó, HCL không được xem là đóng góp chính của nghiên cứu,
 mà được sử dụng như một phép đối chứng
 để phân tích tác động của contrastive learning
 trong bối cảnh đồ thị heterogeneous và dữ liệu thưa.
-% ==========================================================
-
-\begin{table}[!htbp]
-    \centering
-    \scriptsize
-    \setlength{\tabcolsep}{1.5pt}
-    \renewcommand{\arraystretch}{1.1}
-    \rowcolors{2}{gray!5}{white}
-    \caption{Kết quả Leave-One-Out (Loo100) cho ba cấu trúc đồ thị.}
-    \label{tab:loo100}
-    \begin{tabularx}{\linewidth}{l|c|*4{>{\centering\arraybackslash}X}}
-        \toprule
-        \textbf{Model} & \textbf{Type} & \textbf{R@10}   & \textbf{N@10}   & \textbf{H@10}   & \textbf{MRR}    \\
-        \midrule
-        \multicolumn{6}{l}{\textit{\textbf{Graph G1 (Bipartite)}}}                                             \\
-        LightGCL       & G-CL          & \textbf{0.3081} & \textbf{0.2021} & \textbf{0.3822} & \textbf{0.2060} \\
-        LightGCN       & G-GNN         & 0.2818          & 0.1743          & 0.3595          & 0.1782          \\
-        XSimGCL        & G-CL          & 0.3009          & 0.1972          & 0.3787          & 0.2063          \\
-        HGN            & H-GNN         & 0.2740          & 0.1668          & 0.3570          & 0.1750          \\
-        HCL            & H-CL          & 0.2047          & 0.1324          & 0.2802          & 0.1487          \\
-        SimGCL         & G-CL          & 0.2129          & 0.1324          & 0.2920          & 0.1426          \\
-        \midrule
-        \multicolumn{6}{l}{\textit{\textbf{Graph G2 (User--User Social)}}}                                     \\
-        LightGCL       & G-CL          & 0.3017          & 0.1986          & 0.3762          & 0.2034          \\
-        LightGCN       & G-GNN         & 0.2784          & 0.1727          & 0.3559          & 0.1778          \\
-        XSimGCL        & G-CL          & 0.3036          & 0.2002          & 0.3827          & 0.2072          \\
-        HGN (Ours)     & H-GNN         & \textbf{0.4364} & \textbf{0.2636} & \textbf{0.5155} & \textbf{0.2518} \\
-        HCL            & H-CL          & 0.2075          & 0.1355          & 0.2838          & 0.1546          \\
-        SimGCL         & G-CL          & 0.2132          & 0.1322          & 0.2927          & 0.1434          \\
-        \midrule
-        \multicolumn{6}{l}{\textit{\textbf{Graph G3 (Category Hubs)}}}                                         \\
-        LightGCL       & G-CL          & 0.3024          & 0.1988          & 0.3753          & 0.2022          \\
-        LightGCN       & G-GNN         & 0.2790          & 0.1697          & 0.3588          & 0.1733          \\
-        XSimGCL        & G-CL          & 0.2969          & 0.1957          & 0.3726          & 0.2035          \\
-        HGN (Ours)     & H-GNN         & \textbf{0.3127} & \textbf{0.1957} & \textbf{0.3896} & \textbf{0.1962} \\
-        HCL            & H-CL          & 0.2260          & 0.1492          & 0.2998          & 0.1631          \\
-        SimGCL         & G-CL          & 0.2181          & 0.1333          & 0.2998          & 0.1435          \\
-        \bottomrule
-    \end{tabularx}
-\end{table}
 
 \section{Thiết lập thực nghiệm}
 \label{sec:exp}
@@ -810,13 +634,13 @@ Hiệu năng của mô hình được đánh giá bằng các metric chuẩn
 trong recommendation:
 \begin{itemize}
     \item \textbf{Recall@10}: tỷ lệ bài viết đúng
-          được truy xuất trong top-10 kết quả.
+    được truy xuất trong top-10 kết quả.
     \item \textbf{Hit@10}: xác định liệu có ít nhất
-          một bài viết đúng xuất hiện trong top-10.
+    một bài viết đúng xuất hiện trong top-10.
     \item \textbf{NDCG@10}: đánh giá chất lượng xếp hạng,
-          ưu tiên các bài viết đúng ở vị trí cao.
+    ưu tiên các bài viết đúng ở vị trí cao.
     \item \textbf{MRR}: nhạy với vị trí xuất hiện
-          của bài viết đúng đầu tiên trong danh sách.
+    của bài viết đúng đầu tiên trong danh sách.
 \end{itemize}
 
 % ==========================================================
@@ -825,12 +649,97 @@ trong recommendation:
 
 \subsection{Kết quả Full Ranking}
 \autoref{tab:results_full} tổng hợp kết quả theo từng đồ thị. Trong bối cảnh cold-start, các mô hình Content-Based thể hiện ưu thế vượt trội nhờ khả năng so khớp ngữ nghĩa sâu từ nội dung văn bản, ít phụ thuộc vào độ thưa của đồ thị. Điều này cho thấy với bài toán tìm kiếm không gian lớn (Global Retrieval), nội dung bài viết là tín hiệu tin cậy nhất. Ngược lại, đối với mô hình đồ thị, việc mở rộng G2 (thêm social edges) giúp cải thiện khả năng lan truyền tín hiệu so với G1, tuy nhiên vẫn gặp hạn chế do vấn đề thưa. Nhận xét này phù hợp với phân tích EDA: phần lớn người dùng và bài viết có rất ít tương tác, khiến tín hiệu cấu trúc khó phát huy hiệu quả trong không gian truy xuất lớn.
+\begin{table}[!htbp]
+    \centering
+    % Use slightly larger font if possible, footnote size is clearer than scriptsize
+    \scriptsize
+    \setlength{\tabcolsep}{1.5pt}
+    \renewcommand{\arraystretch}{1.1}
+    % Add zebra striping for better readability (requires \usepackage[table]{xcolor})
+    \rowcolors{2}{gray!5}{white}
+    \caption{Benchmark: Full Ranking (Recovering items from the entire 3,600+ corpus). Best results in \textbf{bold}.}
+    \label{tab:results_full}
+    \begin{tabularx}{\linewidth}{l|c|*4{>{\centering\arraybackslash}X}}
+        \toprule
+        \textbf{Model} & \textbf{Type} & \textbf{R@10}   & \textbf{N@10}   & \textbf{H@10}   & \textbf{MRR}    \\
+        \midrule
+        \multicolumn{6}{l}{\textit{\textbf{Content-Based / Baselines}}}                                        \\
+        BGE-M3         & CB            & \textbf{0.0535} & \textbf{0.0315} & \textbf{0.0929} & \textbf{0.0416} \\
+        TF-IDF         & CB            & 0.0508          & 0.0301          & 0.0951          & 0.0394          \\
+        VnDoc          & CB            & 0.0485          & 0.0287          & 0.0832          & 0.0362          \\
+        PhoBERT        & CB            & 0.0452          & 0.0253          & 0.0850          & 0.0335          \\
+        \midrule
+        \multicolumn{6}{l}{\textit{\textbf{Graph G1 (Bipartite)}}}                                             \\
+        LightGCL       & G-CL          & 0.0398          & 0.0249          & 0.0685          & 0.0313          \\
+        LightGCN       & G-GNN         & 0.0263          & 0.0145          & 0.0400          & 0.0174          \\
+        XSimGCL        & G-CL          & \textbf{0.0439} & \textbf{0.0253} & \textbf{0.0694} & \textbf{0.0289} \\
+        HGN            & H-GNN         & 0.0262          & 0.0147          & 0.0451          & 0.0182          \\
+        HCL            & H-CL          & 0.0259          & 0.0164          & 0.0471          & 0.0214          \\
+        SimGCL         & G-CL          & 0.0191          & 0.0115          & 0.0275          & 0.0135          \\
+        \midrule
+        \multicolumn{6}{l}{\textit{\textbf{Graph G2 (User--User Social)}}}                                     \\
+        LightGCL       & G-CL          & \textbf{0.0436} & \textbf{0.0261} & \textbf{0.0739} & \textbf{0.0313} \\
+        LightGCN       & G-GNN         & 0.0272          & 0.0156          & 0.0404          & 0.0186          \\
+        XSimGCL        & G-CL          & 0.0432          & 0.0260          & 0.0688          & 0.0303          \\
+        HGN (Ours)     & H-GNN         & 0.0369          & 0.0201          & 0.0596          & 0.0250          \\
+        HCL (Ours)     & H-CL          & 0.0320          & 0.0192          & 0.0520          & 0.0233          \\
+        SimGCL         & G-CL          & 0.0228          & 0.0131          & 0.0312          & 0.0144          \\
+        \midrule
+        \multicolumn{6}{l}{\textit{\textbf{Graph G3 (Category Hubs)}}}                                         \\
+        LightGCL       & G-CL          & \textbf{0.0413} & \textbf{0.0256} & \textbf{0.0710} & \textbf{0.0311} \\
+        LightGCN       & G-GNN         & 0.0258          & 0.0145          & 0.0388          & 0.0175          \\
+        XSimGCL        & G-CL          & 0.0379          & 0.0232          & 0.0643          & 0.0289          \\
+        HGN (Ours)     & H-GNN         & 0.0299          & 0.0167          & 0.0464          & 0.0198          \\
+        HCL (Ours)     & H-CL          & 0.0250          & 0.0152          & 0.0471          & 0.0205          \\
+        SimGCL         & G-CL          & 0.0222          & 0.0122          & 0.0322          & 0.0137          \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
 
 \subsection{Kết quả Loo100}
 Trong Loo100, HGN trên G2 đạt kết quả vượt trội, cho thấy sự đảo chiều so với Full Ranking. Chúng tôi cho rằng trong không gian ứng viên hẹp (Local Discrimination), các tín hiệu cấu trúc tinh tế (như quan hệ xã hội trên G2) trở thành các đặc trưng phân loại (discriminative features) mạnh mẽ hơn nội dung thuần túy, giúp tách biệt tích cực item mục tiêu khỏi các mẫu âm ngẫu nhiên. Hiện tượng này cũng đã được ghi nhận trong các nghiên cứu trước, khi đánh giá trên tập ứng viên nhỏ làm nổi bật vai trò của tín hiệu cấu trúc so với nội dung thuần tuý.
+\begin{table}[!htbp]
+    \centering
+    \scriptsize
+    \setlength{\tabcolsep}{1.5pt}
+    \renewcommand{\arraystretch}{1.1}
+    \rowcolors{2}{gray!5}{white}
+    \caption{Kết quả Leave-One-Out (Loo100) cho ba cấu trúc đồ thị.}
+    \label{tab:loo100}
+    \begin{tabularx}{\linewidth}{l|c|*4{>{\centering\arraybackslash}X}}
+        \toprule
+        \textbf{Model} & \textbf{Type} & \textbf{R@10}   & \textbf{N@10}   & \textbf{H@10}   & \textbf{MRR}    \\
+        \midrule
+        \multicolumn{6}{l}{\textit{\textbf{Graph G1 (Bipartite)}}}                                             \\
+        LightGCL       & G-CL          & \textbf{0.3081} & \textbf{0.2021} & \textbf{0.3822} & \textbf{0.2060} \\
+        LightGCN       & G-GNN         & 0.2818          & 0.1743          & 0.3595          & 0.1782          \\
+        XSimGCL        & G-CL          & 0.3009          & 0.1972          & 0.3787          & 0.2063          \\
+        HGN            & H-GNN         & 0.2740          & 0.1668          & 0.3570          & 0.1750          \\
+        HCL            & H-CL          & 0.2047          & 0.1324          & 0.2802          & 0.1487          \\
+        SimGCL         & G-CL          & 0.2129          & 0.1324          & 0.2920          & 0.1426          \\
+        \midrule
+        \multicolumn{6}{l}{\textit{\textbf{Graph G2 (User--User Social)}}}                                     \\
+        LightGCL       & G-CL          & 0.3017          & 0.1986          & 0.3762          & 0.2034          \\
+        LightGCN       & G-GNN         & 0.2784          & 0.1727          & 0.3559          & 0.1778          \\
+        XSimGCL        & G-CL          & 0.3036          & 0.2002          & 0.3827          & 0.2072          \\
+        HGN (Ours)     & H-GNN         & \textbf{0.4364} & \textbf{0.2636} & \textbf{0.5155} & \textbf{0.2518} \\
+        HCL            & H-CL          & 0.2075          & 0.1355          & 0.2838          & 0.1546          \\
+        SimGCL         & G-CL          & 0.2132          & 0.1322          & 0.2927          & 0.1434          \\
+        \midrule
+        \multicolumn{6}{l}{\textit{\textbf{Graph G3 (Category Hubs)}}}                                         \\
+        LightGCL       & G-CL          & 0.3024          & 0.1988          & 0.3753          & 0.2022          \\
+        LightGCN       & G-GNN         & 0.2790          & 0.1697          & 0.3588          & 0.1733          \\
+        XSimGCL        & G-CL          & 0.2969          & 0.1957          & 0.3726          & 0.2035          \\
+        HGN (Ours)     & H-GNN         & \textbf{0.3127} & \textbf{0.1957} & \textbf{0.3896} & \textbf{0.1962} \\
+        HCL            & H-CL          & 0.2260          & 0.1492          & 0.2998          & 0.1631          \\
+        SimGCL         & G-CL          & 0.2181          & 0.1333          & 0.2998          & 0.1435          \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
 
 \subsection{Tác động topology và phân tích HGN}
-Để định lượng tác động của mở rộng đồ thị lên HGN, \tabref{tab:impact-graph} so sánh Recall@10 của HGN theo từng cấu trúc. Kết quả trên G2 cải thiện đáng kể so với G1, củng cố giả thuyết về Social Homophily trong lan truyền tin tức. Tuy nhiên, G3 (Category) lại không mang lại hiệu quả tương đương; nhóm suy đoán rằng các "Category Hubs" có bậc quá cao (high-degree nodes) có thể đã gây ra hiện tượng nhiễu hoặc over-smoothing, làm mất đi tính cá nhân hóa của tín hiệu được lan truyền.
+Để định lượng tác động của mở rộng đồ thị lên HGN, \autoref{tab:impact-graph} so sánh Recall@10 của HGN theo từng cấu trúc. Kết quả trên G2 cải thiện đáng kể so với G1, củng cố giả thuyết về Social Homophily trong lan truyền tin tức. Tuy nhiên, G3 (Category) lại không mang lại hiệu quả tương đương; chúng tôi suy đoán rằng các "Category Hubs" có bậc quá cao (high-degree nodes) có thể đã gây ra hiện tượng nhiễu hoặc over-smoothing, làm mất đi tính cá nhân hóa của tín hiệu được lan truyền. Mặc dù vậy, thông tin danh mục vẫn có thể hữu ích khi được khai thác theo cách có kiểm soát (ví dụ như đặc trưng nội dung hoặc meta-path chọn lọc), thay vì đưa trực tiếp các nút category bậc cao vào cấu trúc đồ thị. Điều này cũng phù hợp với kết quả ablation ở \autoref{tab:ablation-metapath}, khi việc loại bỏ tín hiệu category làm suy giảm đáng kể hiệu năng của HGN.
+
 
 \begin{table}[!htbp]
     \centering
@@ -852,7 +761,7 @@ Trong Loo100, HGN trên G2 đạt kết quả vượt trội, cho thấy sự đ
 \end{table}
 
 \subsection{So sánh backbone cho HGN}
-Nhóm khảo sát ba backbone (GAT, GraphSAGE, TransformerConv). TransformerConv đạt Recall@10 cao nhất trong thiết lập full protocol.
+Chúng tôi khảo sát ba backbone (GAT, GraphSAGE, TransformerConv). TransformerConv đạt Recall@10 cao nhất trong thiết lập full protocol.
 
 \begin{table}[!htbp]
     \centering
@@ -943,7 +852,6 @@ XSimGCL có thời gian/epoch nhanh nhất trong thiết lập so sánh. Mô hì
     \caption{Chi phí huấn luyện (phút:giây) và số tham số theo cấu hình thực nghiệm.}
     \label{tab:efficiency}
 \end{table}
-
 
 % ==========================================================
 \FloatBarrier
