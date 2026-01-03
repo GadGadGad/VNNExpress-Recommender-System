@@ -172,7 +172,7 @@ Khi đồ thị có nhiều loại nút/cạnh, mô hình homogeneous dễ trộ
 \label{sec:data}
 
 \subsection{Thu thập dữ liệu và phạm vi}
-Nguồn dữ liệu được thu thập từ VnExpress, bao gồm 6 chuyên mục chính: Thế giới, Thời sự, Kinh doanh, Giáo dục, Thể thao và Khoa học công nghệ.
+Nguồn dữ liệu được thu thập từ VnExpress\footnote{\url{https://vnexpress.net}}, bao gồm 6 chuyên mục chính: Thế giới, Thời sự, Kinh doanh, Giáo dục, Thể thao và Khoa học công nghệ.
 Nhóm tập trung vào các tín hiệu tương tác công khai dựa trên bình luận và trả lời,
 nhằm xây dựng một bộ dữ liệu phản ánh hành vi thảo luận thực tế của người đọc.
 Dữ liệu thu thập gồm bốn thành phần chính:
@@ -199,10 +199,10 @@ Thiết kế pipeline theo hướng tách bảng giúp (i) giảm trùng lặp d
 và (iii) tạo điều kiện thuận lợi để xây dựng nhiều cấu trúc đồ thị khác nhau
 trong các thực nghiệm tiếp theo (G1--G3).
 
-\begin{figure}[t]
+\begin{figure*}[t]
     \centering
     \begin{tikzpicture}[
-            scale=0.5, transform shape,
+            scale=0.65, transform shape,
             node distance=0.6cm and 0.9cm,
             process/.style={
                     rectangle, rounded corners=4pt,
@@ -259,7 +259,7 @@ trong các thực nghiệm tiếp theo (G1--G3).
     \end{tikzpicture}
     \caption{Pipeline thu thập dữ liệu và xuất các bảng trung gian phục vụ dựng đồ thị.}
     \label{fig:crawler-pipeline}
-\end{figure}
+\end{figure*}
 
 \subsection{Schema dữ liệu}
 \autoref{tab:schema} tóm tắt schema của các bảng dữ liệu sau khi chuẩn hoá,
@@ -298,7 +298,7 @@ Mức độ thưa cực cao này cho thấy nguy cơ cold-start nghiêm trọng,
 khi đa số người dùng và bài viết chỉ có rất ít tín hiệu tương tác trực tiếp,
 gây khó khăn cho các mô hình collaborative filtering thuần tuý.
 
-\subsection{EDA: phân phối chuyên mục}
+\subsection{Phân phối chuyên mục bài viết}
 \autoref{fig:eda-category} cho thấy số lượng bài viết theo từng chuyên mục tương đối cân bằng,
 mỗi nhóm chiếm khoảng 16--18\% tổng số bài.
 Sự cân bằng này giúp hạn chế thiên lệch dữ liệu theo số lượng bài,
@@ -314,7 +314,7 @@ Do đó, các phân tích tiếp theo tập trung vào phân phối tương tác
     \label{fig:eda-category}
 \end{figure}
 
-\subsection{EDA: hoạt động người dùng và hiện tượng long-tail}
+\subsection{Hoạt động người dùng và tính chất đuôi dài}
 \autoref{fig:eda-user-bottom} minh hoạ phân phối hoạt động người dùng theo dạng Pareto/power-law:
 một nhóm nhỏ người dùng đóng góp phần lớn tương tác,
 trong khi đa số người dùng chỉ có rất ít bình luận.
@@ -334,7 +334,7 @@ tạo động cơ mở rộng đồ thị bằng các cạnh xã hội user--use
     \label{fig:eda-user-bottom}
 \end{figure}
 
-\subsection{EDA: mức độ engagement theo chuyên mục}
+\subsection{Mức độ tương tác theo từng chuyên mục}
 \autoref{fig:eda-eng-by-cat} cho thấy sự khác biệt đáng kể giữa
 tổng số bình luận và số bình luận trung bình trên mỗi bài theo từng chuyên mục.
 Một số chuyên mục có cường độ thảo luận cao,
@@ -354,7 +354,7 @@ làm suy giảm tính cá nhân hoá.
     \label{fig:eda-eng-by-cat}
 \end{figure}
 
-\subsection{EDA: degree distribution và hệ quả lên học đồ thị}
+\subsection{Phân phối bậc và tác động đến học đồ thị}
 \autoref{fig:degree} minh hoạ phân phối degree của cả người dùng và bài viết trong đồ thị tương tác.
 Phía người dùng, phần lớn có degree rất nhỏ,
 phản ánh rủi ro cold-start cao.
@@ -853,6 +853,30 @@ Một điểm đáng chú ý trong kết quả thực nghiệm là sự chênh l
 \textbf{Global Retrieval vs. Local Discrimination:} Full Ranking là bài toán tìm kiếm toàn cục (``mò kim đáy bể''), nơi mô hình phải lọc ra các item phù hợp từ hàng nghìn bài viết. Trong bối cảnh dữ liệu thưa thớt, các tín hiệu đồ thị thường bị đứt đoạn hoặc nhiễu, làm giảm khả năng retrieval của HGN. Ngược lại, Content-Based tận dụng sự tương đồng ngữ nghĩa từ nội dung văn bản độc lập với lịch sử tương tác, do đó duy trì được hiệu năng ổn định hơn ở quy mô toàn cục. Điều này cũng phù hợp với quan điểm của \citet{sun2023evaluation} về việc cần đánh giá lại sự cần thiết của các mô hình phức tạp so với các baseline đơn giản.
 
 \textbf{Signal-to-Noise Ratio (Tỷ lệ tín hiệu trên nhiễu):} Trong thiết lập Loo100 (Local Discrimination), không gian tìm kiếm được thu hẹp đáng kể (1 dương vs.\ 99 âm). Lúc này, các tín hiệu cấu trúc tinh tế như quan hệ xã hội (social homophily) hay đường dẫn ngữ nghĩa (semantic paths) trở thành các đặc trưng phân loại (discriminative features) cực mạnh, giúp HGN phân biệt chính xác item mục tiêu. Điều này gợi ý rằng mô hình đồ thị học được các pattern rất sâu sắc nhưng ``kén chọn'', phát huy tốt nhất khi đã có một tập ứng viên (candidate set) chất lượng.
+
+\subsection{So sánh với các bộ dữ liệu chuẩn}
+Để đánh giá khách quan, \tabref{tab:dataset-comparison} so sánh hiệu năng và đặc tính dữ liệu của hệ thống với các benchmark chuẩn quốc tế. Mặc dù Recall@10 ($\sim$0.04) có vẻ thấp về mặt con số tuyệt đối, khi đặt trong bối cảnh mật độ tương tác cực thấp (0.064\% - chỉ bằng 1/15 của ML-10M) và so sánh với các kết quả SOTA trên dữ liệu thưa tương tự (Amazon-Book: 0.0585), kết quả này là hoàn toàn chấp nhận được và phản ánh đúng thách thức của bài toán.
+
+\begin{table}[!htbp]
+    \centering
+    \footnotesize
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabular}{l|c|c|c|c}
+        \toprule
+        \textbf{Dataset}                  & \textbf{\#Users} & \textbf{\#Items} & \textbf{Density} & \textbf{SOTA R@20}    \\
+        \midrule
+        ML-10M \cite{harper2015movielens} & 69k              & 10k              & \textbf{0.982\%} & $\sim$ 0.2613         \\
+        Yelp \cite{yelp2018dataset}       & 29k              & 24k              & 0.146\%          & $\sim$ 0.0793         \\
+        Gowalla \cite{cho2011friendship}  & 50k              & 57k              & 0.040\%          & $\sim$ 0.1578         \\
+        Amazon-Book \cite{he2016ups}      & 78k              & 77k              & \textbf{0.037\%} & \textbf{0.0585}       \\
+        Tmall \cite{ijcai2015tmall}       & 47k              & 41k              & 0.119\%          & 0.0528                \\
+        \midrule
+        \textbf{Ours (G2)}                & \textbf{13k}     & \textbf{3.6k}    & \textbf{0.064\%} & \textbf{0.0436} (@10) \\
+        \bottomrule
+    \end{tabular}
+    \caption{So sánh mật độ và hiệu năng với các bộ dữ liệu chuẩn \citet{he2020lightgcn, yu2022graph}.}
+    \label{tab:dataset-comparison}
+\end{table}
 
 \section{Kết luận và hướng phát triển}
 \label{sec:conclusion}

@@ -110,8 +110,8 @@ Instructor: Master. Huynh Van Tin
 
 \tightv
 \begin{abstract}
-  \noindent
-  This report presents a Vietnamese news recommendation system based on graph representation learning, focusing on two common issues in news data: \textbf{sparsity} and \textbf{cold-start}. Using comment/reply interactions from VnExpress, we build a data crawling pipeline and conduct EDA, design three graph structures \textbf{G1--G3} (expanded toward Social and Semantic signals), benchmark modern graph-based recommenders (LightGCN, SimGCL, XSimGCL, LightGCL), and propose \textbf{HGN} (a heterogeneous multi-aspect GNN) along with an exploratory \textbf{HCL} (Heterogeneous Contrastive Learning) setting. Evaluation is performed under two protocols: \textbf{Full Ranking Cold-Start} and \textbf{Leave-One-Out (Loo100)}, using Recall@10, NDCG@10, Hit@10, and MRR. Results indicate that expanding the social graph yields clear benefits for heterogeneous models, while content-based signals remain crucial under cold-start.
+    \noindent
+    This report presents a Vietnamese news recommendation system based on graph representation learning, focusing on two common issues in news data: \textbf{sparsity} and \textbf{cold-start}. Using comment/reply interactions from VnExpress, we build a data crawling pipeline and conduct EDA, design three graph structures \textbf{G1--G3} (expanded toward Social and Semantic signals), benchmark modern graph-based recommenders (LightGCN, SimGCL, XSimGCL, LightGCL), and compare them with strong Content-Based baselines. We propose \textbf{HGN} (a heterogeneous multi-aspect GNN) along with an exploratory \textbf{HCL} (Heterogeneous Contrastive Learning) setting. Experiments on a real-world VnExpress dataset with \textbf{15,693 users} and \textbf{3,645 articles} reveal a clear divergence by evaluation protocol: while Content-Based methods (BGE-M3) achieve the best global retrieval performance (Full Ranking, Recall@10 = 0.0535), our \textbf{HGN} model, when expanded with \textit{social edges (G2)}, achieves superior and stable performance in the Leave-One-Out setting (Recall@10 = 0.4364), efficiently exploiting \textit{social homophily} signals.
 \end{abstract}
 
 % ==========================================================
@@ -127,10 +127,10 @@ Accordingly, we build a graph-based and heterogeneous-graph-based system to sepa
 
 \textbf{Main contributions}:
 \begin{itemize}
-  \item We build a VnExpress data collection pipeline including articles, metadata, comments/replies, and user profiles, and perform EDA to characterize sparsity and power-law behavior in interactions.
-  \item We design three graph layers \textbf{G1--G3} to study the effect of topology expansion: G1 (bipartite), G2 (adding social edges), and G3 (adding category hubs).
-  \item We benchmark modern graph recommender models including LightGCN~\citep{he2020lightgcn}, SimGCL~\citep{yu2022graph}, XSimGCL~\citep{yu2023xsimgcl}, and LightGCL~\citep{cai2023lightgcl}, and compare them with content-based baselines.
-  \item We propose \textbf{HGN} (dual-path propagation) and explore \textbf{HCL} (heterogeneous + contrastive) to study robustness under sparse data.
+    \item We build a VnExpress data collection pipeline including articles, metadata, comments/replies, and user profiles, and perform EDA to characterize sparsity and power-law behavior in interactions.
+    \item We design three graph layers \textbf{G1--G3} to study the effect of topology expansion: G1 (bipartite), G2 (adding social edges), and G3 (adding category hubs).
+    \item We benchmark modern graph recommender models including LightGCN~\citep{he2020lightgcn}, SimGCL~\citep{yu2022graph}, XSimGCL~\citep{yu2023xsimgcl}, and LightGCL~\citep{cai2023lightgcl}, and compare them with content-based baselines.
+    \item We propose \textbf{HGN} (dual-path propagation) and explore \textbf{HCL} (heterogeneous + contrastive) to study robustness under sparse data.
 \end{itemize}
 
 % ==========================================================
@@ -151,98 +151,98 @@ When the graph contains multiple node/edge types, homogeneous models may mix rel
 \label{sec:data}
 
 \subsection{Data collection and scope}
-The data source is VnExpress with six categories: World, Current Affairs, Business, Education, Sports, and Science \& Technology. The collected data includes:
+The data source is VnExpress\footnote{\url{https://vnexpress.net}} with six categories: World, Current Affairs, Business, Education, Sports, and Science \& Technology. The collected data includes:
 \begin{itemize}
-  \item \textbf{Articles}: title, short description, author, publish time, and content.
-  \item \textbf{Metadata}: category and tags.
-  \item \textbf{Comments/Replies}: user id, text, reactions, and thread structure.
-  \item \textbf{User Profiles}: user id, username, and join date (if publicly available).
+    \item \textbf{Articles}: title, short description, author, publish time, and content.
+    \item \textbf{Metadata}: category and tags.
+    \item \textbf{Comments/Replies}: user id, text, reactions, and thread structure.
+    \item \textbf{User Profiles}: user id, username, and join date (if publicly available).
 \end{itemize}
 
 \subsection{Crawler pipeline}
 \figref{fig:crawler-pipeline} illustrates a four-step pipeline, exported into \texttt{.csv} intermediate tables to facilitate normalization and graph construction.
 
-\begin{figure}[t]
-  \centering
-  \begin{tikzpicture}[
-      scale=0.5, transform shape,
-      node distance=0.6cm and 0.9cm,
-      process/.style={
-          rectangle, rounded corners=4pt,
-          minimum width=3.2cm, minimum height=1.0cm,
-          align=center, text=white,
-          font=\scriptsize\bfseries, drop shadow
-        },
-      step1/.style={process, fill=blue!60!cyan},
-      step2/.style={process, fill=red!60!orange},
-      step3/.style={process, fill=purple!60!violet},
-      step4/.style={process, fill=teal!60!green},
-      data/.style={
-          cylinder, shape border rotate=90,
-          draw=gray!80, fill=yellow!10, aspect=0.25,
-          minimum height=0.75cm, minimum width=1.6cm,
-          align=center, font=\tiny\ttfamily,
-          drop shadow={opacity=0.2}
-        },
-      source/.style={
-          cloud, cloud puffs=11,
-          draw=blue!50, fill=blue!5, aspect=2,
-          minimum width=2.0cm, minimum height=1.2cm,
-          align=center, font=\scriptsize\itshape\color{blue!80!black}
-        },
-      arrow/.style={-Stealth, thick, draw=gray!60, rounded corners}
-    ]
-    \node[source] (web) {VnExpress\\Website};
+\begin{figure*}[t]
+    \centering
+    \begin{tikzpicture}[
+            scale=0.65, transform shape,
+            node distance=0.6cm and 0.9cm,
+            process/.style={
+                    rectangle, rounded corners=4pt,
+                    minimum width=3.2cm, minimum height=1.0cm,
+                    align=center, text=white,
+                    font=\scriptsize\bfseries, drop shadow
+                },
+            step1/.style={process, fill=blue!60!cyan},
+            step2/.style={process, fill=red!60!orange},
+            step3/.style={process, fill=purple!60!violet},
+            step4/.style={process, fill=teal!60!green},
+            data/.style={
+                    cylinder, shape border rotate=90,
+                    draw=gray!80, fill=yellow!10, aspect=0.25,
+                    minimum height=0.75cm, minimum width=1.6cm,
+                    align=center, font=\tiny\ttfamily,
+                    drop shadow={opacity=0.2}
+                },
+            source/.style={
+                    cloud, cloud puffs=11,
+                    draw=blue!50, fill=blue!5, aspect=2,
+                    minimum width=2.0cm, minimum height=1.2cm,
+                    align=center, font=\scriptsize\itshape\color{blue!80!black}
+                },
+            arrow/.style={-Stealth, thick, draw=gray!60, rounded corners}
+        ]
+        \node[source] (web) {VnExpress\\Website};
 
-    \node[step1, right=0.8cm of web] (s1) {Discovery\\(Scanning)};
-    \node[data, right=0.6cm of s1] (d1) {articles.csv};
+        \node[step1, right=0.8cm of web] (s1) {Discovery\\(Scanning)};
+        \node[data, right=0.6cm of s1] (d1) {articles.csv};
 
-    \node[step4, above right=0.2cm and 1.2cm of d1] (s4) {Metadata\\(Tags/Category)};
-    \node[data, right=0.6cm of s4] (d4) {metadata.csv};
+        \node[step4, above right=0.2cm and 1.2cm of d1] (s4) {Metadata\\(Tags/Category)};
+        \node[data, right=0.6cm of s4] (d4) {metadata.csv};
 
-    \node[step2, below right=0.2cm and 1.2cm of d1] (s2) {Deep Crawl\\(Comments)};
-    \node[data, right=0.6cm of s2] (d2) {replies.csv};
+        \node[step2, below right=0.2cm and 1.2cm of d1] (s2) {Deep Crawl\\(Comments)};
+        \node[data, right=0.6cm of s2] (d2) {replies.csv};
 
-    \node[step3, below=0.85cm of d2] (s3) {Enrichment\\(User Profiles)};
-    \node[data, left=0.8cm of s3] (d3) {user\_profiles.csv};
+        \node[step3, below=0.85cm of d2] (s3) {Enrichment\\(User Profiles)};
+        \node[data, left=0.8cm of s3] (d3) {user\_profiles.csv};
 
-    \draw[arrow] (web) -- (s1);
-    \draw[arrow] (s1) -- (d1);
-    \draw[arrow] (d1.east) -- ++(0.35,0) |- (s4.west);
-    \draw[arrow] (d1.east) -- ++(0.35,0) |- (s2.west);
-    \draw[arrow] (s4) -- (d4);
-    \draw[arrow] (s2) -- (d2);
-    \draw[arrow] (d2.south) -- (s3.north);
-    \draw[arrow] (s3) -- (d3);
+        \draw[arrow] (web) -- (s1);
+        \draw[arrow] (s1) -- (d1);
+        \draw[arrow] (d1.east) -- ++(0.35,0) |- (s4.west);
+        \draw[arrow] (d1.east) -- ++(0.35,0) |- (s2.west);
+        \draw[arrow] (s4) -- (d4);
+        \draw[arrow] (s2) -- (d2);
+        \draw[arrow] (d2.south) -- (s3.north);
+        \draw[arrow] (s3) -- (d3);
 
-    \node[text=gray, font=\tiny, align=center, below=0.08cm of s1] {Input: categories};
-    \node[text=gray, font=\tiny, align=center, below=0.05cm of s4] {Stealth crawl};
-    \node[text=gray, font=\tiny, align=center, below=0.05cm of s2] {Thread crawl};
-    \node[text=gray, font=\tiny, align=center, below=0.1cm of s3] {Profile fetch};
-  \end{tikzpicture}
-  \caption{Data collection pipeline and intermediate tables for graph construction.}
-  \label{fig:crawler-pipeline}
-\end{figure}
+        \node[text=gray, font=\tiny, align=center, below=0.08cm of s1] {Input: categories};
+        \node[text=gray, font=\tiny, align=center, below=0.05cm of s4] {Stealth crawl};
+        \node[text=gray, font=\tiny, align=center, below=0.05cm of s2] {Thread crawl};
+        \node[text=gray, font=\tiny, align=center, below=0.1cm of s3] {Profile fetch};
+    \end{tikzpicture}
+    \caption{Data collection pipeline and intermediate tables for graph construction.}
+    \label{fig:crawler-pipeline}
+\end{figure*}
 
 \subsection{Data schema}
 \tabref{tab:schema} summarizes the schema of the four normalized tables.
 
 \begin{table}[t]
-  \centering
-  \small
-  \setlength{\tabcolsep}{4pt}
-  \begin{tabular}{l p{5.6cm}}
-    \toprule
-    \textbf{Table} & \textbf{Main fields}                                                                     \\
-    \midrule
-    Articles       & \texttt{article\_id, url, title, short\_description, author, published\_at, content}     \\
-    Metadata       & \texttt{article\_url, category, tags}                                                    \\
-    Replies        & \texttt{article\_url, parent\_user\_id, parent\_text, ..., reply\_user\_id, reply\_text} \\
-    User Profiles  & \texttt{user\_id, username, join\_date}                                                  \\
-    \bottomrule
-  \end{tabular}
-  \caption{Summary of the normalized data schema.}
-  \label{tab:schema}
+    \centering
+    \small
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabular}{l p{5.6cm}}
+        \toprule
+        \textbf{Table} & \textbf{Main fields}                                                                     \\
+        \midrule
+        Articles       & \texttt{article\_id, url, title, short\_description, author, published\_at, content}     \\
+        Metadata       & \texttt{article\_url, category, tags}                                                    \\
+        Replies        & \texttt{article\_url, parent\_user\_id, parent\_text, ..., reply\_user\_id, reply\_text} \\
+        User Profiles  & \texttt{user\_id, username, join\_date}                                                  \\
+        \bottomrule
+    \end{tabular}
+    \caption{Summary of the normalized data schema.}
+    \label{tab:schema}
 \end{table}
 
 \subsection{Summary statistics and sparsity}
@@ -250,66 +250,66 @@ The collected dataset contains \textbf{3,645} articles, \textbf{15,693} users, a
 
 Sparsity of the user--article interaction matrix:
 \begin{equation}
-  \text{Sparsity} = 1 - \frac{40{,}045}{15{,}693 \times 3{,}645} \approx 99.93\%.
-  \label{eq:sparsity}
+    \text{Sparsity} = 1 - \frac{40{,}045}{15{,}693 \times 3{,}645} \approx 99.93\%.
+    \label{eq:sparsity}
 \end{equation}
 This level of sparsity indicates a high cold-start risk: most users have small degrees, making purely collaborative models challenging.
 
-\subsection{EDA: category distribution and user activity}
+\subsection{Category Distribution and User Activity}
 Figures \figref{fig:eda-summary}--\figref{fig:eda-user-bottom} present an overview: category distribution, user activity levels, and power-law behavior (a small group of users contributes a large portion of interactions).
 
 \begin{figure}[t]
-  \centering
-  \includegraphics[width=\linewidth]{eda_00_summary_dashboard.png}
-  \caption{EDA overview dashboard.}
-  \label{fig:eda-summary}
+    \centering
+    \includegraphics[width=\linewidth]{eda_00_summary_dashboard.png}
+    \caption{EDA overview dashboard.}
+    \label{fig:eda-summary}
 \end{figure}
 
 \begin{figure}[t]
-  \centering
-  \includegraphics[width=\linewidth]{eda_09_metadata_categories.png}
-  \caption{Distribution of articles by category.}
-  \label{fig:eda-category}
+    \centering
+    \includegraphics[width=\linewidth]{eda_09_metadata_categories.png}
+    \caption{Distribution of articles by category.}
+    \label{fig:eda-category}
 \end{figure}
 
 \begin{figure}[t]
-  \centering
-  \includegraphics[width=\linewidth]{eda_03_user_activity_top.png}
-  \caption{User activity patterns (1/2).}
-  \label{fig:eda-user-top}
+    \centering
+    \includegraphics[width=\linewidth]{eda_03_user_activity_top.png}
+    \caption{User activity patterns (1/2).}
+    \label{fig:eda-user-top}
 \end{figure}
 
 \begin{figure}[t]
-  \centering
-  \includegraphics[width=\linewidth]{eda_03_user_activity_bottom.png}
-  \caption{User activity patterns (2/2): interactions exhibit a power-law trend.}
-  \label{fig:eda-user-bottom}
+    \centering
+    \includegraphics[width=\linewidth]{eda_03_user_activity_bottom.png}
+    \caption{User activity patterns (2/2): interactions exhibit a power-law trend.}
+    \label{fig:eda-user-bottom}
 \end{figure}
 
-\subsection{EDA: engagement by category and degree distribution}
+\subsection{Engagement Patterns and Degree Distribution}
 \figref{fig:eda-eng-by-cat} shows engagement by category. \figref{fig:degree} illustrates degree distributions of users and articles in the interaction graph; user degrees are typically small, reflecting highly sparse data.
 
 \begin{figure}[t]
-  \centering
-  \includegraphics[width=\linewidth]{eda_11_engagement_by_category.png}
-  \caption{Engagement by category.}
-  \label{fig:eda-eng-by-cat}
+    \centering
+    \includegraphics[width=\linewidth]{eda_11_engagement_by_category.png}
+    \caption{Engagement by category.}
+    \label{fig:eda-eng-by-cat}
 \end{figure}
 
 \begin{figure}[t]
-  \centering
-  \begin{subfigure}{.49\linewidth}
     \centering
-    \includegraphics[width=\linewidth]{users_dis.png}
-    \caption{Users}
-  \end{subfigure}
-  \begin{subfigure}{.49\linewidth}
-    \centering
-    \includegraphics[width=\linewidth]{articles_dis.png}
-    \caption{Articles}
-  \end{subfigure}
-  \caption{Degree distributions in the interaction graph.}
-  \label{fig:degree}
+    \begin{subfigure}{.49\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{users_dis.png}
+        \caption{Users}
+    \end{subfigure}
+    \begin{subfigure}{.49\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{articles_dis.png}
+        \caption{Articles}
+    \end{subfigure}
+    \caption{Degree distributions in the interaction graph.}
+    \label{fig:degree}
 \end{figure}
 
 % ==========================================================
@@ -319,77 +319,77 @@ Figures \figref{fig:eda-summary}--\figref{fig:eda-user-bottom} present an overvi
 \subsection{Overall idea}
 With extremely high sparsity (\eqref{eq:sparsity}), a pure user--article graph struggles to propagate information for low-activity users. Therefore, we design three graphs with increasing signal richness:
 \begin{itemize}
-  \item \textbf{G1 (Bipartite):} users and articles with interaction edges.
-  \item \textbf{G2 (Social expansion):} adds user--user edges from reply relations in discussions.
-  \item \textbf{G3 (Semantic hubs):} adds category nodes to shorten paths between users and groups of articles within the same category.
+    \item \textbf{G1 (Bipartite):} users and articles with interaction edges.
+    \item \textbf{G2 (Social expansion):} adds user--user edges from reply relations in discussions.
+    \item \textbf{G3 (Semantic hubs):} adds category nodes to shorten paths between users and groups of articles within the same category.
 \end{itemize}
 
 \subsection{Visualization of G1--G3}
 \figref{fig:g123} visualizes the differences among the three graphs.
 
 \begin{figure*}[t]
-  \centering
-  \begin{tikzpicture}[scale=0.62, transform shape]
-    \node[circle, fill=userblue, text=white, minimum size=0.9cm] (u1) at (0,1.4) {U1};
-    \node[circle, fill=userblue, text=white, minimum size=0.9cm] (u2) at (0,0) {U2};
-    \node[rectangle, rounded corners=3pt, fill=articlegreen, text=white, minimum width=1.1cm, minimum height=0.7cm] (a1) at (3.2,1.4) {A1};
-    \node[rectangle, rounded corners=3pt, fill=articlegreen, text=white, minimum width=1.1cm, minimum height=0.7cm] (a2) at (3.2,0) {A2};
-    \draw[-, thick, gray!70] (u1)--(a1);
-    \draw[-, thick, gray!70] (u1)--(a2);
-    \draw[-, thick, gray!70] (u2)--(a2);
-    \node[below=0.2cm of u2, font=\scriptsize] {G1: Bipartite};
-  \end{tikzpicture}
-  \hfill
-  \begin{tikzpicture}[scale=0.62, transform shape]
-    \node[circle, fill=userblue, text=white, minimum size=0.9cm] (u1) at (0,1.4) {U1};
-    \node[circle, fill=userblue, text=white, minimum size=0.9cm] (u2) at (0,0) {U2};
-    \node[rectangle, rounded corners=3pt, fill=articlegreen, text=white, minimum width=1.1cm, minimum height=0.7cm] (a1) at (3.2,1.4) {A1};
-    \node[rectangle, rounded corners=3pt, fill=articlegreen, text=white, minimum width=1.1cm, minimum height=0.7cm] (a2) at (3.2,0) {A2};
-    \draw[-, thick, gray!70] (u1)--(a1);
-    \draw[-, thick, gray!70] (u1)--(a2);
-    \draw[-, thick, gray!70] (u2)--(a2);
-    \draw[-, dashed, ultra thick, socialorange, bend left=25] (u1) to (u2);
-    \node[below=0.2cm of u2, font=\scriptsize] {G2: +Social (Reply)};
-  \end{tikzpicture}
+    \centering
+    \begin{tikzpicture}[scale=0.62, transform shape]
+        \node[circle, fill=userblue, text=white, minimum size=0.9cm] (u1) at (0,1.4) {U1};
+        \node[circle, fill=userblue, text=white, minimum size=0.9cm] (u2) at (0,0) {U2};
+        \node[rectangle, rounded corners=3pt, fill=articlegreen, text=white, minimum width=1.1cm, minimum height=0.7cm] (a1) at (3.2,1.4) {A1};
+        \node[rectangle, rounded corners=3pt, fill=articlegreen, text=white, minimum width=1.1cm, minimum height=0.7cm] (a2) at (3.2,0) {A2};
+        \draw[-, thick, gray!70] (u1)--(a1);
+        \draw[-, thick, gray!70] (u1)--(a2);
+        \draw[-, thick, gray!70] (u2)--(a2);
+        \node[below=0.2cm of u2, font=\scriptsize] {G1: Bipartite};
+    \end{tikzpicture}
+    \hfill
+    \begin{tikzpicture}[scale=0.62, transform shape]
+        \node[circle, fill=userblue, text=white, minimum size=0.9cm] (u1) at (0,1.4) {U1};
+        \node[circle, fill=userblue, text=white, minimum size=0.9cm] (u2) at (0,0) {U2};
+        \node[rectangle, rounded corners=3pt, fill=articlegreen, text=white, minimum width=1.1cm, minimum height=0.7cm] (a1) at (3.2,1.4) {A1};
+        \node[rectangle, rounded corners=3pt, fill=articlegreen, text=white, minimum width=1.1cm, minimum height=0.7cm] (a2) at (3.2,0) {A2};
+        \draw[-, thick, gray!70] (u1)--(a1);
+        \draw[-, thick, gray!70] (u1)--(a2);
+        \draw[-, thick, gray!70] (u2)--(a2);
+        \draw[-, dashed, ultra thick, socialorange, bend left=25] (u1) to (u2);
+        \node[below=0.2cm of u2, font=\scriptsize] {G2: +Social (Reply)};
+    \end{tikzpicture}
 
-  \vspace{0.2cm}
+    \vspace{0.2cm}
 
-  \begin{tikzpicture}[scale=0.62, transform shape]
-    \node[circle, fill=userblue, text=white, minimum size=0.9cm] (u1) at (0,1.4) {U1};
-    \node[circle, fill=userblue, text=white, minimum size=0.9cm] (u2) at (0,0) {U2};
-    \node[diamond, fill=cathub, text=white, minimum size=1.0cm] (c1) at (2.2,1.4) {C1};
-    \node[diamond, fill=cathub, text=white, minimum size=1.0cm] (c2) at (2.2,0) {C2};
-    \node[rectangle, rounded corners=3pt, fill=articlegreen, text=white, minimum width=1.1cm, minimum height=0.7cm] (a1) at (4.4,1.8) {A1};
-    \node[rectangle, rounded corners=3pt, fill=articlegreen, text=white, minimum width=1.1cm, minimum height=0.7cm] (a2) at (4.4,1.0) {A2};
-    \node[rectangle, rounded corners=3pt, fill=articlegreen, text=white, minimum width=1.1cm, minimum height=0.7cm] (a3) at (4.4,0.4) {A3};
-    \draw[-Stealth, thick, cathub!80] (u1)--(c1);
-    \draw[-Stealth, thick, cathub!80] (u1)--(c2);
-    \draw[-Stealth, thick, cathub!80] (u2)--(c2);
-    \draw[-Stealth, thick, cathub!80] (c1)--(a1);
-    \draw[-Stealth, thick, cathub!80] (c1)--(a2);
-    \draw[-Stealth, thick, cathub!80] (c2)--(a3);
-    \node[below=0.2cm of u2, font=\scriptsize] {G3: +Category hubs};
-  \end{tikzpicture}
-  \caption{Illustration of graph variants G1--G3 (bipartite, social expansion, semantic hubs).}
-  \label{fig:g123}
+    \begin{tikzpicture}[scale=0.62, transform shape]
+        \node[circle, fill=userblue, text=white, minimum size=0.9cm] (u1) at (0,1.4) {U1};
+        \node[circle, fill=userblue, text=white, minimum size=0.9cm] (u2) at (0,0) {U2};
+        \node[diamond, fill=cathub, text=white, minimum size=1.0cm] (c1) at (2.2,1.4) {C1};
+        \node[diamond, fill=cathub, text=white, minimum size=1.0cm] (c2) at (2.2,0) {C2};
+        \node[rectangle, rounded corners=3pt, fill=articlegreen, text=white, minimum width=1.1cm, minimum height=0.7cm] (a1) at (4.4,1.8) {A1};
+        \node[rectangle, rounded corners=3pt, fill=articlegreen, text=white, minimum width=1.1cm, minimum height=0.7cm] (a2) at (4.4,1.0) {A2};
+        \node[rectangle, rounded corners=3pt, fill=articlegreen, text=white, minimum width=1.1cm, minimum height=0.7cm] (a3) at (4.4,0.4) {A3};
+        \draw[-Stealth, thick, cathub!80] (u1)--(c1);
+        \draw[-Stealth, thick, cathub!80] (u1)--(c2);
+        \draw[-Stealth, thick, cathub!80] (u2)--(c2);
+        \draw[-Stealth, thick, cathub!80] (c1)--(a1);
+        \draw[-Stealth, thick, cathub!80] (c1)--(a2);
+        \draw[-Stealth, thick, cathub!80] (c2)--(a3);
+        \node[below=0.2cm of u2, font=\scriptsize] {G3: +Category hubs};
+    \end{tikzpicture}
+    \caption{Illustration of graph variants G1--G3 (bipartite, social expansion, semantic hubs).}
+    \label{fig:g123}
 \end{figure*}
 
 \subsection{Temporal splitting to reduce leakage}
 For news data, interactions are strongly time-dependent. When constructing train/test sets, ensuring that training comes from the past and testing from the future better simulates deployment.
 
 \begin{figure}[t]
-  \centering
-  \begin{tikzpicture}[scale=0.8, transform shape]
-    \draw[->, ultra thick, gray] (0,0) -- (9,0) node[right, font=\bfseries] {Time ($t$)};
-    \shade[left color=blue!10, right color=blue!40] (0,0.1) rectangle (6.2,0.7);
-    \node[blue!40!black] at (3.1, 0.4) {\textbf{Training}};
-    \shade[left color=orange!30, right color=orange!60] (6.3,0.1) rectangle (8.5,0.7);
-    \node[orange!40!black] at (7.4, 0.4) {\textbf{Test}};
-    \draw[dashed, red, ultra thick] (6.25, -0.35) -- (6.25, 1.05);
-    \node[red, font=\bfseries\scriptsize, fill=white, inner sep=2pt] at (6.25, 1.18) {$T_{split}$};
-  \end{tikzpicture}
-  \caption{Illustration of a temporal train/test split.}
-  \label{fig:temporal-split}
+    \centering
+    \begin{tikzpicture}[scale=0.8, transform shape]
+        \draw[->, ultra thick, gray] (0,0) -- (9,0) node[right, font=\bfseries] {Time ($t$)};
+        \shade[left color=blue!10, right color=blue!40] (0,0.1) rectangle (6.2,0.7);
+        \node[blue!40!black] at (3.1, 0.4) {\textbf{Training}};
+        \shade[left color=orange!30, right color=orange!60] (6.3,0.1) rectangle (8.5,0.7);
+        \node[orange!40!black] at (7.4, 0.4) {\textbf{Test}};
+        \draw[dashed, red, ultra thick] (6.25, -0.35) -- (6.25, 1.05);
+        \node[red, font=\bfseries\scriptsize, fill=white, inner sep=2pt] at (6.25, 1.18) {$T_{split}$};
+    \end{tikzpicture}
+    \caption{Illustration of a temporal train/test split.}
+    \label{fig:temporal-split}
 \end{figure}
 
 % ==========================================================
@@ -399,12 +399,22 @@ For news data, interactions are strongly time-dependent. When constructing train
 \subsection{Problem definition and notation}
 Let $U$ be the set of users and $A$ be the set of articles. The goal is to predict the relevance between a user $u$ and an article $a$ based on interaction history, then rank and recommend Top-$K$ articles that the user has not interacted with.
 
+\subsection{Content-Based Baselines}
+To evaluate the role of structural signals versus content, we compare against strong Content-Based methods relying solely on article text:
+\begin{itemize}
+    \item \textbf{TF-IDF:} Traditional keyword frequency statistics using sparse vectors and cosine similarity.
+    \item \textbf{PhoBERT:} State-of-the-art pre-trained language model for Vietnamese, extracting dense semantic embeddings from titles and descriptions.
+    \item \textbf{VnDoc:} Specialized embedding model for Vietnamese text, optimized for classification and search tasks.
+    \item \textbf{BGE-M3:} Modern multilingual embedding model supporting multi-vector representations, achieving high retrieval performance on various benchmarks.
+\end{itemize}
+These methods serve as strong baselines in cold-start scenarios where historical interaction signals are scarce.
+
 \subsection{Graph baselines}
 \paragraph{LightGCN.}
 LightGCN propagates embeddings linearly via a normalized adjacency:
 \[
-  \mathbf{E}^{(k)} = \hat{\mathbf{A}} \mathbf{E}^{(k-1)}, \quad
-  \mathbf{E}^{*}=\sum_{k=0}^{K}\alpha_k \mathbf{E}^{(k)}.
+    \mathbf{E}^{(k)} = \hat{\mathbf{A}} \mathbf{E}^{(k-1)}, \quad
+    \mathbf{E}^{*}=\sum_{k=0}^{K}\alpha_k \mathbf{E}^{(k)}.
 \]
 This is an effective baseline for recommendation on interaction graphs.
 
@@ -414,13 +424,13 @@ Contrastive models add an InfoNCE objective to yield more robust embeddings unde
 \subsection{HGN: Multi-aspect heterogeneous GNN}
 The data contains at least two different relations: user--article interactions (preference) and user--user replies (social). HGN splits propagation into two branches:
 \begin{itemize}
-  \item \textbf{Interest path}: propagation on $\mathcal{G}_{u-a}$.
-  \item \textbf{Social path}: propagation on $\mathcal{G}_{u-u}$.
+    \item \textbf{Interest path}: propagation on $\mathcal{G}_{u-a}$.
+    \item \textbf{Social path}: propagation on $\mathcal{G}_{u-u}$.
 \end{itemize}
 Then it fuses them by summation:
 \begin{equation}
-  \mathbf{h}_u = \mathbf{h}_{int} + \mathbf{h}_{soc}.
-  \label{eq:fusion}
+    \mathbf{h}_u = \mathbf{h}_{int} + \mathbf{h}_{soc}.
+    \label{eq:fusion}
 \end{equation}
 This design avoids mixing relation semantics while keeping the pipeline simple for training on sparse data.
 
@@ -443,10 +453,10 @@ For each test user, we select 1 positive interaction and 99 randomly sampled neg
 
 \subsection{Metrics}
 \begin{itemize}
-  \item \textbf{Recall@10}: fraction of relevant items retrieved in top-10.
-  \item \textbf{Hit@10}: whether any relevant item appears in top-10.
-  \item \textbf{NDCG@10}: rewards relevant items ranked higher.
-  \item \textbf{MRR}: sensitive to the rank position of the first relevant item.
+    \item \textbf{Recall@10}: fraction of relevant items retrieved in top-10.
+    \item \textbf{Hit@10}: whether any relevant item appears in top-10.
+    \item \textbf{NDCG@10}: rewards relevant items ranked higher.
+    \item \textbf{MRR}: sensitive to the rank position of the first relevant item.
 \end{itemize}
 
 % ==========================================================
@@ -457,128 +467,131 @@ For each test user, we select 1 positive interaction and 99 randomly sampled neg
 \tabref{tab:full-ranking} summarizes results across graphs. Under cold-start, content-based baselines often have an advantage because they rely on semantic similarity rather than interaction history. For graph models, expanding to G2 (adding social edges) typically helps propagate signals better than G1.
 
 \begin{table}[!htbp]
-  \centering
-  \scriptsize
-  \setlength{\tabcolsep}{1.5pt}
-  \renewcommand{\arraystretch}{1.1}
-  \begin{tabularx}{\linewidth}{l|c|*4{>{\centering\arraybackslash}X}}
-    \toprule
-    \textbf{Model} & \textbf{Type} & \textbf{R@10}   & \textbf{N@10}   & \textbf{H@10}   & \textbf{MRR}    \\
-    \midrule
-    \multicolumn{6}{l}{\textit{\textbf{Content-Based / Baselines}}}                                        \\
-    PhoBERT        & CB            & \textbf{0.0535} & \textbf{0.0315} & \textbf{0.0929} & \textbf{0.0416} \\
-    TF-IDF         & CB            & 0.0508          & 0.0301          & 0.0951          & 0.0394          \\
-    \midrule
-    \multicolumn{6}{l}{\textit{\textbf{Graph G1 (Bipartite)}}}                                             \\
-    LightGCL       & Graph CL      & 0.0398          & 0.0249          & 0.0685          & 0.0313          \\
-    LightGCN       & Graph GNN     & 0.0263          & 0.0145          & 0.0400          & 0.0174          \\
-    XSimGCL        & Graph CL      & \textbf{0.0439} & \textbf{0.0253} & \textbf{0.0694} & \textbf{0.0289} \\
-    HGN            & Hetero GNN    & 0.0262          & 0.0147          & 0.0451          & 0.0182          \\
-    HCL            & Hetero CL     & 0.0259          & 0.0164          & 0.0471          & 0.0214          \\
-    SimGCL         & Graph CL      & 0.0191          & 0.0115          & 0.0275          & 0.0135          \\
-    \midrule
-    \multicolumn{6}{l}{\textit{\textbf{Graph G2 (User--User Social)}}}                                     \\
-    LightGCL       & Graph CL      & \textbf{0.0436} & \textbf{0.0261} & \textbf{0.0739} & \textbf{0.0313} \\
-    LightGCN       & Graph GNN     & 0.0272          & 0.0156          & 0.0404          & 0.0186          \\
-    XSimGCL        & Graph CL      & 0.0432          & 0.0260          & 0.0688          & 0.0303          \\
-    HGN            & Hetero GNN    & 0.0369          & 0.0201          & 0.0596          & 0.0250          \\
-    HCL            & Hetero CL     & 0.0320          & 0.0192          & 0.0520          & 0.0233          \\
-    SimGCL         & Graph CL      & 0.0228          & 0.0131          & 0.0312          & 0.0144          \\
-    \midrule
-    \multicolumn{6}{l}{\textit{\textbf{Graph G3 (Category Hubs)}}}                                         \\
-    LightGCL       & Graph CL      & \textbf{0.0413} & \textbf{0.0256} & \textbf{0.0710} & \textbf{0.0311} \\
-    LightGCN       & Graph GNN     & 0.0258          & 0.0145          & 0.0388          & 0.0175          \\
-    XSimGCL        & Graph CL      & 0.0379          & 0.0232          & 0.0643          & 0.0289          \\
-    HGN            & Hetero GNN    & 0.0299          & 0.0167          & 0.0464          & 0.0198          \\
-    HCL            & Hetero CL     & 0.0250          & 0.0152          & 0.0471          & 0.0205          \\
-    SimGCL         & Graph CL      & 0.0222          & 0.0122          & 0.0322          & 0.0137          \\
-    \bottomrule
-  \end{tabularx}
-  \caption{Full Ranking results for the three graph variants.}
-  \label{tab:full-ranking}
+    \centering
+    \scriptsize
+    \setlength{\tabcolsep}{1.5pt}
+    \renewcommand{\arraystretch}{1.1}
+    \begin{tabularx}{\linewidth}{l|c|*4{>{\centering\arraybackslash}X}}
+        \toprule
+        \textbf{Model} & \textbf{Type} & \textbf{R@10}   & \textbf{N@10}   & \textbf{H@10}   & \textbf{MRR}    \\
+        \midrule
+        \midrule
+        \multicolumn{6}{l}{\textit{\textbf{Content-Based / Baselines}}}                                        \\
+        BGE-M3         & CB            & \textbf{0.0535} & \textbf{0.0315} & \textbf{0.0929} & \textbf{0.0416} \\
+        TF-IDF         & CB            & 0.0508          & 0.0301          & 0.0951          & 0.0394          \\
+        VnDoc          & CB            & 0.0485          & 0.0287          & 0.0832          & 0.0362          \\
+        PhoBERT        & CB            & 0.0452          & 0.0253          & 0.0850          & 0.0335          \\
+        \midrule
+        \multicolumn{6}{l}{\textit{\textbf{Graph G1 (Bipartite)}}}                                             \\
+        LightGCL       & Graph CL      & 0.0398          & 0.0249          & 0.0685          & 0.0313          \\
+        LightGCN       & Graph GNN     & 0.0263          & 0.0145          & 0.0400          & 0.0174          \\
+        XSimGCL        & Graph CL      & \textbf{0.0439} & \textbf{0.0253} & \textbf{0.0694} & \textbf{0.0289} \\
+        HGN            & Hetero GNN    & 0.0262          & 0.0147          & 0.0451          & 0.0182          \\
+        HCL            & Hetero CL     & 0.0259          & 0.0164          & 0.0471          & 0.0214          \\
+        SimGCL         & Graph CL      & 0.0191          & 0.0115          & 0.0275          & 0.0135          \\
+        \midrule
+        \multicolumn{6}{l}{\textit{\textbf{Graph G2 (User--User Social)}}}                                     \\
+        LightGCL       & Graph CL      & \textbf{0.0436} & \textbf{0.0261} & \textbf{0.0739} & \textbf{0.0313} \\
+        LightGCN       & Graph GNN     & 0.0272          & 0.0156          & 0.0404          & 0.0186          \\
+        XSimGCL        & Graph CL      & 0.0432          & 0.0260          & 0.0688          & 0.0303          \\
+        HGN            & Hetero GNN    & 0.0369          & 0.0201          & 0.0596          & 0.0250          \\
+        HCL            & Hetero CL     & 0.0320          & 0.0192          & 0.0520          & 0.0233          \\
+        SimGCL         & Graph CL      & 0.0228          & 0.0131          & 0.0312          & 0.0144          \\
+        \midrule
+        \multicolumn{6}{l}{\textit{\textbf{Graph G3 (Category Hubs)}}}                                         \\
+        LightGCL       & Graph CL      & \textbf{0.0413} & \textbf{0.0256} & \textbf{0.0710} & \textbf{0.0311} \\
+        LightGCN       & Graph GNN     & 0.0258          & 0.0145          & 0.0388          & 0.0175          \\
+        XSimGCL        & Graph CL      & 0.0379          & 0.0232          & 0.0643          & 0.0289          \\
+        HGN            & Hetero GNN    & 0.0299          & 0.0167          & 0.0464          & 0.0198          \\
+        HCL            & Hetero CL     & 0.0250          & 0.0152          & 0.0471          & 0.0205          \\
+        SimGCL         & Graph CL      & 0.0222          & 0.0122          & 0.0322          & 0.0137          \\
+        \bottomrule
+    \end{tabularx}
+    \caption{Full Ranking results for the three graph variants.}
+    \label{tab:full-ranking}
 \end{table}
 
 \subsection{Loo100 results}
 In Loo100, HGN on G2 achieves the highest Recall@10, indicating that separating the social and interest paths improves discrimination between positives and negatives under a small candidate set.
 
 \begin{table}[!htbp]
-  \centering
-  \scriptsize
-  \setlength{\tabcolsep}{1.5pt}
-  \renewcommand{\arraystretch}{1.1}
-  \begin{tabularx}{\linewidth}{l|c|*4{>{\centering\arraybackslash}X}}
-    \toprule
-    \textbf{Model} & \textbf{Type} & \textbf{R@10}   & \textbf{N@10}   & \textbf{H@10}   & \textbf{MRR}    \\
-    \midrule
-    \multicolumn{6}{l}{\textit{\textbf{Graph G1 (Bipartite)}}}                                             \\
-    LightGCL       & Graph CL      & \textbf{0.3081} & \textbf{0.2021} & \textbf{0.3822} & \textbf{0.2060} \\
-    LightGCN       & Graph GNN     & 0.2818          & 0.1743          & 0.3595          & 0.1782          \\
-    XSimGCL        & Graph CL      & 0.3009          & 0.1972          & 0.3787          & 0.2063          \\
-    HGN            & Hetero GNN    & 0.2740          & 0.1668          & 0.3570          & 0.1750          \\
-    HCL            & Hetero CL     & 0.2047          & 0.1324          & 0.2802          & 0.1487          \\
-    SimGCL         & Graph CL      & 0.2129          & 0.1324          & 0.2920          & 0.1426          \\
-    \midrule
-    \multicolumn{6}{l}{\textit{\textbf{Graph G2 (User--User Social)}}}                                     \\
-    LightGCL       & Graph CL      & 0.3017          & 0.1986          & 0.3762          & 0.2034          \\
-    LightGCN       & Graph GNN     & 0.2784          & 0.1727          & 0.3559          & 0.1778          \\
-    XSimGCL        & Graph CL      & 0.3036          & 0.2002          & 0.3827          & 0.2072          \\
-    HGN            & Hetero GNN    & \textbf{0.4364} & \textbf{0.2636} & \textbf{0.5155} & \textbf{0.2518} \\
-    HCL            & Hetero CL     & 0.2075          & 0.1355          & 0.2838          & 0.1546          \\
-    SimGCL         & Graph CL      & 0.2132          & 0.1322          & 0.2927          & 0.1434          \\
-    \midrule
-    \multicolumn{6}{l}{\textit{\textbf{Graph G3 (Category Hubs)}}}                                         \\
-    LightGCL       & Graph CL      & 0.3024          & 0.1988          & 0.3753          & 0.2022          \\
-    LightGCN       & Graph GNN     & 0.2790          & 0.1697          & 0.3588          & 0.1733          \\
-    XSimGCL        & Graph CL      & 0.2969          & 0.1957          & 0.3726          & 0.2035          \\
-    HGN            & Hetero GNN    & \textbf{0.3127} & \textbf{0.1957} & \textbf{0.3896} & \textbf{0.1962} \\
-    HCL            & Hetero CL     & 0.2260          & 0.1492          & 0.2998          & 0.1631          \\
-    SimGCL         & Graph CL      & 0.2181          & 0.1333          & 0.2998          & 0.1435          \\
-    \bottomrule
-  \end{tabularx}
-  \caption{Leave-One-Out (Loo100) results for the three graph variants.}
-  \label{tab:loo100}
+    \centering
+    \scriptsize
+    \setlength{\tabcolsep}{1.5pt}
+    \renewcommand{\arraystretch}{1.1}
+    \begin{tabularx}{\linewidth}{l|c|*4{>{\centering\arraybackslash}X}}
+        \toprule
+        \textbf{Model} & \textbf{Type} & \textbf{R@10}   & \textbf{N@10}   & \textbf{H@10}   & \textbf{MRR}    \\
+        \midrule
+        \multicolumn{6}{l}{\textit{\textbf{Graph G1 (Bipartite)}}}                                             \\
+        LightGCL       & Graph CL      & \textbf{0.3081} & \textbf{0.2021} & \textbf{0.3822} & \textbf{0.2060} \\
+        LightGCN       & Graph GNN     & 0.2818          & 0.1743          & 0.3595          & 0.1782          \\
+        XSimGCL        & Graph CL      & 0.3009          & 0.1972          & 0.3787          & 0.2063          \\
+        HGN            & Hetero GNN    & 0.2740          & 0.1668          & 0.3570          & 0.1750          \\
+        HCL            & Hetero CL     & 0.2047          & 0.1324          & 0.2802          & 0.1487          \\
+        SimGCL         & Graph CL      & 0.2129          & 0.1324          & 0.2920          & 0.1426          \\
+        \midrule
+        \multicolumn{6}{l}{\textit{\textbf{Graph G2 (User--User Social)}}}                                     \\
+        LightGCL       & Graph CL      & 0.3017          & 0.1986          & 0.3762          & 0.2034          \\
+        LightGCN       & Graph GNN     & 0.2784          & 0.1727          & 0.3559          & 0.1778          \\
+        XSimGCL        & Graph CL      & 0.3036          & 0.2002          & 0.3827          & 0.2072          \\
+        HGN            & Hetero GNN    & \textbf{0.4364} & \textbf{0.2636} & \textbf{0.5155} & \textbf{0.2518} \\
+        HCL            & Hetero CL     & 0.2075          & 0.1355          & 0.2838          & 0.1546          \\
+        SimGCL         & Graph CL      & 0.2132          & 0.1322          & 0.2927          & 0.1434          \\
+        \midrule
+        \multicolumn{6}{l}{\textit{\textbf{Graph G3 (Category Hubs)}}}                                         \\
+        LightGCL       & Graph CL      & 0.3024          & 0.1988          & 0.3753          & 0.2022          \\
+        LightGCN       & Graph GNN     & 0.2790          & 0.1697          & 0.3588          & 0.1733          \\
+        XSimGCL        & Graph CL      & 0.2969          & 0.1957          & 0.3726          & 0.2035          \\
+        HGN            & Hetero GNN    & \textbf{0.3127} & \textbf{0.1957} & \textbf{0.3896} & \textbf{0.1962} \\
+        HCL            & Hetero CL     & 0.2260          & 0.1492          & 0.2998          & 0.1631          \\
+        SimGCL         & Graph CL      & 0.2181          & 0.1333          & 0.2998          & 0.1435          \\
+        \bottomrule
+    \end{tabularx}
+    \caption{Leave-One-Out (Loo100) results for the three graph variants.}
+    \label{tab:loo100}
 \end{table}
 
 \subsection{Topology impact and HGN analysis}
 To quantify the effect of graph expansion on HGN, \tabref{tab:impact-graph} compares Recall@10 for HGN across graph variants. The results suggest that adding social edges improves performance, while category hubs may overly broaden the signal.
 
 \begin{table}[t]
-  \centering
-  \small
-  \setlength{\tabcolsep}{3pt}
-  \renewcommand{\arraystretch}{1.05}
-  \begin{tabularx}{\linewidth}{l X c}
-    \toprule
-    \textbf{Graph} & \textbf{Structural statistics}                      & \textbf{R@10 (HGN)} \\
-    \midrule
-    G1             & 13k Users, 30k Edges; Density: 0.06\%               & 0.0262              \\
-    G2             & +61k Social Edges; Density: 0.064\%                 & \textbf{0.0369}     \\
-    G3             & +6 Categories; 16k User-Cat Edges; Density: 0.096\% & 0.0299              \\
-    \bottomrule
-  \end{tabularx}
-  \caption{Impact of graph structure on HGN performance.}
-  \label{tab:impact-graph}
+    \centering
+    \small
+    \setlength{\tabcolsep}{3pt}
+    \renewcommand{\arraystretch}{1.05}
+    \begin{tabularx}{\linewidth}{l X c}
+        \toprule
+        \textbf{Graph} & \textbf{Structural statistics}                      & \textbf{R@10 (HGN)} \\
+        \midrule
+        G1             & 13k Users, 30k Edges; Density: 0.06\%               & 0.0262              \\
+        G2             & +61k Social Edges; Density: 0.064\%                 & \textbf{0.0369}     \\
+        G3             & +6 Categories; 16k User-Cat Edges; Density: 0.096\% & 0.0299              \\
+        \bottomrule
+    \end{tabularx}
+    \caption{Impact of graph structure on HGN performance.}
+    \label{tab:impact-graph}
 \end{table}
 
 \subsection{Backbone comparison for HGN}
 We investigate three backbones (GAT, GraphSAGE, TransformerConv). TransformerConv achieves the best Recall@10 under the full-ranking protocol.
 
 \begin{table}[t]
-  \centering
-  \small
-  \setlength{\tabcolsep}{3pt}
-  \begin{tabular}{l|cc|ccc}
-    \toprule
-    \textbf{Backbone} & \multicolumn{2}{c|}{\textbf{Full}} & \multicolumn{3}{c}{\textbf{Cost}}                                   \\
-                      & R@10                               & N@10                              & Inf. (s)   & Params & Train (s) \\
-    \midrule
-    GAT               & 0.0262                             & 0.0163                            & $\sim$1.38 & 1.27M  & 20.23     \\
-    SAGE              & 0.0303                             & 0.0182                            & $\sim$0.88 & 1.27M  & 19.77     \\
-    TRANS             & \textbf{0.0454}                    & \textbf{0.0236}                   & 1.71       & 1.47M  & 19.76     \\
-    \bottomrule
-  \end{tabular}
-  \caption{Backbone comparison for HGN (TRANS = TransformerConv).}
-  \label{tab:backbone}
+    \centering
+    \small
+    \setlength{\tabcolsep}{3pt}
+    \begin{tabular}{l|cc|ccc}
+        \toprule
+        \textbf{Backbone} & \multicolumn{2}{c|}{\textbf{Full}} & \multicolumn{3}{c}{\textbf{Cost}}                                   \\
+                          & R@10                               & N@10                              & Inf. (s)   & Params & Train (s) \\
+        \midrule
+        GAT               & 0.0262                             & 0.0163                            & $\sim$1.38 & 1.27M  & 20.23     \\
+        SAGE              & 0.0303                             & 0.0182                            & $\sim$0.88 & 1.27M  & 19.77     \\
+        TRANS             & \textbf{0.0454}                    & \textbf{0.0236}                   & 1.71       & 1.47M  & 19.76     \\
+        \bottomrule
+    \end{tabular}
+    \caption{Backbone comparison for HGN (TRANS = TransformerConv).}
+    \label{tab:backbone}
 \end{table}
 
 \subsection{Ablation: GNN Depth}
@@ -586,46 +599,46 @@ We investigate three backbones (GAT, GraphSAGE, TransformerConv). TransformerCon
 Propagation depth $L$ shows that LightGCN degrades as $L$ increases due to over-smoothing, while LightGCL/XSimGCL are more stable.
 
 \begin{table}[t]
-  \centering
-  \small
-  \begin{tabularx}{\linewidth}{l|*4{>{\centering\arraybackslash}X}}
-    \toprule
-    \textbf{Model} & \textbf{L=1} & \textbf{L=2} & \textbf{L=3} & \textbf{L=4} \\
-    \midrule
-    LightGCL       & 0.032        & 0.040        & 0.043        & 0.042        \\
-    XSimGCL        & 0.028        & 0.035        & 0.039        & 0.041        \\
-    LightGCN       & 0.031        & 0.026        & 0.022        & 0.019        \\
-    HGN            & 0.033        & 0.032        & 0.026        & 0.028        \\
-    HCL            & 0.020        & 0.010        & 0.007        & 0.009        \\
-    SimGCL         & 0.024        & 0.027        & 0.021        & 0.023        \\
-    \bottomrule
-  \end{tabularx}
-  \caption{Ablation on propagation depth $L$.}
-  \label{tab:ablation-depth}
+    \centering
+    \small
+    \begin{tabularx}{\linewidth}{l|*4{>{\centering\arraybackslash}X}}
+        \toprule
+        \textbf{Model} & \textbf{L=1} & \textbf{L=2} & \textbf{L=3} & \textbf{L=4} \\
+        \midrule
+        LightGCL       & 0.032        & 0.040        & 0.043        & 0.042        \\
+        XSimGCL        & 0.028        & 0.035        & 0.039        & 0.041        \\
+        LightGCN       & 0.031        & 0.026        & 0.022        & 0.019        \\
+        HGN            & 0.033        & 0.032        & 0.026        & 0.028        \\
+        HCL            & 0.020        & 0.010        & 0.007        & 0.009        \\
+        SimGCL         & 0.024        & 0.027        & 0.021        & 0.023        \\
+        \bottomrule
+    \end{tabularx}
+    \caption{Ablation on propagation depth $L$.}
+    \label{tab:ablation-depth}
 \end{table}
 
 \subsection{Training cost analysis}
 XSimGCL has the fastest per-epoch runtime in our comparison. Heterogeneous models can incur higher costs when the graph becomes denser, especially under social expansion.
 
 \begin{table}[t]
-  \centering
-  \footnotesize
-  \setlength{\tabcolsep}{3pt}
-  \renewcommand{\arraystretch}{1.05}
-  \begin{tabular}{l|c|ccc}
-    \toprule
-    \textbf{Model} & \textbf{Params} & \textbf{G1}    & \textbf{G2}    & \textbf{G3}    \\
-    \midrule
-    SimGCL         & 1.07M           & 00:47          & 00:46          & 00:45          \\
-    XSimGCL        & 1.07M           & \textbf{00:35} & \textbf{00:33} & \textbf{00:34} \\
-    LightGCL       & 1.07M           & 00:46          & 00:45          & 00:45          \\
-    \midrule
-    HCL            & 1.07M           & 00:47          & 01:10          & 00:37          \\
-    HGN            & 1.27M           & 01:29          & 02:23          & 00:35          \\
-    \bottomrule
-  \end{tabular}
-  \caption{Training time (min:sec) and parameter counts under different graph settings.}
-  \label{tab:efficiency}
+    \centering
+    \footnotesize
+    \setlength{\tabcolsep}{3pt}
+    \renewcommand{\arraystretch}{1.05}
+    \begin{tabular}{l|c|ccc}
+        \toprule
+        \textbf{Model} & \textbf{Params} & \textbf{G1}    & \textbf{G2}    & \textbf{G3}    \\
+        \midrule
+        SimGCL         & 1.07M           & 00:47          & 00:46          & 00:45          \\
+        XSimGCL        & 1.07M           & \textbf{00:35} & \textbf{00:33} & \textbf{00:34} \\
+        LightGCL       & 1.07M           & 00:46          & 00:45          & 00:45          \\
+        \midrule
+        HCL            & 1.07M           & 00:47          & 01:10          & 00:37          \\
+        HGN            & 1.27M           & 01:29          & 02:23          & 00:35          \\
+        \bottomrule
+    \end{tabular}
+    \caption{Training time (min:sec) and parameter counts under different graph settings.}
+    \label{tab:efficiency}
 \end{table}
 
 % ==========================================================
@@ -645,11 +658,42 @@ In sparse regimes, few positives and sensitive negative sampling make InfoNCE ha
 \subsection{Limitations and Risks of Leave-One-Out Evaluation}
 Although Leave-One-Out (LOO) is a standard evaluation protocol in many recommendation studies, its usage comes with certain risks and limitations widely discussed in the research community:
 \begin{itemize}
-  \item \textbf{Sensitivity to splitting strategy:} \citet{meng2020splitting} demonstrated that the performance of state-of-the-art models can vary significantly depending on the data splitting strategy (random vs.\ chronological). Random LOO may overestimate performance as it does not correctly simulate real-world deployment scenarios.
-  \item \textbf{Lack of global context (Local vs. Global):} As discussed above and effectively argued by \citet{sun2023evaluation}, evaluating on a small candidate set (1 positive vs.\ 99 negatives) turns the retrieval task into a local discrimination problem. This can obscure the model's true ability to find relevant items from the entire diverse corpus (global retrieval).
-  \item \textbf{Data Leakage Risk:} \citet{wang2023leakage} warned about the risk of data leakage in offline evaluation, especially when using random Leave-One-Out on time-series data (such as news). Using future information to evaluate the past can lead to over-optimistic and unrealistic results.
+    \item \textbf{Sensitivity to splitting strategy:} \citet{meng2020splitting} demonstrated that the performance of state-of-the-art models can vary significantly depending on the data splitting strategy (random vs.\ chronological). Random LOO may overestimate performance as it does not correctly simulate real-world deployment scenarios.
+    \item \textbf{Lack of global context (Local vs. Global):} As discussed above and effectively argued by \citet{sun2023evaluation}, evaluating on a small candidate set (1 positive vs.\ 99 negatives) turns the retrieval task into a local discrimination problem. This can obscure the model's true ability to find relevant items from the entire diverse corpus (global retrieval).
+    \item \textbf{Data Leakage Risk:} \citet{wang2023leakage} warned about the risk of data leakage in offline evaluation, especially when using random Leave-One-Out on time-series data (such as news). Using future information to evaluate the past can lead to over-optimistic and unrealistic results.
 \end{itemize}
 Therefore, in this report, we have considered using both Full Ranking (with chronological split) alongside LOO to obtain a multidimensional and more objective view of model performance.
+
+\subsection{Performance Gap Analysis: Full Ranking vs. Loo100}
+A notable finding is the performance divergence of HGN between the two protocols: Full Ranking (\tabref{tab:full-ranking}) and Loo100 (\tabref{tab:loo100}), reflecting the sensitivity of evaluation methods pointed out by \citet{meng2020splitting}. While Content-Based methods (BGE-M3, PhoBERT) dominate in Full Ranking, HGN significantly outperforms in Loo100. We hypothesize two main reasons for this phenomenon:
+
+\textbf{Global Retrieval vs. Local Discrimination:} Full Ranking is a global search problem ("finding a needle in a haystack"), where the model must filter relevant items from thousands of candidates. In sparse data, graph signals are often disconnected or noisy, reducing HGN's retrieval capability. In contrast, Content-Based methods leverage semantic similarity from text independent of interaction history, maintaining stable performance at a global scale. This aligns with \citet{sun2023evaluation}'s view on reassessing the necessity of complex models versus simple baselines.
+
+\textbf{Signal-to-Noise Ratio:} In Loo100 (Local Discrimination), the search space is drastically reduced (1 positive vs. 99 negatives). Here, subtle structural signals like social homophily or semantic paths become powerful discriminative features, helping HGN accurately distinguish the target item. This suggests that graph models learn deep but "picky" patterns, performing best when provided with a quality candidate set.
+
+\subsection{Comparison with Standard Datasets}
+To provide an objective perspective, \tabref{tab:dataset-comparison} compares our system's performance and data characteristics against international benchmarks. Although Recall@10 ($\sim$0.04) might seem low in absolute terms, when considered in the context of extremely low interaction density (0.064\% - only 1/15th of ML-10M) and compared with SOTA results on similarly sparse datasets (Amazon-Book: 0.0585), this result is acceptable and accurately reflects the inherent challenges of the problem.
+
+\begin{table}[!htbp]
+    \centering
+    \footnotesize
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabular}{l|c|c|c|c}
+        \toprule
+        \textbf{Dataset}                  & \textbf{\#Users} & \textbf{\#Items} & \textbf{Density} & \textbf{SOTA R@20}    \\
+        \midrule
+        ML-10M \cite{harper2015movielens} & 69k              & 10k              & \textbf{0.982\%} & $\sim$ 0.2613         \\
+        Yelp \cite{yelp2018dataset}       & 29k              & 24k              & 0.146\%          & $\sim$ 0.0793         \\
+        Gowalla \cite{cho2011friendship}  & 50k              & 57k              & 0.040\%          & $\sim$ 0.1578         \\
+        Amazon-Book \cite{he2016ups}      & 78k              & 77k              & \textbf{0.037\%} & \textbf{0.0585}       \\
+        Tmall \cite{ijcai2015tmall}       & 47k              & 41k              & 0.119\%          & 0.0528                \\
+        \midrule
+        \textbf{Ours (G2)}                & \textbf{13k}     & \textbf{3.6k}    & \textbf{0.064\%} & \textbf{0.0436} (@10) \\
+        \bottomrule
+    \end{tabular}
+    \caption{Comparison of density and performance with standard datasets \citet{he2020lightgcn, yu2022graph}.}
+    \label{tab:dataset-comparison}
+\end{table}
 
 % ==========================================================
 \section{Conclusion and Future Work}
@@ -660,17 +704,17 @@ We build a Vietnamese news recommender based on graph learning from VnExpress da
 
 \subsection{Limitations}
 \begin{itemize}
-  \item Comment/reply-based data may be biased because many reads produce no interactions.
-  \item Training cost increases with graph expansion, especially for heterogeneous models.
-  \item The current model is static and does not handle online updates when new articles appear.
+    \item Comment/reply-based data may be biased because many reads produce no interactions.
+    \item Training cost increases with graph expansion, especially for heterogeneous models.
+    \item The current model is static and does not handle online updates when new articles appear.
 \end{itemize}
 
 \subsection{Future directions}
 \begin{itemize}
-  \item Dynamic graph learning to capture time-varying preferences.
-  \item Extend relation types with tags/authors/entities to provide finer semantic signals than categories.
-  \item More stable self-supervised learning under extreme sparsity.
-  \item Distillation/model compression to reduce inference cost in deployment.
+    \item Dynamic graph learning to capture time-varying preferences.
+    \item Extend relation types with tags/authors/entities to provide finer semantic signals than categories.
+    \item More stable self-supervised learning under extreme sparsity.
+    \item Distillation/model compression to reduce inference cost in deployment.
 \end{itemize}
 
 % ==========================================================
