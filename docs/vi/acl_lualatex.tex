@@ -127,8 +127,8 @@ GVHD: ThS. Huỳnh Văn Tín
 
 \tightv
 \begin{abstract}
-  \noindent
-  Gợi ý tin tức tiếng Việt đặt ra những thách thức do sự phức tạp của ngôn ngữ, tương tác người dùng cực kỳ thưa thớt và vấn đề \textit{cold-start}. Trong bài báo này, nhóm trình bày một \textbf{phân tích toàn diện} cho bài toán gợi ý, tận dụng Multi-Aspect Heterogeneous Graph Neural Networks (MA-HGN) và Contrastive Learning (CL). Nhóm xây dựng một Heterogeneous Graph mới kết hợp người dùng, bài viết, danh mục. Nhóm tiến hành so sánh với các mô hình Collaborative Filtering (CF) tiên tiến, bao gồm LightGCL, SimGCL và XSimGCL, cũng như các baseline Content-Based mạnh. Các thực nghiệm trên bộ dữ liệu VnExpress thực tế gồm \textbf{15,693 người dùng} và \textbf{3,645 bài viết} cho thấy một sự phân hóa rõ rệt theo protocol đánh giá: trong khi các phương pháp Content-Based (PhoBERT) đạt hiệu quả cao nhất trong truy xuất toàn cục (Full Ranking, Recall@10 = 0.0535), mô hình \textbf{HGN} của nhóm, khi mở rộng đồ thị với các cạnh \textit{liên kết xã hội (G2)}, đạt hiệu năng vượt trội và ổn định trong thiết lập Leave-One-Out (Recall@10 = 0.4364), nhờ khai thác hiệu quả các tín hiệu \textit{social homophily}.
+    \noindent
+    Gợi ý tin tức tiếng Việt đặt ra những thách thức do sự phức tạp của ngôn ngữ, tương tác người dùng cực kỳ thưa thớt và vấn đề \textit{cold-start}. Trong bài báo này, nhóm trình bày một \textbf{phân tích toàn diện} cho bài toán gợi ý, tận dụng Multi-Aspect Heterogeneous Graph Neural Networks (MA-HGN) và Contrastive Learning (CL). Nhóm xây dựng một Heterogeneous Graph mới kết hợp người dùng, bài viết, danh mục. Nhóm tiến hành so sánh với các mô hình Collaborative Filtering (CF) tiên tiến, bao gồm LightGCL, SimGCL và XSimGCL, cũng như các baseline Content-Based mạnh. Các thực nghiệm trên bộ dữ liệu VnExpress thực tế gồm \textbf{15,693 người dùng} và \textbf{3,645 bài viết} cho thấy một sự phân hóa rõ rệt theo protocol đánh giá: trong khi các phương pháp Content-Based (BGE-M3) đạt hiệu quả cao nhất trong truy xuất toàn cục (Full Ranking, Recall@10 = 0.0535), mô hình \textbf{HGN} của nhóm, khi mở rộng đồ thị với các cạnh \textit{liên kết xã hội (G2)}, đạt hiệu năng vượt trội và ổn định trong thiết lập Leave-One-Out (Recall@10 = 0.4364), nhờ khai thác hiệu quả các tín hiệu \textit{social homophily}.
 \end{abstract}
 
 % ==========================================================
@@ -148,10 +148,10 @@ Bên cạnh các thách thức về độ thưa, việc đánh giá mô hình g�
 
 \textbf{Đóng góp chính} của báo cáo bao gồm:
 \begin{itemize}
-  \item Xây dựng pipeline thu thập dữ liệu VnExpress gồm bài viết, metadata, bình luận/trả lời và hồ sơ người dùng; thực hiện EDA để mô tả tính thưa và hiện tượng power-law trong tương tác.
-  \item Thiết kế ba tầng đồ thị \textbf{G1--G3} nhằm khảo sát tác động của việc mở rộng cấu trúc đồ thị: G1 (bipartite), G2 (thêm social edges), G3 (thêm category hubs).
-  \item Benchmark các mô hình Collaborative Filtering (CF) và graph-based SOTA gồm LightGCN~\citep{he2020lightgcn}, SimGCL~\citep{yu2022graph}, XSimGCL~\citep{yu2023xsimgcl}, LightGCL~\citep{cai2023lightgcl}, đồng thời so sánh với các baseline content-based mạnh.
-  \item Đề xuất mô hình \textbf{HGN} (dual-path propagation, tách social và interest) và thử nghiệm \textbf{HCL} (hetero + contrastive) để đánh giá độ ổn định trong dữ liệu cực thưa.
+    \item Xây dựng pipeline thu thập dữ liệu VnExpress gồm bài viết, metadata, bình luận/trả lời và hồ sơ người dùng; thực hiện EDA để mô tả tính thưa và hiện tượng power-law trong tương tác.
+    \item Thiết kế ba tầng đồ thị \textbf{G1--G3} nhằm khảo sát tác động của việc mở rộng cấu trúc đồ thị: G1 (bipartite), G2 (thêm social edges), G3 (thêm category hubs).
+    \item Benchmark các mô hình Collaborative Filtering (CF) và graph-based SOTA gồm LightGCN~\citep{he2020lightgcn}, SimGCL~\citep{yu2022graph}, XSimGCL~\citep{yu2023xsimgcl}, LightGCL~\citep{cai2023lightgcl}, đồng thời so sánh với các baseline content-based mạnh.
+    \item Đề xuất mô hình \textbf{HGN} (dual-path propagation, tách social và interest) và thử nghiệm \textbf{HCL} (hetero + contrastive) để đánh giá độ ổn định trong dữ liệu cực thưa.
 \end{itemize}
 
 % ==========================================================
@@ -177,10 +177,10 @@ Nhóm tập trung vào các tín hiệu tương tác công khai dựa trên bìn
 nhằm xây dựng một bộ dữ liệu phản ánh hành vi thảo luận thực tế của người đọc.
 Dữ liệu thu thập gồm bốn thành phần chính:
 \begin{itemize}
-  \item \textbf{Articles}: tiêu đề, mô tả ngắn, tác giả, thời gian đăng và nội dung bài viết.
-  \item \textbf{Metadata}: chuyên mục và tags của bài viết.
-  \item \textbf{Comments/Replies}: thông tin người dùng, nội dung bình luận và cấu trúc trả lời (parent--child).
-  \item \textbf{User Profiles}: thông tin công khai của người dùng (user id, username, join date).
+    \item \textbf{Articles}: tiêu đề, mô tả ngắn, tác giả, thời gian đăng và nội dung bài viết.
+    \item \textbf{Metadata}: chuyên mục và tags của bài viết.
+    \item \textbf{Comments/Replies}: thông tin người dùng, nội dung bình luận và cấu trúc trả lời (parent--child).
+    \item \textbf{User Profiles}: thông tin công khai của người dùng (user id, username, join date).
 \end{itemize}
 
 \subsection{Pipeline crawler}
@@ -200,65 +200,65 @@ và (iii) tạo điều kiện thuận lợi để xây dựng nhiều cấu tr�
 trong các thực nghiệm tiếp theo (G1--G3).
 
 \begin{figure}[t]
-  \centering
-  \begin{tikzpicture}[
-      scale=0.5, transform shape,
-      node distance=0.6cm and 0.9cm,
-      process/.style={
-          rectangle, rounded corners=4pt,
-          minimum width=3.2cm, minimum height=1.0cm,
-          align=center, text=white,
-          font=\scriptsize\bfseries, drop shadow
-        },
-      step1/.style={process, fill=blue!60!cyan},
-      step2/.style={process, fill=red!60!orange},
-      step3/.style={process, fill=purple!60!violet},
-      step4/.style={process, fill=teal!60!green},
-      data/.style={
-          cylinder, shape border rotate=90,
-          draw=gray!80, fill=yellow!10, aspect=0.25,
-          minimum height=0.75cm, minimum width=1.6cm,
-          align=center, font=\tiny\ttfamily,
-          drop shadow={opacity=0.2}
-        },
-      source/.style={
-          cloud, cloud puffs=11,
-          draw=blue!50, fill=blue!5, aspect=2,
-          minimum width=2.0cm, minimum height=1.2cm,
-          align=center, font=\scriptsize\itshape\color{blue!80!black}
-        },
-      arrow/.style={-Stealth, thick, draw=gray!60, rounded corners}
-    ]
-    \node[source] (web) {VnExpress\\Website};
+    \centering
+    \begin{tikzpicture}[
+            scale=0.5, transform shape,
+            node distance=0.6cm and 0.9cm,
+            process/.style={
+                    rectangle, rounded corners=4pt,
+                    minimum width=3.2cm, minimum height=1.0cm,
+                    align=center, text=white,
+                    font=\scriptsize\bfseries, drop shadow
+                },
+            step1/.style={process, fill=blue!60!cyan},
+            step2/.style={process, fill=red!60!orange},
+            step3/.style={process, fill=purple!60!violet},
+            step4/.style={process, fill=teal!60!green},
+            data/.style={
+                    cylinder, shape border rotate=90,
+                    draw=gray!80, fill=yellow!10, aspect=0.25,
+                    minimum height=0.75cm, minimum width=1.6cm,
+                    align=center, font=\tiny\ttfamily,
+                    drop shadow={opacity=0.2}
+                },
+            source/.style={
+                    cloud, cloud puffs=11,
+                    draw=blue!50, fill=blue!5, aspect=2,
+                    minimum width=2.0cm, minimum height=1.2cm,
+                    align=center, font=\scriptsize\itshape\color{blue!80!black}
+                },
+            arrow/.style={-Stealth, thick, draw=gray!60, rounded corners}
+        ]
+        \node[source] (web) {VnExpress\\Website};
 
-    \node[step1, right=0.8cm of web] (s1) {Discovery\\(Scanning)};
-    \node[data, right=0.6cm of s1] (d1) {articles.csv};
+        \node[step1, right=0.8cm of web] (s1) {Discovery\\(Scanning)};
+        \node[data, right=0.6cm of s1] (d1) {articles.csv};
 
-    \node[step4, above right=0.2cm and 1.2cm of d1] (s4) {Metadata\\(Tags/Category)};
-    \node[data, right=0.6cm of s4] (d4) {metadata.csv};
+        \node[step4, above right=0.2cm and 1.2cm of d1] (s4) {Metadata\\(Tags/Category)};
+        \node[data, right=0.6cm of s4] (d4) {metadata.csv};
 
-    \node[step2, below right=0.2cm and 1.2cm of d1] (s2) {Deep Crawl\\(Comments)};
-    \node[data, right=0.6cm of s2] (d2) {replies.csv};
+        \node[step2, below right=0.2cm and 1.2cm of d1] (s2) {Deep Crawl\\(Comments)};
+        \node[data, right=0.6cm of s2] (d2) {replies.csv};
 
-    \node[step3, below=0.85cm of d2] (s3) {Enrichment\\(User Profiles)};
-    \node[data, left=0.8cm of s3] (d3) {user\_profiles.csv};
+        \node[step3, below=0.85cm of d2] (s3) {Enrichment\\(User Profiles)};
+        \node[data, left=0.8cm of s3] (d3) {user\_profiles.csv};
 
-    \draw[arrow] (web) -- (s1);
-    \draw[arrow] (s1) -- (d1);
-    \draw[arrow] (d1.east) -- ++(0.35,0) |- (s4.west);
-    \draw[arrow] (d1.east) -- ++(0.35,0) |- (s2.west);
-    \draw[arrow] (s4) -- (d4);
-    \draw[arrow] (s2) -- (d2);
-    \draw[arrow] (d2.south) -- (s3.north);
-    \draw[arrow] (s3) -- (d3);
+        \draw[arrow] (web) -- (s1);
+        \draw[arrow] (s1) -- (d1);
+        \draw[arrow] (d1.east) -- ++(0.35,0) |- (s4.west);
+        \draw[arrow] (d1.east) -- ++(0.35,0) |- (s2.west);
+        \draw[arrow] (s4) -- (d4);
+        \draw[arrow] (s2) -- (d2);
+        \draw[arrow] (d2.south) -- (s3.north);
+        \draw[arrow] (s3) -- (d3);
 
-    \node[text=gray, font=\tiny, align=center, below=0.08cm of s1] {Input: categories};
-    \node[text=gray, font=\tiny, align=center, below=0.05cm of s4] {Stealth crawl};
-    \node[text=gray, font=\tiny, align=center, below=0.05cm of s2] {Thread crawl};
-    \node[text=gray, font=\tiny, align=center, below=0.1cm of s3] {Profile fetch};
-  \end{tikzpicture}
-  \caption{Pipeline thu thập dữ liệu và xuất các bảng trung gian phục vụ dựng đồ thị.}
-  \label{fig:crawler-pipeline}
+        \node[text=gray, font=\tiny, align=center, below=0.08cm of s1] {Input: categories};
+        \node[text=gray, font=\tiny, align=center, below=0.05cm of s4] {Stealth crawl};
+        \node[text=gray, font=\tiny, align=center, below=0.05cm of s2] {Thread crawl};
+        \node[text=gray, font=\tiny, align=center, below=0.1cm of s3] {Profile fetch};
+    \end{tikzpicture}
+    \caption{Pipeline thu thập dữ liệu và xuất các bảng trung gian phục vụ dựng đồ thị.}
+    \label{fig:crawler-pipeline}
 \end{figure}
 
 \subsection{Schema dữ liệu}
@@ -266,21 +266,21 @@ trong các thực nghiệm tiếp theo (G1--G3).
 được sử dụng làm đầu vào cho quá trình dựng đồ thị và huấn luyện mô hình.
 
 \begin{table}[t]
-  \centering
-  \small
-  \setlength{\tabcolsep}{4pt}
-  \begin{tabular}{l p{5.6cm}}
-    \toprule
-    \textbf{Bảng} & \textbf{Trường chính}                                                                    \\
-    \midrule
-    Articles      & \texttt{article\_id, url, title, short\_description, author, published\_at, content}     \\
-    Metadata      & \texttt{article\_url, category, tags}                                                    \\
-    Replies       & \texttt{article\_url, parent\_user\_id, parent\_text, ..., reply\_user\_id, reply\_text} \\
-    User Profiles & \texttt{user\_id, username, join\_date}                                                  \\
-    \bottomrule
-  \end{tabular}
-  \caption{Tóm tắt schema dữ liệu sau chuẩn hóa.}
-  \label{tab:schema}
+    \centering
+    \small
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabular}{l p{5.6cm}}
+        \toprule
+        \textbf{Bảng} & \textbf{Trường chính}                                                                    \\
+        \midrule
+        Articles      & \texttt{article\_id, url, title, short\_description, author, published\_at, content}     \\
+        Metadata      & \texttt{article\_url, category, tags}                                                    \\
+        Replies       & \texttt{article\_url, parent\_user\_id, parent\_text, ..., reply\_user\_id, reply\_text} \\
+        User Profiles & \texttt{user\_id, username, join\_date}                                                  \\
+        \bottomrule
+    \end{tabular}
+    \caption{Tóm tắt schema dữ liệu sau chuẩn hóa.}
+    \label{tab:schema}
 \end{table}
 
 \subsection{Thống kê tổng quan và độ thưa}
@@ -291,8 +291,8 @@ và mỗi bài viết có khoảng \textbf{10.99} tương tác.
 
 Độ thưa của ma trận tương tác user--article được tính như sau:
 \begin{equation}
-  \text{Sparsity} = 1 - \frac{40{,}045}{15{,}693 \times 3{,}645} \approx 99.93\%.
-  \label{eq:sparsity}
+    \text{Sparsity} = 1 - \frac{40{,}045}{15{,}693 \times 3{,}645} \approx 99.93\%.
+    \label{eq:sparsity}
 \end{equation}
 Mức độ thưa cực cao này cho thấy nguy cơ cold-start nghiêm trọng,
 khi đa số người dùng và bài viết chỉ có rất ít tín hiệu tương tác trực tiếp,
@@ -308,10 +308,10 @@ Do đó, các phân tích tiếp theo tập trung vào phân phối tương tác
 để đánh giá rõ hơn độ thưa và hành vi người dùng.
 
 \begin{figure}[t]
-  \centering
-  \includegraphics[width=\linewidth]{eda_09_metadata_categories.png}
-  \caption{Phân phối số bài theo chuyên mục.}
-  \label{fig:eda-category}
+    \centering
+    \includegraphics[width=\linewidth]{eda_09_metadata_categories.png}
+    \caption{Phân phối số bài theo chuyên mục.}
+    \label{fig:eda-category}
 \end{figure}
 
 \subsection{EDA: hoạt động người dùng và hiện tượng long-tail}
@@ -328,10 +328,10 @@ tạo động cơ mở rộng đồ thị bằng các cạnh xã hội user--use
 để lan truyền tín hiệu gián tiếp giữa người dùng.
 
 \begin{figure}[t]
-  \centering
-  \includegraphics[width=\linewidth]{eda_03_user_activity_bottom.png}
-  \caption{Mẫu hình hoạt động người dùng (2/2): tương tác có xu hướng power-law.}
-  \label{fig:eda-user-bottom}
+    \centering
+    \includegraphics[width=\linewidth]{eda_03_user_activity_bottom.png}
+    \caption{Mẫu hình hoạt động người dùng (2/2): tương tác có xu hướng power-law.}
+    \label{fig:eda-user-bottom}
 \end{figure}
 
 \subsection{EDA: mức độ engagement theo chuyên mục}
@@ -348,10 +348,10 @@ khi các nút category có bậc cao kéo embedding về các đặc trưng chun
 làm suy giảm tính cá nhân hoá.
 
 \begin{figure}[t]
-  \centering
-  \includegraphics[width=\linewidth]{eda_11_engagement_by_category.png}
-  \caption{Tương tác theo chuyên mục.}
-  \label{fig:eda-eng-by-cat}
+    \centering
+    \includegraphics[width=\linewidth]{eda_11_engagement_by_category.png}
+    \caption{Tương tác theo chuyên mục.}
+    \label{fig:eda-eng-by-cat}
 \end{figure}
 
 \subsection{EDA: degree distribution và hệ quả lên học đồ thị}
@@ -368,19 +368,19 @@ Những quan sát này củng cố việc khảo sát nhiều cấu trúc đồ 
 và các mô hình có cơ chế ổn định embedding như graph contrastive learning.
 
 \begin{figure}[t]
-  \centering
-  \begin{subfigure}{.49\linewidth}
     \centering
-    \includegraphics[width=\linewidth]{users_dis.png}
-    \caption{Users}
-  \end{subfigure}
-  \begin{subfigure}{.49\linewidth}
-    \centering
-    \includegraphics[width=\linewidth]{articles_dis.png}
-    \caption{Articles}
-  \end{subfigure}
-  \caption{Phân phối degree trong đồ thị tương tác.}
-  \label{fig:degree}
+    \begin{subfigure}{.49\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{users_dis.png}
+        \caption{Users}
+    \end{subfigure}
+    \begin{subfigure}{.49\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{articles_dis.png}
+        \caption{Articles}
+    \end{subfigure}
+    \caption{Phân phối degree trong đồ thị tương tác.}
+    \label{fig:degree}
 \end{figure}
 
 \paragraph{Tổng kết.}
@@ -398,9 +398,9 @@ và kiểm soát lan truyền trong đồ thị heterogeneous.
 \subsection{Ý tưởng tổng quát}
 Với sparsity rất cao (\eqref{eq:sparsity}), đồ thị user--article thuần túy khó lan truyền thông tin cho user ít tương tác. Do đó, nhóm thiết kế ba cấu trúc đồ thị tăng dần mức độ phong phú của tín hiệu:
 \begin{itemize}
-  \item \textbf{G1 (Bipartite):} chỉ gồm user và article với cạnh tương tác.
-  \item \textbf{G2 (Social expansion):} bổ sung cạnh user--user từ quan hệ reply trong thảo luận.
-  \item \textbf{G3 (Category hubs):} bổ sung node category để rút ngắn đường đi giữa user và nhóm bài cùng chuyên mục.
+    \item \textbf{G1 (Bipartite):} chỉ gồm user và article với cạnh tương tác.
+    \item \textbf{G2 (Social expansion):} bổ sung cạnh user--user từ quan hệ reply trong thảo luận.
+    \item \textbf{G3 (Category hubs):} bổ sung node category để rút ngắn đường đi giữa user và nhóm bài cùng chuyên mục.
 \end{itemize}
 
 \subsection{Định nghĩa nút/cạnh và quy ước dựng đồ thị}
@@ -424,66 +424,66 @@ Với sparsity rất cao (\eqref{eq:sparsity}), đồ thị user--article thuầ
 \autoref{fig:g123} cho thấy khi chuyển từ G1 sang G2, người dùng được liên kết thêm bởi các cạnh xã hội, giúp tăng khả năng lan truyền embedding giữa các user có cùng hành vi thảo luận. Với G3, việc đưa category vào vai trò \textit{semantic hub} tạo thêm các đường đi ngắn giữa user và nhóm bài viết cùng chuyên mục, nhưng đồng thời làm xuất hiện các nút bậc cao dễ gây nhiễu.
 
 \begin{figure*}[!t]
-  \centering
-  \begin{tikzpicture}[scale=0.75, transform shape]
-    \node[circle, fill=userblue, text=white, minimum size=0.9cm] (u1) at (0,1.4) {U1};
-    \node[circle, fill=userblue, text=white, minimum size=0.9cm] (u2) at (0,0) {U2};
-    \node[rectangle, rounded corners=3pt, fill=articlegreen, text=white, minimum width=1.1cm, minimum height=0.7cm] (a1) at (3.2,1.4) {A1};
-    \node[rectangle, rounded corners=3pt, fill=articlegreen, text=white, minimum width=1.1cm, minimum height=0.7cm] (a2) at (3.2,0) {A2};
-    \draw[-, thick, gray!70] (u1)--(a1);
-    \draw[-, thick, gray!70] (u1)--(a2);
-    \draw[-, thick, gray!70] (u2)--(a2);
-    \node[below=0.2cm of u2, font=\scriptsize] {G1: Bipartite};
-  \end{tikzpicture}
-  \hspace{0.5cm}
-  \begin{tikzpicture}[scale=0.75, transform shape]
-    \node[circle, fill=userblue, text=white, minimum size=0.9cm] (u1) at (0,1.4) {U1};
-    \node[circle, fill=userblue, text=white, minimum size=0.9cm] (u2) at (0,0) {U2};
-    \node[rectangle, rounded corners=3pt, fill=articlegreen, text=white, minimum width=1.1cm, minimum height=0.7cm] (a1) at (3.2,1.4) {A1};
-    \node[rectangle, rounded corners=3pt, fill=articlegreen, text=white, minimum width=1.1cm, minimum height=0.7cm] (a2) at (3.2,0) {A2};
-    \draw[-, thick, gray!70] (u1)--(a1);
-    \draw[-, thick, gray!70] (u1)--(a2);
-    \draw[-, thick, gray!70] (u2)--(a2);
-    \draw[-, dashed, ultra thick, socialorange, bend left=25] (u1) to (u2);
-    \node[below=0.2cm of u2, font=\scriptsize] {G2: +Social (Reply)};
-  \end{tikzpicture}
-  \hspace{0.5cm}
-  \begin{tikzpicture}[scale=0.75, transform shape]
-    \node[circle, fill=userblue, text=white, minimum size=0.9cm] (u1) at (0,1.4) {U1};
-    \node[circle, fill=userblue, text=white, minimum size=0.9cm] (u2) at (0,0) {U2};
-    \node[diamond, fill=cathub, text=white, minimum size=1.0cm] (c1) at (2.2,1.4) {C1};
-    \node[diamond, fill=cathub, text=white, minimum size=1.0cm] (c2) at (2.2,0) {C2};
-    \node[rectangle, rounded corners=3pt, fill=articlegreen, text=white, minimum width=1.1cm, minimum height=0.7cm] (a1) at (4.4,1.8) {A1};
-    \node[rectangle, rounded corners=3pt, fill=articlegreen, text=white, minimum width=1.1cm, minimum height=0.7cm] (a2) at (4.4,1.0) {A2};
-    \node[rectangle, rounded corners=3pt, fill=articlegreen, text=white, minimum width=1.1cm, minimum height=0.7cm] (a3) at (4.4,0.4) {A3};
-    \draw[-Stealth, thick, cathub!80] (u1)--(c1);
-    \draw[-Stealth, thick, cathub!80] (u1)--(c2);
-    \draw[-Stealth, thick, cathub!80] (u2)--(c2);
-    \draw[-Stealth, thick, cathub!80] (c1)--(a1);
-    \draw[-Stealth, thick, cathub!80] (c1)--(a2);
-    \draw[-Stealth, thick, cathub!80] (c2)--(a3);
-    \node[below=0.2cm of u2, font=\scriptsize] {G3: +Category hubs};
-  \end{tikzpicture}
-  \caption{Minh họa ba tầng đồ thị G1--G3 (bipartite, social expansion, Category hubs).}
-  \label{fig:g123}
+    \centering
+    \begin{tikzpicture}[scale=0.75, transform shape]
+        \node[circle, fill=userblue, text=white, minimum size=0.9cm] (u1) at (0,1.4) {U1};
+        \node[circle, fill=userblue, text=white, minimum size=0.9cm] (u2) at (0,0) {U2};
+        \node[rectangle, rounded corners=3pt, fill=articlegreen, text=white, minimum width=1.1cm, minimum height=0.7cm] (a1) at (3.2,1.4) {A1};
+        \node[rectangle, rounded corners=3pt, fill=articlegreen, text=white, minimum width=1.1cm, minimum height=0.7cm] (a2) at (3.2,0) {A2};
+        \draw[-, thick, gray!70] (u1)--(a1);
+        \draw[-, thick, gray!70] (u1)--(a2);
+        \draw[-, thick, gray!70] (u2)--(a2);
+        \node[below=0.2cm of u2, font=\scriptsize] {G1: Bipartite};
+    \end{tikzpicture}
+    \hspace{0.5cm}
+    \begin{tikzpicture}[scale=0.75, transform shape]
+        \node[circle, fill=userblue, text=white, minimum size=0.9cm] (u1) at (0,1.4) {U1};
+        \node[circle, fill=userblue, text=white, minimum size=0.9cm] (u2) at (0,0) {U2};
+        \node[rectangle, rounded corners=3pt, fill=articlegreen, text=white, minimum width=1.1cm, minimum height=0.7cm] (a1) at (3.2,1.4) {A1};
+        \node[rectangle, rounded corners=3pt, fill=articlegreen, text=white, minimum width=1.1cm, minimum height=0.7cm] (a2) at (3.2,0) {A2};
+        \draw[-, thick, gray!70] (u1)--(a1);
+        \draw[-, thick, gray!70] (u1)--(a2);
+        \draw[-, thick, gray!70] (u2)--(a2);
+        \draw[-, dashed, ultra thick, socialorange, bend left=25] (u1) to (u2);
+        \node[below=0.2cm of u2, font=\scriptsize] {G2: +Social (Reply)};
+    \end{tikzpicture}
+    \hspace{0.5cm}
+    \begin{tikzpicture}[scale=0.75, transform shape]
+        \node[circle, fill=userblue, text=white, minimum size=0.9cm] (u1) at (0,1.4) {U1};
+        \node[circle, fill=userblue, text=white, minimum size=0.9cm] (u2) at (0,0) {U2};
+        \node[diamond, fill=cathub, text=white, minimum size=1.0cm] (c1) at (2.2,1.4) {C1};
+        \node[diamond, fill=cathub, text=white, minimum size=1.0cm] (c2) at (2.2,0) {C2};
+        \node[rectangle, rounded corners=3pt, fill=articlegreen, text=white, minimum width=1.1cm, minimum height=0.7cm] (a1) at (4.4,1.8) {A1};
+        \node[rectangle, rounded corners=3pt, fill=articlegreen, text=white, minimum width=1.1cm, minimum height=0.7cm] (a2) at (4.4,1.0) {A2};
+        \node[rectangle, rounded corners=3pt, fill=articlegreen, text=white, minimum width=1.1cm, minimum height=0.7cm] (a3) at (4.4,0.4) {A3};
+        \draw[-Stealth, thick, cathub!80] (u1)--(c1);
+        \draw[-Stealth, thick, cathub!80] (u1)--(c2);
+        \draw[-Stealth, thick, cathub!80] (u2)--(c2);
+        \draw[-Stealth, thick, cathub!80] (c1)--(a1);
+        \draw[-Stealth, thick, cathub!80] (c1)--(a2);
+        \draw[-Stealth, thick, cathub!80] (c2)--(a3);
+        \node[below=0.2cm of u2, font=\scriptsize] {G3: +Category hubs};
+    \end{tikzpicture}
+    \caption{Minh họa ba tầng đồ thị G1--G3 (bipartite, social expansion, Category hubs).}
+    \label{fig:g123}
 \end{figure*}
 
 \subsection{Tách theo thời gian để hạn chế leakage}
 Với dữ liệu tin tức, tương tác có tính thời gian mạnh. Khi xây dựng tập train/test, việc đảm bảo train thuộc quá khứ và test thuộc tương lai giúp mô phỏng đúng bối cảnh triển khai \cite{wang2023leakage}. Trong thực nghiệm, nhóm sử dụng \textbf{chronological split}: các tương tác trong khoảng thời gian sớm hơn được dùng để huấn luyện và các tương tác muộn hơn dùng để kiểm tra, với một mốc $T_{\text{split}}$ như \autoref{fig:temporal-split}. Cách tách này hạn chế việc mô hình vô tình quan sát thông tin tương lai (ví dụ: người dùng tương tác với bài mới) trong giai đoạn huấn luyện.
 
 \begin{figure}[t]
-  \centering
-  \begin{tikzpicture}[scale=0.7, transform shape]
-    \draw[->, ultra thick, gray] (0,0) -- (9,0) node[right, font=\bfseries] {Time ($t$)};
-    \shade[left color=blue!10, right color=blue!40] (0,0.1) rectangle (6.2,0.7);
-    \node[blue!40!black] at (3.1, 0.4) {\textbf{Training}};
-    \shade[left color=orange!30, right color=orange!60] (6.3,0.1) rectangle (8.5,0.7);
-    \node[orange!40!black] at (7.4, 0.4) {\textbf{Test}};
-    \draw[dashed, red, ultra thick] (6.25, -0.35) -- (6.25, 1.05);
-    \node[red, font=\bfseries\scriptsize, fill=white, inner sep=2pt] at (6.25, 1.18) {$T_{split}$};
-  \end{tikzpicture}
-  \caption{Minh họa tách train/test theo thời gian.}
-  \label{fig:temporal-split}
+    \centering
+    \begin{tikzpicture}[scale=0.7, transform shape]
+        \draw[->, ultra thick, gray] (0,0) -- (9,0) node[right, font=\bfseries] {Time ($t$)};
+        \shade[left color=blue!10, right color=blue!40] (0,0.1) rectangle (6.2,0.7);
+        \node[blue!40!black] at (3.1, 0.4) {\textbf{Training}};
+        \shade[left color=orange!30, right color=orange!60] (6.3,0.1) rectangle (8.5,0.7);
+        \node[orange!40!black] at (7.4, 0.4) {\textbf{Test}};
+        \draw[dashed, red, ultra thick] (6.25, -0.35) -- (6.25, 1.05);
+        \node[red, font=\bfseries\scriptsize, fill=white, inner sep=2pt] at (6.25, 1.18) {$T_{split}$};
+    \end{tikzpicture}
+    \caption{Minh họa tách train/test theo thời gian.}
+    \label{fig:temporal-split}
 \end{figure}
 
 % ==========================================================
@@ -508,15 +508,15 @@ phù hợp với thiết lập chuẩn của các mô hình collaborative filter
 nhóm so sánh với các phương pháp Content-Based mạnh,
 chỉ dựa trên thông tin văn bản của bài viết:
 \begin{itemize}
-  \item \textbf{TF-IDF:} Phương pháp thống kê tần suất từ khóa truyền thống,
-        biểu diễn văn bản dưới dạng vector thưa và đo độ tương đồng bằng cosine similarity.
-  \item \textbf{PhoBERT:} Mô hình ngôn ngữ tiền huấn luyện state-of-the-art cho tiếng Việt,
-        được sử dụng để trích xuất embedding ngữ nghĩa dense từ tiêu đề và mô tả bài viết.
-  \item \textbf{VnDoc:} Mô hình embedding chuyên dụng cho văn bản tiếng Việt,
-        tối ưu cho các tác vụ phân loại và tìm kiếm.
-  \item \textbf{BGE-M3:} Mô hình embedding đa ngôn ngữ hiện đại,
-        hỗ trợ biểu diễn đa chiều (dense, sparse, multi-vector)
-        và đạt hiệu quả retrieval cao trên nhiều benchmark.
+    \item \textbf{TF-IDF:} Phương pháp thống kê tần suất từ khóa truyền thống,
+          biểu diễn văn bản dưới dạng vector thưa và đo độ tương đồng bằng cosine similarity.
+    \item \textbf{PhoBERT:} Mô hình ngôn ngữ tiền huấn luyện state-of-the-art cho tiếng Việt,
+          được sử dụng để trích xuất embedding ngữ nghĩa dense từ tiêu đề và mô tả bài viết.
+    \item \textbf{VnDoc:} Mô hình embedding chuyên dụng cho văn bản tiếng Việt,
+          tối ưu cho các tác vụ phân loại và tìm kiếm.
+    \item \textbf{BGE-M3:} Mô hình embedding đa ngôn ngữ hiện đại,
+          hỗ trợ biểu diễn đa chiều (dense, sparse, multi-vector)
+          và đạt hiệu quả retrieval cao trên nhiều benchmark.
 \end{itemize}
 Các phương pháp này đóng vai trò baseline mạnh trong bối cảnh cold-start,
 khi tín hiệu tương tác lịch sử rất hạn chế.
@@ -528,8 +528,8 @@ nhờ tối giản kiến trúc GCN.
 Mô hình loại bỏ phi tuyến và biến đổi tham số giữa các lớp,
 chỉ giữ lại phép lan truyền tuyến tính theo ma trận kề chuẩn hoá:
 \[
-  \mathbf{E}^{(k)} = \hat{\mathbf{A}} \mathbf{E}^{(k-1)}, \quad
-  \mathbf{E}^{*}=\sum_{k=0}^{K}\alpha_k \mathbf{E}^{(k)}.
+    \mathbf{E}^{(k)} = \hat{\mathbf{A}} \mathbf{E}^{(k-1)}, \quad
+    \mathbf{E}^{*}=\sum_{k=0}^{K}\alpha_k \mathbf{E}^{(k)}.
 \]
 Thiết kế này giúp LightGCN vừa hiệu quả vừa ổn định trong nhiều bài toán recommendation.
 
@@ -542,50 +542,37 @@ nhưng vẫn duy trì hiệu quả.
 LightGCL bổ sung thành phần global context
 để khắc phục hạn chế của việc chỉ học từ lân cận cục bộ.
 
-\subsection{HGN: Heterogeneous GNN đa-aspect}
-Dữ liệu của nhóm chứa ít nhất hai loại quan hệ khác nhau:
-(i) tương tác user--article phản ánh sở thích trực tiếp,
-và (ii) quan hệ reply user--user phản ánh ảnh hưởng xã hội và \textit{social homophily}.
-Để tránh trộn lẫn ngữ nghĩa của các quan hệ này,
-nhóm đề xuất mô hình \textbf{HGN} với cơ chế lan truyền hai nhánh (dual-path).
+\subsection{HGN: Multi-Aspect Heterogeneous GNN}
+Dữ liệu tin tức VnExpress chứa đa dạng các loại quan hệ, nổi bật là: (i) tương tác \textit{user--article} (comment) phản ánh sở thích nội dung, và (ii) quan hệ \textit{user--user} (reply) phản ánh sự tương đồng xã hội (\textit{social homophily}). Để mô hình hóa thống nhất các tín hiệu này mà không làm mất đi ngữ nghĩa riêng biệt của từng loại cạnh, nhóm đề xuất mô hình \textbf{HGN} dựa trên kiến trúc \textbf{Heterogeneous Graph Convolution} (HeteroConv).
 
-Cụ thể, HGN tách quá trình message passing thành hai đồ thị con:
+Khác với các phương pháp GNN truyền thống coi tất cả các cạnh là như nhau, HGN thực hiện quá trình \textit{message passing} nhận biết loại quan hệ (relation-aware). Tại mỗi lớp $l$, embedding của người dùng $u$ được cập nhật bằng cách tổng hợp thông tin từ tất cả các lân cận, nhưng sử dụng các hàm biến đổi đặc thù cho từng loại cạnh:
+\begin{equation}
+    \mathbf{h}_u^{(l+1)} = \sigma \left( \sum_{r \in \mathcal{R}} \text{CONV}_r \left( \mathbf{h}_u^{(l)}, \{ \mathbf{h}_v^{(l)} \mid v \in \mathcal{N}_u^r \} \right) \right)
+    \label{eq:hetero_agg}
+\end{equation}
+Trong đó:
 \begin{itemize}
-  \item \textbf{Interest path:} lan truyền embedding trên đồ thị $\mathcal{G}_{u-a}$,
-        tập trung vào tín hiệu sở thích trực tiếp từ tương tác người dùng--bài viết.
-  \item \textbf{Social path:} lan truyền embedding trên đồ thị $\mathcal{G}_{u-u}$,
-        khai thác quan hệ xã hội giữa người dùng thông qua reply.
+    \item $\mathcal{R}$ là tập hợp các quan hệ, bao gồm \textit{comments} (tương tác bài viết), \textit{replied\_to} (tương tác xã hội trực tiếp), và \textit{interacts\_with} (liên kết xã hội tiềm ẩn).
+    \item $\text{CONV}_r$ là module GNN chuyên biệt cho quan hệ $r$. Trong thực nghiệm, nhóm sử dụng \textbf{TransformerConv} để tận dụng cơ chế attention đa đầu, giúp mô hình tự động trọng số hóa mức độ quan trọng của từng hàng xóm.
+\end{itemize}
+Cơ chế tổng hợp tại mỗi lớp (layer-wise aggregation) này cho phép HGN hòa trộn mềm dẻo tín hiệu xã hội vào tín hiệu sở thích ngay trong quá trình học, tạo ra các embedding giàu ngữ nghĩa và bền vững hơn trước vấn đề thưa dữ liệu.
+
+\subsection{HCL: Thử nghiệm Heterogeneous Contrastive Learning}
+HCL được xây dựng như một phương pháp đối chứng, kết hợp kiến trúc \textbf{Dual-path} với tư tưởng của SimGCL để tăng cường độ phân biệt của biểu diễn. Thay vì tổng hợp ngay lập tức, HCL tách biệt quá trình lan truyền thành hai luồng độc lập nhằm bảo toàn đặc trưng riêng của từng aspect:
+\begin{itemize}
+    \item \textbf{Interest view:} Lan truyền embedding trên đồ thị bipartite $\mathcal{G}_{u-a}$ sử dụng \textbf{LightGCN} để tối ưu hóa hiệu năng tính toán.
+    \item \textbf{Social view:} Lan truyền embedding trên đồ thị xã hội $\mathcal{G}_{u-u}$ để khai thác cấu trúc cộng đồng người dùng.
 \end{itemize}
 
-Trong mỗi nhánh, nhóm áp dụng cùng một backbone GNN
-để lan truyền embedding qua nhiều lớp.
-Embedding cuối cùng của mỗi nhánh lần lượt được ký hiệu là
-$\mathbf{h}_{int}$ và $\mathbf{h}_{soc}$,
-sau đó được hợp nhất bằng phép cộng:
+Hai luồng thông tin này sau đó được hợp nhất thông qua cơ chế \textit{learnable weighted sum}, cho phép mô hình tự học cách cân bằng giữa tín hiệu cá nhân và tín hiệu xã hội:
 \begin{equation}
-  \mathbf{h}_u = \mathbf{h}_{int} + \mathbf{h}_{soc}.
-  \label{eq:fusion}
+    \mathbf{h}_u^{final} = \alpha \cdot \mathbf{h}_u^{int} + (1-\alpha) \cdot \mathbf{h}_u^{soc}
 \end{equation}
-Thiết kế này cho phép kiểm soát riêng biệt luồng lan truyền từ
-tín hiệu sở thích và tín hiệu xã hội,
-giúp mô hình học biểu diễn ổn định hơn trong bối cảnh dữ liệu cực thưa,
-đồng thời vẫn giữ pipeline huấn luyện đơn giản và hiệu quả.
-
-\subsection{HCL: thử nghiệm heterogeneous contrastive learning}
-HCL mở rộng HGN bằng cách kết hợp cơ chế đồ thị heterogeneous
-với contrastive learning.
-Ngoài loss chính cho recommendation,
-mô hình bổ sung contrastive loss
-để ép embedding từ các view khác nhau trở nên nhất quán.
-
-Tuy nhiên, trong dữ liệu cực thưa,
-contrastive learning tỏ ra nhạy cảm với chiến lược negative sampling
-và siêu tham số như temperature,
-dẫn đến hiện tượng dao động và khó hội tụ ổn định.
-Do đó, HCL không được xem là đóng góp chính của nghiên cứu,
-mà được sử dụng như một phép đối chứng
-để phân tích tác động của contrastive learning
-trong bối cảnh đồ thị heterogeneous và dữ liệu thưa.
+Để huấn luyện, HCL tối ưu hóa hàm mục tiêu đa nhiệm:
+\begin{equation}
+    \mathcal{L} = \mathcal{L}_{BPR} + \lambda \cdot \mathcal{L}_{InfoNCE} + \gamma \cdot \mathcal{L}_{Reg}
+\end{equation}
+Trong đó, $\mathcal{L}_{InfoNCE}$ thực hiện đối sánh giữa các view được tạo sinh bằng cách thêm nhiễu ngẫu nhiên (random noise perturbation) vào embedding, giúp mô hình chống lại nhiễu và over-fitting. Tuy nhiên, thực nghiệm cho thấy HCL nhạy cảm với siêu tham số trong bối cảnh dữ liệu cực thưa của VnExpress, do đó HGN vẫn là mô hình chủ đạo được nhóm đề xuất.
 
 \section{Thiết lập thực nghiệm}
 \label{sec:exp}
@@ -633,14 +620,14 @@ phù hợp để so sánh chi tiết giữa các phương pháp.
 Hiệu năng của mô hình được đánh giá bằng các metric chuẩn
 trong recommendation:
 \begin{itemize}
-  \item \textbf{Recall@10}: tỷ lệ bài viết đúng
-        được truy xuất trong top-10 kết quả.
-  \item \textbf{Hit@10}: xác định liệu có ít nhất
-        một bài viết đúng xuất hiện trong top-10.
-  \item \textbf{NDCG@10}: đánh giá chất lượng xếp hạng,
-        ưu tiên các bài viết đúng ở vị trí cao.
-  \item \textbf{MRR}: nhạy với vị trí xuất hiện
-        của bài viết đúng đầu tiên trong danh sách.
+    \item \textbf{Recall@10}: tỷ lệ bài viết đúng
+          được truy xuất trong top-10 kết quả.
+    \item \textbf{Hit@10}: xác định liệu có ít nhất
+          một bài viết đúng xuất hiện trong top-10.
+    \item \textbf{NDCG@10}: đánh giá chất lượng xếp hạng,
+          ưu tiên các bài viết đúng ở vị trí cao.
+    \item \textbf{MRR}: nhạy với vị trí xuất hiện
+          của bài viết đúng đầu tiên trong danh sách.
 \end{itemize}
 
 % ==========================================================
@@ -650,91 +637,91 @@ trong recommendation:
 \subsection{Kết quả Full Ranking}
 \autoref{tab:results_full} tổng hợp kết quả theo từng đồ thị. Trong bối cảnh cold-start, các mô hình Content-Based thể hiện ưu thế vượt trội nhờ khả năng so khớp ngữ nghĩa sâu từ nội dung văn bản, ít phụ thuộc vào độ thưa của đồ thị. Điều này cho thấy với bài toán tìm kiếm không gian lớn (Global Retrieval), nội dung bài viết là tín hiệu tin cậy nhất. Ngược lại, đối với mô hình đồ thị, việc mở rộng G2 (thêm social edges) giúp cải thiện khả năng lan truyền tín hiệu so với G1, tuy nhiên vẫn gặp hạn chế do vấn đề thưa. Nhận xét này phù hợp với phân tích EDA: phần lớn người dùng và bài viết có rất ít tương tác, khiến tín hiệu cấu trúc khó phát huy hiệu quả trong không gian truy xuất lớn.
 \begin{table}[!htbp]
-  \centering
-  % Use slightly larger font if possible, footnote size is clearer than scriptsize
-  \scriptsize
-  \setlength{\tabcolsep}{1.5pt}
-  \renewcommand{\arraystretch}{1.1}
-  % Add zebra striping for better readability (requires \usepackage[table]{xcolor})
-  \rowcolors{2}{gray!5}{white}
-  \caption{Benchmark: Full Ranking (Recovering items from the entire 3,600+ corpus). Best results in \textbf{bold}.}
-  \label{tab:results_full}
-  \begin{tabularx}{\linewidth}{l|c|*4{>{\centering\arraybackslash}X}}
-    \toprule
-    \textbf{Model} & \textbf{Type} & \textbf{R@10}   & \textbf{N@10}   & \textbf{H@10}   & \textbf{MRR}    \\
-    \midrule
-    \multicolumn{6}{l}{\textit{\textbf{Content-Based / Baselines}}}                                        \\
-    BGE-M3         & CB            & \textbf{0.0535} & \textbf{0.0315} & \textbf{0.0929} & \textbf{0.0416} \\
-    TF-IDF         & CB            & 0.0508          & 0.0301          & 0.0951          & 0.0394          \\
-    VnDoc          & CB            & 0.0485          & 0.0287          & 0.0832          & 0.0362          \\
-    PhoBERT        & CB            & 0.0452          & 0.0253          & 0.0850          & 0.0335          \\
-    \midrule
-    \multicolumn{6}{l}{\textit{\textbf{Graph G1 (Bipartite)}}}                                             \\
-    LightGCL       & G-CL          & 0.0398          & 0.0249          & 0.0685          & 0.0313          \\
-    LightGCN       & G-GNN         & 0.0263          & 0.0145          & 0.0400          & 0.0174          \\
-    XSimGCL        & G-CL          & \textbf{0.0439} & \textbf{0.0253} & \textbf{0.0694} & \textbf{0.0289} \\
-    HGN            & H-GNN         & 0.0262          & 0.0147          & 0.0451          & 0.0182          \\
-    HCL            & H-CL          & 0.0259          & 0.0164          & 0.0471          & 0.0214          \\
-    SimGCL         & G-CL          & 0.0191          & 0.0115          & 0.0275          & 0.0135          \\
-    \midrule
-    \multicolumn{6}{l}{\textit{\textbf{Graph G2 (User--User Social)}}}                                     \\
-    LightGCL       & G-CL          & \textbf{0.0436} & \textbf{0.0261} & \textbf{0.0739} & \textbf{0.0313} \\
-    LightGCN       & G-GNN         & 0.0272          & 0.0156          & 0.0404          & 0.0186          \\
-    XSimGCL        & G-CL          & 0.0432          & 0.0260          & 0.0688          & 0.0303          \\
-    HGN (Ours)     & H-GNN         & 0.0369          & 0.0201          & 0.0596          & 0.0250          \\
-    HCL (Ours)     & H-CL          & 0.0320          & 0.0192          & 0.0520          & 0.0233          \\
-    SimGCL         & G-CL          & 0.0228          & 0.0131          & 0.0312          & 0.0144          \\
-    \midrule
-    \multicolumn{6}{l}{\textit{\textbf{Graph G3 (Category Hubs)}}}                                         \\
-    LightGCL       & G-CL          & \textbf{0.0413} & \textbf{0.0256} & \textbf{0.0710} & \textbf{0.0311} \\
-    LightGCN       & G-GNN         & 0.0258          & 0.0145          & 0.0388          & 0.0175          \\
-    XSimGCL        & G-CL          & 0.0379          & 0.0232          & 0.0643          & 0.0289          \\
-    HGN (Ours)     & H-GNN         & 0.0299          & 0.0167          & 0.0464          & 0.0198          \\
-    HCL (Ours)     & H-CL          & 0.0250          & 0.0152          & 0.0471          & 0.0205          \\
-    SimGCL         & G-CL          & 0.0222          & 0.0122          & 0.0322          & 0.0137          \\
-    \bottomrule
-  \end{tabularx}
+    \centering
+    % Use slightly larger font if possible, footnote size is clearer than scriptsize
+    \scriptsize
+    \setlength{\tabcolsep}{1.5pt}
+    \renewcommand{\arraystretch}{1.1}
+    % Add zebra striping for better readability (requires \usepackage[table]{xcolor})
+    \rowcolors{2}{gray!5}{white}
+    \caption{Benchmark: Full Ranking (Recovering items from the entire 3,600+ corpus). Best results in \textbf{bold}.}
+    \label{tab:results_full}
+    \begin{tabularx}{\linewidth}{l|c|*4{>{\centering\arraybackslash}X}}
+        \toprule
+        \textbf{Model} & \textbf{Type} & \textbf{R@10}   & \textbf{N@10}   & \textbf{H@10}   & \textbf{MRR}    \\
+        \midrule
+        \multicolumn{6}{l}{\textit{\textbf{Content-Based / Baselines}}}                                        \\
+        BGE-M3         & CB            & \textbf{0.0535} & \textbf{0.0315} & \textbf{0.0929} & \textbf{0.0416} \\
+        TF-IDF         & CB            & 0.0508          & 0.0301          & 0.0951          & 0.0394          \\
+        VnDoc          & CB            & 0.0485          & 0.0287          & 0.0832          & 0.0362          \\
+        PhoBERT        & CB            & 0.0452          & 0.0253          & 0.0850          & 0.0335          \\
+        \midrule
+        \multicolumn{6}{l}{\textit{\textbf{Graph G1 (Bipartite)}}}                                             \\
+        LightGCL       & G-CL          & 0.0398          & 0.0249          & 0.0685          & 0.0313          \\
+        LightGCN       & G-GNN         & 0.0263          & 0.0145          & 0.0400          & 0.0174          \\
+        XSimGCL        & G-CL          & \textbf{0.0439} & \textbf{0.0253} & \textbf{0.0694} & \textbf{0.0289} \\
+        HGN            & H-GNN         & 0.0262          & 0.0147          & 0.0451          & 0.0182          \\
+        HCL            & H-CL          & 0.0259          & 0.0164          & 0.0471          & 0.0214          \\
+        SimGCL         & G-CL          & 0.0191          & 0.0115          & 0.0275          & 0.0135          \\
+        \midrule
+        \multicolumn{6}{l}{\textit{\textbf{Graph G2 (User--User Social)}}}                                     \\
+        LightGCL       & G-CL          & \textbf{0.0436} & \textbf{0.0261} & \textbf{0.0739} & \textbf{0.0313} \\
+        LightGCN       & G-GNN         & 0.0272          & 0.0156          & 0.0404          & 0.0186          \\
+        XSimGCL        & G-CL          & 0.0432          & 0.0260          & 0.0688          & 0.0303          \\
+        HGN (Ours)     & H-GNN         & 0.0369          & 0.0201          & 0.0596          & 0.0250          \\
+        HCL (Ours)     & H-CL          & 0.0320          & 0.0192          & 0.0520          & 0.0233          \\
+        SimGCL         & G-CL          & 0.0228          & 0.0131          & 0.0312          & 0.0144          \\
+        \midrule
+        \multicolumn{6}{l}{\textit{\textbf{Graph G3 (Category Hubs)}}}                                         \\
+        LightGCL       & G-CL          & \textbf{0.0413} & \textbf{0.0256} & \textbf{0.0710} & \textbf{0.0311} \\
+        LightGCN       & G-GNN         & 0.0258          & 0.0145          & 0.0388          & 0.0175          \\
+        XSimGCL        & G-CL          & 0.0379          & 0.0232          & 0.0643          & 0.0289          \\
+        HGN (Ours)     & H-GNN         & 0.0299          & 0.0167          & 0.0464          & 0.0198          \\
+        HCL (Ours)     & H-CL          & 0.0250          & 0.0152          & 0.0471          & 0.0205          \\
+        SimGCL         & G-CL          & 0.0222          & 0.0122          & 0.0322          & 0.0137          \\
+        \bottomrule
+    \end{tabularx}
 \end{table}
 
 \subsection{Kết quả Loo100}
 Trong Loo100, HGN trên G2 đạt kết quả vượt trội, cho thấy sự đảo chiều so với Full Ranking. Nhóm cho rằng trong không gian ứng viên hẹp (Local Discrimination), các tín hiệu cấu trúc tinh tế (như quan hệ xã hội trên G2) trở thành các đặc trưng phân loại (discriminative features) mạnh mẽ hơn nội dung thuần túy, giúp tách biệt tích cực item mục tiêu khỏi các mẫu âm ngẫu nhiên. Hiện tượng này cũng đã được ghi nhận trong các nghiên cứu trước, khi đánh giá trên tập ứng viên nhỏ làm nổi bật vai trò của tín hiệu cấu trúc so với nội dung thuần tuý.
 \begin{table}[!htbp]
-  \centering
-  \scriptsize
-  \setlength{\tabcolsep}{1.5pt}
-  \renewcommand{\arraystretch}{1.1}
-  \rowcolors{2}{gray!5}{white}
-  \caption{Kết quả Leave-One-Out (Loo100) cho ba cấu trúc đồ thị.}
-  \label{tab:loo100}
-  \begin{tabularx}{\linewidth}{l|c|*4{>{\centering\arraybackslash}X}}
-    \toprule
-    \textbf{Model} & \textbf{Type} & \textbf{R@10}   & \textbf{N@10}   & \textbf{H@10}   & \textbf{MRR}    \\
-    \midrule
-    \multicolumn{6}{l}{\textit{\textbf{Graph G1 (Bipartite)}}}                                             \\
-    LightGCL       & G-CL          & \textbf{0.3081} & \textbf{0.2021} & \textbf{0.3822} & \textbf{0.2060} \\
-    LightGCN       & G-GNN         & 0.2818          & 0.1743          & 0.3595          & 0.1782          \\
-    XSimGCL        & G-CL          & 0.3009          & 0.1972          & 0.3787          & 0.2063          \\
-    HGN            & H-GNN         & 0.2740          & 0.1668          & 0.3570          & 0.1750          \\
-    HCL            & H-CL          & 0.2047          & 0.1324          & 0.2802          & 0.1487          \\
-    SimGCL         & G-CL          & 0.2129          & 0.1324          & 0.2920          & 0.1426          \\
-    \midrule
-    \multicolumn{6}{l}{\textit{\textbf{Graph G2 (User--User Social)}}}                                     \\
-    LightGCL       & G-CL          & 0.3017          & 0.1986          & 0.3762          & 0.2034          \\
-    LightGCN       & G-GNN         & 0.2784          & 0.1727          & 0.3559          & 0.1778          \\
-    XSimGCL        & G-CL          & 0.3036          & 0.2002          & 0.3827          & 0.2072          \\
-    HGN (Ours)     & H-GNN         & \textbf{0.4364} & \textbf{0.2636} & \textbf{0.5155} & \textbf{0.2518} \\
-    HCL            & H-CL          & 0.2075          & 0.1355          & 0.2838          & 0.1546          \\
-    SimGCL         & G-CL          & 0.2132          & 0.1322          & 0.2927          & 0.1434          \\
-    \midrule
-    \multicolumn{6}{l}{\textit{\textbf{Graph G3 (Category Hubs)}}}                                         \\
-    LightGCL       & G-CL          & 0.3024          & 0.1988          & 0.3753          & 0.2022          \\
-    LightGCN       & G-GNN         & 0.2790          & 0.1697          & 0.3588          & 0.1733          \\
-    XSimGCL        & G-CL          & 0.2969          & 0.1957          & 0.3726          & 0.2035          \\
-    HGN (Ours)     & H-GNN         & \textbf{0.3127} & \textbf{0.1957} & \textbf{0.3896} & \textbf{0.1962} \\
-    HCL            & H-CL          & 0.2260          & 0.1492          & 0.2998          & 0.1631          \\
-    SimGCL         & G-CL          & 0.2181          & 0.1333          & 0.2998          & 0.1435          \\
-    \bottomrule
-  \end{tabularx}
+    \centering
+    \scriptsize
+    \setlength{\tabcolsep}{1.5pt}
+    \renewcommand{\arraystretch}{1.1}
+    \rowcolors{2}{gray!5}{white}
+    \caption{Kết quả Leave-One-Out (Loo100) cho ba cấu trúc đồ thị.}
+    \label{tab:loo100}
+    \begin{tabularx}{\linewidth}{l|c|*4{>{\centering\arraybackslash}X}}
+        \toprule
+        \textbf{Model} & \textbf{Type} & \textbf{R@10}   & \textbf{N@10}   & \textbf{H@10}   & \textbf{MRR}    \\
+        \midrule
+        \multicolumn{6}{l}{\textit{\textbf{Graph G1 (Bipartite)}}}                                             \\
+        LightGCL       & G-CL          & \textbf{0.3081} & \textbf{0.2021} & \textbf{0.3822} & \textbf{0.2060} \\
+        LightGCN       & G-GNN         & 0.2818          & 0.1743          & 0.3595          & 0.1782          \\
+        XSimGCL        & G-CL          & 0.3009          & 0.1972          & 0.3787          & 0.2063          \\
+        HGN            & H-GNN         & 0.2740          & 0.1668          & 0.3570          & 0.1750          \\
+        HCL            & H-CL          & 0.2047          & 0.1324          & 0.2802          & 0.1487          \\
+        SimGCL         & G-CL          & 0.2129          & 0.1324          & 0.2920          & 0.1426          \\
+        \midrule
+        \multicolumn{6}{l}{\textit{\textbf{Graph G2 (User--User Social)}}}                                     \\
+        LightGCL       & G-CL          & 0.3017          & 0.1986          & 0.3762          & 0.2034          \\
+        LightGCN       & G-GNN         & 0.2784          & 0.1727          & 0.3559          & 0.1778          \\
+        XSimGCL        & G-CL          & 0.3036          & 0.2002          & 0.3827          & 0.2072          \\
+        HGN (Ours)     & H-GNN         & \textbf{0.4364} & \textbf{0.2636} & \textbf{0.5155} & \textbf{0.2518} \\
+        HCL            & H-CL          & 0.2075          & 0.1355          & 0.2838          & 0.1546          \\
+        SimGCL         & G-CL          & 0.2132          & 0.1322          & 0.2927          & 0.1434          \\
+        \midrule
+        \multicolumn{6}{l}{\textit{\textbf{Graph G3 (Category Hubs)}}}                                         \\
+        LightGCL       & G-CL          & 0.3024          & 0.1988          & 0.3753          & 0.2022          \\
+        LightGCN       & G-GNN         & 0.2790          & 0.1697          & 0.3588          & 0.1733          \\
+        XSimGCL        & G-CL          & 0.2969          & 0.1957          & 0.3726          & 0.2035          \\
+        HGN (Ours)     & H-GNN         & \textbf{0.3127} & \textbf{0.1957} & \textbf{0.3896} & \textbf{0.1962} \\
+        HCL            & H-CL          & 0.2260          & 0.1492          & 0.2998          & 0.1631          \\
+        SimGCL         & G-CL          & 0.2181          & 0.1333          & 0.2998          & 0.1435          \\
+        \bottomrule
+    \end{tabularx}
 \end{table}
 
 \subsection{Tác động cấu trúc đồ thị và phân tích HGN}
@@ -742,45 +729,45 @@ Trong Loo100, HGN trên G2 đạt kết quả vượt trội, cho thấy sự đ
 
 
 \begin{table}[!htbp]
-  \centering
-  \small
-  \setlength{\tabcolsep}{3pt}
-  \renewcommand{\arraystretch}{1.1}
-  \rowcolors{2}{gray!5}{white}
-  \begin{tabularx}{\linewidth}{l X c}
-    \toprule
-    \textbf{Graph} & \textbf{Thống kê cấu trúc}                          & \textbf{R@10 (HGN)} \\
-    \midrule
-    G1             & 13k Users, 30k Edges; Density: 0.06\%               & 0.0262              \\
-    G2             & +61k Social Edges; Density: 0.064\%                 & \textbf{0.0369}     \\
-    G3             & +6 Categories; 16k User-Cat Edges; Density: 0.096\% & 0.0299              \\
-    \bottomrule
-  \end{tabularx}
-  \caption{Ảnh hưởng cấu trúc đồ thị lên HGN.}
-  \label{tab:impact-graph}
+    \centering
+    \small
+    \setlength{\tabcolsep}{3pt}
+    \renewcommand{\arraystretch}{1.1}
+    \rowcolors{2}{gray!5}{white}
+    \begin{tabularx}{\linewidth}{l X c}
+        \toprule
+        \textbf{Graph} & \textbf{Thống kê cấu trúc}                          & \textbf{R@10 (HGN)} \\
+        \midrule
+        G1             & 13k Users, 30k Edges; Density: 0.06\%               & 0.0262              \\
+        G2             & +61k Social Edges; Density: 0.064\%                 & \textbf{0.0369}     \\
+        G3             & +6 Categories; 16k User-Cat Edges; Density: 0.096\% & 0.0299              \\
+        \bottomrule
+    \end{tabularx}
+    \caption{Ảnh hưởng cấu trúc đồ thị lên HGN.}
+    \label{tab:impact-graph}
 \end{table}
 
 \subsection{So sánh backbone cho HGN}
 Nhóm khảo sát ba backbone (GAT, GraphSAGE, TransformerConv). TransformerConv đạt Recall@10 cao nhất trong thiết lập full protocol.
 
 \begin{table}[!htbp]
-  \centering
-  \small
-  \setlength{\tabcolsep}{3pt}
-  \renewcommand{\arraystretch}{1.1}
-  \rowcolors{2}{gray!5}{white}
-  \begin{tabular}{l|cc|ccc}
-    \toprule
-    \textbf{Backbone} & \multicolumn{2}{c|}{\textbf{Full}} & \multicolumn{3}{c}{\textbf{Chi phí}}                                   \\
-                      & R@10                               & N@10                                 & Inf. (s)   & Params & Train (s) \\
-    \midrule
-    GAT               & 0.0262                             & 0.0163                               & $\sim$1.38 & 1.27M  & 20.23     \\
-    SAGE              & 0.0303                             & 0.0182                               & $\sim$0.88 & 1.27M  & 19.77     \\
-    TRANS             & \textbf{0.0454}                    & \textbf{0.0236}                      & 1.71       & 1.47M  & 19.76     \\
-    \bottomrule
-  \end{tabular}
-  \caption{So sánh backbone của HGN (TRANS = TransformerConv).}
-  \label{tab:backbone}
+    \centering
+    \small
+    \setlength{\tabcolsep}{3pt}
+    \renewcommand{\arraystretch}{1.1}
+    \rowcolors{2}{gray!5}{white}
+    \begin{tabular}{l|cc|ccc}
+        \toprule
+        \textbf{Backbone} & \multicolumn{2}{c|}{\textbf{Full}} & \multicolumn{3}{c}{\textbf{Chi phí}}                                   \\
+                          & R@10                               & N@10                                 & Inf. (s)   & Params & Train (s) \\
+        \midrule
+        GAT               & 0.0262                             & 0.0163                               & $\sim$1.38 & 1.27M  & 20.23     \\
+        SAGE              & 0.0303                             & 0.0182                               & $\sim$0.88 & 1.27M  & 19.77     \\
+        TRANS             & \textbf{0.0454}                    & \textbf{0.0236}                      & 1.71       & 1.47M  & 19.76     \\
+        \bottomrule
+    \end{tabular}
+    \caption{So sánh backbone của HGN (TRANS = TransformerConv).}
+    \label{tab:backbone}
 \end{table}
 
 
@@ -788,49 +775,49 @@ Nhóm khảo sát ba backbone (GAT, GraphSAGE, TransformerConv). TransformerConv
 Khi tăng độ sâu lan truyền $L$, LightGCN cho thấy dấu hiệu của hiện tượng over-smoothing (hiệu năng giảm tại $L=4$). Trái lại, LightGCL và XSimGCL duy trì độ ổn định cao hơn, gợi ý rằng cơ chế Contrastive Learning giúp bảo toàn tính phân biệt (distinctiveness) của các biểu diễn nút tốt hơn khi chồng nhiều lớp GNN.
 
 \begin{table}[!htbp]
-  \centering
-  \small
-  \renewcommand{\arraystretch}{1.1}
-  \rowcolors{2}{gray!5}{white}
-  \begin{tabularx}{\linewidth}{l|*4{>{\centering\arraybackslash}X}}
-    \toprule
-    \textbf{Model} & \textbf{L=1}   & \textbf{L=2}   & \textbf{L=3}   & \textbf{L=4}   \\
-    \midrule
-    LightGCL       & 0.032          & 0.040          & \textbf{0.043} & 0.042          \\
-    XSimGCL        & 0.028          & 0.035          & 0.039          & \textbf{0.041} \\
-    LightGCN       & \textbf{0.031} & 0.026          & 0.022          & 0.019          \\
-    HGN            & \textbf{0.033} & 0.032          & 0.026          & 0.028          \\
-    HCL            & \textbf{0.020} & 0.010          & 0.007          & 0.009          \\
-    SimGCL         & 0.024          & \textbf{0.027} & 0.021          & 0.023          \\
-    \bottomrule
-  \end{tabularx}
-  \caption{Ablation theo độ sâu lan truyền $L$.}
-  \label{tab:ablation-depth}
+    \centering
+    \small
+    \renewcommand{\arraystretch}{1.1}
+    \rowcolors{2}{gray!5}{white}
+    \begin{tabularx}{\linewidth}{l|*4{>{\centering\arraybackslash}X}}
+        \toprule
+        \textbf{Model} & \textbf{L=1}   & \textbf{L=2}   & \textbf{L=3}   & \textbf{L=4}   \\
+        \midrule
+        LightGCL       & 0.032          & 0.040          & \textbf{0.043} & 0.042          \\
+        XSimGCL        & 0.028          & 0.035          & 0.039          & \textbf{0.041} \\
+        LightGCN       & \textbf{0.031} & 0.026          & 0.022          & 0.019          \\
+        HGN            & \textbf{0.033} & 0.032          & 0.026          & 0.028          \\
+        HCL            & \textbf{0.020} & 0.010          & 0.007          & 0.009          \\
+        SimGCL         & 0.024          & \textbf{0.027} & 0.021          & 0.023          \\
+        \bottomrule
+    \end{tabularx}
+    \caption{Ablation theo độ sâu lan truyền $L$.}
+    \label{tab:ablation-depth}
 \end{table}
 
 \subsection{Phân tích chi phí huấn luyện}
 XSimGCL có thời gian/epoch nhanh nhất trong thiết lập so sánh. Mô hình heterogeneous có thể tốn chi phí hơn khi đồ thị dày hơn do mở rộng social.
 
 \begin{table}[!htbp]
-  \centering
-  \footnotesize
-  \setlength{\tabcolsep}{3pt}
-  \renewcommand{\arraystretch}{1.1}
-  \rowcolors{2}{gray!5}{white}
-  \begin{tabular}{l|c|ccc}
-    \toprule
-    \textbf{Model} & \textbf{Params} & \textbf{G1}    & \textbf{G2}    & \textbf{G3}    \\
-    \midrule
-    SimGCL         & 1.07M           & 00:47          & 00:46          & 00:45          \\
-    XSimGCL        & 1.07M           & \textbf{00:35} & \textbf{00:33} & \textbf{00:34} \\
-    LightGCL       & 1.07M           & 00:46          & 00:45          & 00:45          \\
-    \midrule
-    HCL            & 1.07M           & 00:47          & 01:10          & 00:37          \\
-    HGN            & 1.27M           & 01:29          & 02:23          & 00:35          \\
-    \bottomrule
-  \end{tabular}
-  \caption{Chi phí huấn luyện (phút:giây) và số tham số theo cấu hình thực nghiệm.}
-  \label{tab:efficiency}
+    \centering
+    \footnotesize
+    \setlength{\tabcolsep}{3pt}
+    \renewcommand{\arraystretch}{1.1}
+    \rowcolors{2}{gray!5}{white}
+    \begin{tabular}{l|c|ccc}
+        \toprule
+        \textbf{Model} & \textbf{Params} & \textbf{G1}    & \textbf{G2}    & \textbf{G3}    \\
+        \midrule
+        SimGCL         & 1.07M           & 00:47          & 00:46          & 00:45          \\
+        XSimGCL        & 1.07M           & \textbf{00:35} & \textbf{00:33} & \textbf{00:34} \\
+        LightGCL       & 1.07M           & 00:46          & 00:45          & 00:45          \\
+        \midrule
+        HCL            & 1.07M           & 00:47          & 01:10          & 00:37          \\
+        HGN            & 1.27M           & 01:29          & 02:23          & 00:35          \\
+        \bottomrule
+    \end{tabular}
+    \caption{Chi phí huấn luyện (phút:giây) và số tham số theo cấu hình thực nghiệm.}
+    \label{tab:efficiency}
 \end{table}
 
 % ==========================================================
@@ -853,9 +840,9 @@ Trong regime thưa, số positive ít và negative sampling nhạy cảm khiến
 \subsection{Hạn chế và rủi ro của Leave-One-Out}
 Mặc dù Leave-One-Out (LOO) là một protocol đánh giá tiêu chuẩn trong nhiều nghiên cứu recommendation, việc sử dụng nó cũng đi kèm với những rủi ro và hạn chế nhất định đã được cộng đồng nghiên cứu chỉ ra:
 \begin{itemize}
-  \item \textbf{Độ nhạy với chiến lược split:} \citet{meng2020splitting} đã chỉ ra rằng hiệu năng của các mô hình state-of-the-art có thể thay đổi đáng kể tuỳ thuộc vào chiến lược chia dữ liệu (random vs.\ chronological). LOO ngẫu nhiên có thể đánh giá quá cao hiệu năng do không mô phỏng đúng bối cảnh triển khai thực tế.
-  \item \textbf{Thiếu ngữ cảnh toàn cục (Local vs. Global):} Như đã thảo luận ở trên và phù hợp với quan điểm của \citet{sun2023evaluation}, việc đánh giá trên tập ứng viên nhỏ (1 dương vs.\ 99 âm) biến bài toán retrieval thành local discrimination. Điều này có thể làm lu mờ khả năng thực sự của mô hình trong việc tìm kiếm item phù hợp từ toàn bộ kho dữ liệu (global retrieval).
-  \item \textbf{Nguy cơ Data Leakage:} \citet{wang2023leakage} cảnh báo về rủi ro data leakage trong offline evaluation, đặc biệt là khi sử dụng Leave-One-Out ngẫu nhiên trên dữ liệu chuỗi thời gian (như tin tức). Việc sử dụng thông tin tương lai để đánh giá quá khứ có thể dẫn đến kết quả thiếu trung thực.
+    \item \textbf{Độ nhạy với chiến lược split:} \citet{meng2020splitting} đã chỉ ra rằng hiệu năng của các mô hình state-of-the-art có thể thay đổi đáng kể tuỳ thuộc vào chiến lược chia dữ liệu (random vs.\ chronological). LOO ngẫu nhiên có thể đánh giá quá cao hiệu năng do không mô phỏng đúng bối cảnh triển khai thực tế.
+    \item \textbf{Thiếu ngữ cảnh toàn cục (Local vs. Global):} Như đã thảo luận ở trên và phù hợp với quan điểm của \citet{sun2023evaluation}, việc đánh giá trên tập ứng viên nhỏ (1 dương vs.\ 99 âm) biến bài toán retrieval thành local discrimination. Điều này có thể làm lu mờ khả năng thực sự của mô hình trong việc tìm kiếm item phù hợp từ toàn bộ kho dữ liệu (global retrieval).
+    \item \textbf{Nguy cơ Data Leakage:} \citet{wang2023leakage} cảnh báo về rủi ro data leakage trong offline evaluation, đặc biệt là khi sử dụng Leave-One-Out ngẫu nhiên trên dữ liệu chuỗi thời gian (như tin tức). Việc sử dụng thông tin tương lai để đánh giá quá khứ có thể dẫn đến kết quả thiếu trung thực.
 \end{itemize}
 Chính vì vậy, trong báo cáo này, nhóm đã cân nhắc sử dụng cả Full Ranking (với chronological split) bên cạnh LOO để có cái nhìn đa chiều và khách quan hơn về hiệu năng của mô hình.
 
@@ -875,17 +862,17 @@ Báo cáo xây dựng hệ gợi ý bài báo tiếng Việt dựa trên học �
 
 \subsection{Hạn chế}
 \begin{itemize}
-  \item Dữ liệu dựa trên bình luận/trả lời có thể thiên lệch vì nhiều lượt đọc không tạo tương tác.
-  \item Chi phí huấn luyện tăng khi đồ thị mở rộng, đặc biệt với mô hình heterogeneous.
-  \item Mô hình hiện tại là static, chưa xử lý cập nhật online khi tin mới xuất hiện.
+    \item Dữ liệu dựa trên bình luận/trả lời có thể thiên lệch vì nhiều lượt đọc không tạo tương tác.
+    \item Chi phí huấn luyện tăng khi đồ thị mở rộng, đặc biệt với mô hình heterogeneous.
+    \item Mô hình hiện tại là static, chưa xử lý cập nhật online khi tin mới xuất hiện.
 \end{itemize}
 
 \subsection{Hướng phát triển}
 \begin{itemize}
-  \item Học đồ thị động để nắm bắt sự thay đổi sở thích theo thời gian.
-  \item Mở rộng các loại quan hệ bằng tags/author/entity để tăng mức độ ngữ nghĩa chi tiết hơn category.
-  \item Thiết kế self-supervised learning ổn định hơn trong dữ liệu cực thưa.
-  \item Distillation/nén mô hình để giảm chi phí inference khi triển khai.
+    \item Học đồ thị động để nắm bắt sự thay đổi sở thích theo thời gian.
+    \item Mở rộng các loại quan hệ bằng tags/author/entity để tăng mức độ ngữ nghĩa chi tiết hơn category.
+    \item Thiết kế self-supervised learning ổn định hơn trong dữ liệu cực thưa.
+    \item Distillation/nén mô hình để giảm chi phí inference khi triển khai.
 \end{itemize}
 
 % ==========================================================
