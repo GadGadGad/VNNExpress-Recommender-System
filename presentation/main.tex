@@ -840,26 +840,6 @@
 \begin{frame}
     \frametitle{Approach 1: Content-Based Filtering (CB)}
     \textbf{Concept:} Recommend items similar to what the user liked in the past.
-
-    <<<<<<< HEAD
-    \vspace{0.2cm}
-    \begin{columns}
-        \begin{column}{0.55\textwidth}
-            \begin{block}{Process Flow}
-                \begin{itemize}
-                    \item \textbf{Input:} Title, Abstract.
-                    \item \textbf{Method:} PhoBERT $\rightarrow$ Dense Vectors.
-                    \item \textbf{Metric:} Cosine Similarity.
-                    \item \textbf{Output:} Top-K semantically similar items.
-                \end{itemize}
-            \end{block}
-        \end{column}
-        \begin{column}{0.45\textwidth}
-            \centering
-            \includegraphics[width=0.95\textwidth]{assets/images/content-based.png}
-        \end{column}
-    \end{columns}
-    =======
     \vspace{0.2cm}
     \begin{columns}
         \begin{column}{0.55\textwidth}
@@ -1461,10 +1441,6 @@
         \item \textbf{Consistent Ranking:} TransformerConv dominates in Cold Start scenarios.
     \end{itemize}
 \end{frame}
-
-
-\begin{frame}
-
 
 \begin{frame}
     \frametitle{Ablation Study: Impact of GNN Depth ($L$)}
