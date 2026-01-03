@@ -111,13 +111,13 @@
 % =========================
 % Title
 % =========================
-\title{\textbf{Heterogeneous Graph Learning for Article Recommender System}\\
-\large DS300.Q11 -- Final Project Report}
+\title{\textbf{Học Đồ thị Heterogeneous cho Hệ Khuyến nghị Tin tức}\\
+\large DS300.Q11 -- Báo cáo Đồ án Cuối kỳ}
 
 \author{
 \textbf{T.~Nhat \quad L.~M.~Nhut \quad N.~H.~Phat}\\
-University of Information Technology (VNU-UIT)\\
-Instructor: Master. Huynh Van Tin
+Trường Đại học Công nghệ Thông tin(VNU-UIT)\\
+GVHD: ThS. Huỳnh Văn Tín
 }
 \date{} % ACL papers typically omit date
 
@@ -406,7 +406,7 @@ Với sparsity rất cao (\eqref{eq:sparsity}), đồ thị user--article thuầ
 \subsection{Định nghĩa nút/cạnh và quy ước dựng đồ thị}
 Để thống nhất giữa các cấu hình, nhóm ký hiệu $\mathcal{G}=(\mathcal{V},\mathcal{E})$ với các tập nút gồm người dùng ($U$), bài viết ($A$) và (tuỳ cấu hình) danh mục ($C$). Tín hiệu tương tác quan sát được đến từ hành vi \textit{bình luận/trả lời}, do đó nhóm coi đây là \textbf{implicit feedback}.
 
-\textbf{Cạnh user--article.} Một cạnh $(u,a)\in \mathcal{E}_{u-a}$ được tạo nếu người dùng $u$ có ít nhất một bình luận (hoặc tham gia thread) dưới bài viết $a$. Trong thiết lập cơ bản, cạnh được xem là \textbf{không hướng} và \textbf{không trọng số} (binary), nhằm tập trung đánh giá tác động của topology; các biến thể có trọng số theo số lượt bình luận/reaction được để dành cho hướng phát triển. Lựa chọn này giúp tách biệt tác động của cấu trúc đồ thị khỏi ảnh hưởng của trọng số cạnh,
+\textbf{Cạnh user--article.} Một cạnh $(u,a)\in \mathcal{E}_{u-a}$ được tạo nếu người dùng $u$ có ít nhất một bình luận (hoặc tham gia thread) dưới bài viết $a$. Trong thiết lập cơ bản, cạnh được xem là \textbf{không hướng} và \textbf{không trọng số} (binary), nhằm tập trung đánh giá tác động của cấu trúc đồ thị; các biến thể có trọng số theo số lượt bình luận/reaction được để dành cho hướng phát triển. Lựa chọn này giúp tách biệt tác động của cấu trúc đồ thị khỏi ảnh hưởng của trọng số cạnh,
 đồng thời giữ thiết lập nhất quán giữa các mô hình được so sánh.
 
 
@@ -737,7 +737,7 @@ Trong Loo100, HGN trên G2 đạt kết quả vượt trội, cho thấy sự đ
     \end{tabularx}
 \end{table}
 
-\subsection{Tác động topology và phân tích HGN}
+\subsection{Tác động cấu trúc đồ thị và phân tích HGN}
 Để định lượng tác động của mở rộng đồ thị lên HGN, \autoref{tab:impact-graph} so sánh Recall@10 của HGN theo từng cấu trúc. Kết quả trên G2 cải thiện đáng kể so với G1, củng cố giả thuyết về Social Homophily trong lan truyền tin tức. Tuy nhiên, G3 (Category) lại không mang lại hiệu quả tương đương; nhóm suy đoán rằng các "Category Hubs" có bậc quá cao (high-degree nodes) có thể đã gây ra hiện tượng nhiễu hoặc over-smoothing, làm mất đi tính cá nhân hóa của tín hiệu được lan truyền. Mặc dù vậy, thông tin danh mục vẫn có thể hữu ích khi được khai thác theo cách có kiểm soát (ví dụ như đặc trưng nội dung hoặc meta-path chọn lọc), thay vì đưa trực tiếp các nút category bậc cao vào cấu trúc đồ thị. Điều này cũng phù hợp với kết quả ablation ở \autoref{tab:ablation-metapath}, khi việc loại bỏ tín hiệu category làm suy giảm đáng kể hiệu năng của HGN.
 
 
@@ -865,7 +865,7 @@ Việc mở rộng đồ thị mang lại những tác động trái chiều tù
 
 \textbf{Category hubs (G3):} Ngược lại, việc thêm Category hubs có thể gây ra sự không ổn định. Category mang tính khái quát cao; khi liên kết user với category và category với nhiều bài viết, mô hình có thể bị bias về các gợi ý ``cùng chuyên mục'' nhưng kém tính cá nhân hóa, dẫn đến hiện tượng over-generalization và làm giảm độ chính xác xếp hạng cụ thể.
 
-Những quan sát này cho thấy không phải mọi loại quan hệ đều nên được đưa trực tiếp vào topology đồ thị; hiệu quả của từng loại cạnh phụ thuộc mạnh vào bậc nút, mật độ liên kết và cách tín hiệu được hợp nhất trong mô hình heterogeneous.
+Những quan sát này cho thấy không phải mọi loại quan hệ đều nên được đưa trực tiếp vào cấu trúc đồ thị; hiệu quả của từng loại cạnh phụ thuộc mạnh vào bậc nút, mật độ liên kết và cách tín hiệu được hợp nhất trong mô hình heterogeneous.
 
 \subsection{Vì sao HCL dễ dao động?}
 Trong regime thưa, số positive ít và negative sampling nhạy cảm khiến InfoNCE khó ổn định. Khi kết hợp thêm heterogeneity (hai nhánh lan truyền), việc cân bằng loss và hyper-parameter trở nên khó hơn, dẫn đến hiện tượng khó hội tụ ổn định. Điều này cho thấy việc kết hợp contrastive learning với đồ thị dị thể trong bối cảnh dữ liệu cực thưa đòi hỏi các chiến lược ổn định hơn về negative sampling và thiết kế loss, thay vì áp dụng trực tiếp các công thức từ đồ thị homogeneous.
