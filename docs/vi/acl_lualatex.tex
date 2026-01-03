@@ -614,27 +614,13 @@ Các siêu tham số được giữ nhất quán giữa các mô hình
 để đảm bảo so sánh công bằng.
 
 \subsection{Protocol đánh giá}
-Do đặc thù dữ liệu tin tức có tính thời gian mạnh,
-nhóm sử dụng hai protocol đánh giá phổ biến,
-mỗi protocol phản ánh một kịch bản triển khai khác nhau.
+Do đặc thù dữ liệu tin tức có tính thời gian mạnh, nhóm sử dụng hai protocol đánh giá phổ biến, phản ánh đúng bối cảnh triển khai thực tế.
 
-\paragraph{Full Ranking (cold-start).}
-Trong thiết lập này, người dùng được chia thành hai tập
-theo tỉ lệ 80/20 (train/test).
-Các mô hình được huấn luyện trên tập train
-và đánh giá trên tập test với mục tiêu dự đoán
-toàn bộ các bài viết mà người dùng chưa tương tác.
-Thiết lập này mô phỏng kịch bản cold-start ở mức người dùng,
-và đánh giá khả năng truy xuất trong không gian ứng viên lớn.
+\paragraph{Full Ranking (Global Retrieval).}
+Trong thiết lập này, toàn bộ tập dữ liệu tương tác được sắp xếp theo thời gian và chia tách theo tỷ lệ 80/20 (Chronological Interaction Split). Cụ thể, 80\% tương tác xảy ra sớm hơn được sử dụng để huấn luyện, và 20\% tương tác xảy ra muộn hơn được dùng làm tập kiểm thử. Mục tiêu là đánh giá khả năng của mô hình trong việc dự đoán các hành vi tương lai của người dùng dựa trên lịch sử quá khứ, mô phỏng bài toán truy xuất tin tức hàng ngày.
 
-\paragraph{Leave-One-Out (Loo100).}
-Với mỗi người dùng trong tập test,
-nhóm giữ lại một tương tác dương tính
-và lấy ngẫu nhiên 99 bài viết chưa tương tác
-làm mẫu âm tính.
-Mô hình được đánh giá dựa trên khả năng xếp hạng
-mẫu dương trong tập ứng viên nhỏ,
-phù hợp để so sánh chi tiết giữa các phương pháp.
+\paragraph{Leave-One-Out (Loo100 - Local Ranking).}
+Với mỗi người dùng trong tập test, nhóm giữ lại tương tác mới nhất (last interaction) làm mẫu dương tính (positive sample) và lấy ngẫu nhiên 99 bài viết mà người dùng chưa từng tương tác làm mẫu âm tính (negative samples). Protocol này đánh giá khả năng xếp hạng cục bộ (Local Ranking) của mô hình khi đã có một tập ứng viên (candidate set) khu trú, giúp so sánh độ tinh tế của các mô hình trong việc phân biệt sở thích người dùng.
 
 \subsection{Metric đánh giá}
 Hiệu năng của mô hình được đánh giá bằng các metric chuẩn
