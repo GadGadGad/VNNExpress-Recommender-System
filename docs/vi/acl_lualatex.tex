@@ -128,7 +128,7 @@ Instructor: Master. Huynh Van Tin
 \tightv
 \begin{abstract}
     \noindent
-    Gợi ý tin tức tiếng Việt đặt ra những thách thức do sự phức tạp của ngôn ngữ, tương tác người dùng cực kỳ thưa thớt và vấn đề \textit{cold-start}. Trong bài báo này, nhóm trình bày một \textbf{phân tích toàn diện} cho bài toán gợi ý, tận dụng Multi-Aspect Heterogeneous Graph Neural Networks (MA-HGN) và Contrastive Learning (CL). Nhóm xây dựng một Heterogeneous Graph mới kết hợp người dùng, bài viết hoặc danh mục. Nhóm tiến hành so sánh với các mô hình Collaborative Filtering (CF) tiên tiến, bao gồm LightGCL, SimGCL và XSimGCL, cũng như các baseline Content-Based mạnh. Các thực nghiệm trên bộ dữ liệu VnExpress thực tế gồm \textbf{15,693 người dùng} và \textbf{3,645 bài viết} cho thấy một sự phân hóa rõ rệt theo protocol đánh giá: trong khi các phương pháp Content-Based (PhoBERT) đạt hiệu quả cao nhất trong truy xuất toàn cục (Full Ranking, Recall@10 = 0.0535), mô hình \textbf{HGN} của nhóm, khi mở rộng đồ thị với các cạnh \textit{liên kết xã hội (G2)}, đạt hiệu năng vượt trội và ổn định trong thiết lập Leave-One-Out (Recall@10 = 0.4364), nhờ khai thác hiệu quả các tín hiệu \textit{social homophily}.
+    Gợi ý tin tức tiếng Việt đặt ra những thách thức do sự phức tạp của ngôn ngữ, tương tác người dùng cực kỳ thưa thớt và vấn đề \textit{cold-start}. Trong bài báo này, nhóm trình bày một \textbf{phân tích toàn diện} cho bài toán gợi ý, tận dụng Multi-Aspect Heterogeneous Graph Neural Networks (MA-HGN) và Contrastive Learning (CL). Nhóm xây dựng một Heterogeneous Graph mới kết hợp người dùng, bài viết, danh mục. Nhóm tiến hành so sánh với các mô hình Collaborative Filtering (CF) tiên tiến, bao gồm LightGCL, SimGCL và XSimGCL, cũng như các baseline Content-Based mạnh. Các thực nghiệm trên bộ dữ liệu VnExpress thực tế gồm \textbf{15,693 người dùng} và \textbf{3,645 bài viết} cho thấy một sự phân hóa rõ rệt theo protocol đánh giá: trong khi các phương pháp Content-Based (PhoBERT) đạt hiệu quả cao nhất trong truy xuất toàn cục (Full Ranking, Recall@10 = 0.0535), mô hình \textbf{HGN} của nhóm, khi mở rộng đồ thị với các cạnh \textit{liên kết xã hội (G2)}, đạt hiệu năng vượt trội và ổn định trong thiết lập Leave-One-Out (Recall@10 = 0.4364), nhờ khai thác hiệu quả các tín hiệu \textit{social homophily}.
 \end{abstract}
 
 % ==========================================================
@@ -144,7 +144,7 @@ Trong dự án này, nhóm xây dựng bộ dữ liệu thực tế từ VnExpre
 (ii) \textbf{quan hệ reply user--user} phản ánh ảnh hưởng xã hội hoặc \textit{social homophily} trong thảo luận.
 Từ đó, nhóm thiết kế một chiến lược mở rộng đồ thị theo ba tầng \textbf{G1--G3} để kiểm soát mức độ phong phú của cấu trúc đồ thị: G1 là đồ thị bipartite user--article; G2 bổ sung các cạnh xã hội user--user từ reply; và G3 bổ sung \textit{category hubs} nhằm rút ngắn đường đi giữa người dùng và nhóm bài cùng chuyên mục.
 
-Bên cạnh các thách thức về sparsity, việc đánh giá mô hình gợi ý tin tức cũng dễ bị sai lệch nếu tách train/test ngẫu nhiên, vì có thể gây \textbf{data leakage} theo thời gian (mô hình ``học'' từ tương tác tương lai). Do đó, nhóm nhấn mạnh kiểm soát protocol đánh giá và so sánh mô hình trên các thiết lập chuẩn (Full Ranking và Leave-One-Out).
+Bên cạnh các thách thức về độ thưa, việc đánh giá mô hình gợi ý tin tức cũng dễ bị sai lệch nếu tách train/test ngẫu nhiên, vì có thể gây \textbf{data leakage} theo thời gian (mô hình ``học'' từ tương tác tương lai). Do đó, nhóm nhấn mạnh kiểm soát protocol đánh giá và so sánh mô hình trên các thiết lập chuẩn (Full Ranking và Leave-One-Out).
 
 \textbf{Đóng góp chính} của báo cáo bao gồm:
 \begin{itemize}
@@ -608,7 +608,7 @@ Các siêu tham số được giữ nhất quán giữa các mô hình
 
 \subsection{Protocol đánh giá}
 Do đặc thù dữ liệu tin tức có tính thời gian mạnh,
-chúng tôi sử dụng hai protocol đánh giá phổ biến,
+nhóm sử dụng hai protocol đánh giá phổ biến,
 mỗi protocol phản ánh một kịch bản triển khai khác nhau.
 
 \paragraph{Full Ranking (cold-start).}
@@ -622,7 +622,7 @@ và đánh giá khả năng truy xuất trong không gian ứng viên lớn.
 
 \paragraph{Leave-One-Out (Loo100).}
 Với mỗi người dùng trong tập test,
-chúng tôi giữ lại một tương tác dương tính
+nhóm giữ lại một tương tác dương tính
 và lấy ngẫu nhiên 99 bài viết chưa tương tác
 làm mẫu âm tính.
 Mô hình được đánh giá dựa trên khả năng xếp hạng
@@ -697,7 +697,7 @@ trong recommendation:
 \end{table}
 
 \subsection{Kết quả Loo100}
-Trong Loo100, HGN trên G2 đạt kết quả vượt trội, cho thấy sự đảo chiều so với Full Ranking. Chúng tôi cho rằng trong không gian ứng viên hẹp (Local Discrimination), các tín hiệu cấu trúc tinh tế (như quan hệ xã hội trên G2) trở thành các đặc trưng phân loại (discriminative features) mạnh mẽ hơn nội dung thuần túy, giúp tách biệt tích cực item mục tiêu khỏi các mẫu âm ngẫu nhiên. Hiện tượng này cũng đã được ghi nhận trong các nghiên cứu trước, khi đánh giá trên tập ứng viên nhỏ làm nổi bật vai trò của tín hiệu cấu trúc so với nội dung thuần tuý.
+Trong Loo100, HGN trên G2 đạt kết quả vượt trội, cho thấy sự đảo chiều so với Full Ranking. Nhóm cho rằng trong không gian ứng viên hẹp (Local Discrimination), các tín hiệu cấu trúc tinh tế (như quan hệ xã hội trên G2) trở thành các đặc trưng phân loại (discriminative features) mạnh mẽ hơn nội dung thuần túy, giúp tách biệt tích cực item mục tiêu khỏi các mẫu âm ngẫu nhiên. Hiện tượng này cũng đã được ghi nhận trong các nghiên cứu trước, khi đánh giá trên tập ứng viên nhỏ làm nổi bật vai trò của tín hiệu cấu trúc so với nội dung thuần tuý.
 \begin{table}[!htbp]
     \centering
     \scriptsize
@@ -738,7 +738,7 @@ Trong Loo100, HGN trên G2 đạt kết quả vượt trội, cho thấy sự đ
 \end{table}
 
 \subsection{Tác động topology và phân tích HGN}
-Để định lượng tác động của mở rộng đồ thị lên HGN, \autoref{tab:impact-graph} so sánh Recall@10 của HGN theo từng cấu trúc. Kết quả trên G2 cải thiện đáng kể so với G1, củng cố giả thuyết về Social Homophily trong lan truyền tin tức. Tuy nhiên, G3 (Category) lại không mang lại hiệu quả tương đương; chúng tôi suy đoán rằng các "Category Hubs" có bậc quá cao (high-degree nodes) có thể đã gây ra hiện tượng nhiễu hoặc over-smoothing, làm mất đi tính cá nhân hóa của tín hiệu được lan truyền. Mặc dù vậy, thông tin danh mục vẫn có thể hữu ích khi được khai thác theo cách có kiểm soát (ví dụ như đặc trưng nội dung hoặc meta-path chọn lọc), thay vì đưa trực tiếp các nút category bậc cao vào cấu trúc đồ thị. Điều này cũng phù hợp với kết quả ablation ở \autoref{tab:ablation-metapath}, khi việc loại bỏ tín hiệu category làm suy giảm đáng kể hiệu năng của HGN.
+Để định lượng tác động của mở rộng đồ thị lên HGN, \autoref{tab:impact-graph} so sánh Recall@10 của HGN theo từng cấu trúc. Kết quả trên G2 cải thiện đáng kể so với G1, củng cố giả thuyết về Social Homophily trong lan truyền tin tức. Tuy nhiên, G3 (Category) lại không mang lại hiệu quả tương đương; nhóm suy đoán rằng các "Category Hubs" có bậc quá cao (high-degree nodes) có thể đã gây ra hiện tượng nhiễu hoặc over-smoothing, làm mất đi tính cá nhân hóa của tín hiệu được lan truyền. Mặc dù vậy, thông tin danh mục vẫn có thể hữu ích khi được khai thác theo cách có kiểm soát (ví dụ như đặc trưng nội dung hoặc meta-path chọn lọc), thay vì đưa trực tiếp các nút category bậc cao vào cấu trúc đồ thị. Điều này cũng phù hợp với kết quả ablation ở \autoref{tab:ablation-metapath}, khi việc loại bỏ tín hiệu category làm suy giảm đáng kể hiệu năng của HGN.
 
 
 \begin{table}[!htbp]
@@ -877,7 +877,7 @@ Mặc dù Leave-One-Out (LOO) là một protocol đánh giá tiêu chuẩn trong
     \item \textbf{Thiếu ngữ cảnh toàn cục (Local vs. Global):} Như đã thảo luận ở trên và phù hợp với quan điểm của \citet{sun2023evaluation}, việc đánh giá trên tập ứng viên nhỏ (1 dương vs.\ 99 âm) biến bài toán retrieval thành local discrimination. Điều này có thể làm lu mờ khả năng thực sự của mô hình trong việc tìm kiếm item phù hợp từ toàn bộ kho dữ liệu (global retrieval).
     \item \textbf{Nguy cơ Data Leakage:} \citet{wang2023leakage} cảnh báo về rủi ro data leakage trong offline evaluation, đặc biệt là khi sử dụng Leave-One-Out ngẫu nhiên trên dữ liệu chuỗi thời gian (như tin tức). Việc sử dụng thông tin tương lai để đánh giá quá khứ có thể dẫn đến kết quả thiếu trung thực.
 \end{itemize}
-Chính vì vậy, trong báo cáo này, chúng tôi đã cân nhắc sử dụng cả Full Ranking (với chronological split) bên cạnh LOO để có cái nhìn đa chiều và khách quan hơn về hiệu năng của mô hình.
+Chính vì vậy, trong báo cáo này, nhóm đã cân nhắc sử dụng cả Full Ranking (với chronological split) bên cạnh LOO để có cái nhìn đa chiều và khách quan hơn về hiệu năng của mô hình.
 
 % ==========================================================
 \subsection{Phân tích độ chênh lệch hiệu năng giữa Full Ranking và Loo100}
