@@ -12,17 +12,17 @@ class Settings:
     
     # Constants
     CATEGORY_MAP = {
-        "giaoduc": "📚 Giáo dục",
-        "khcn": "🔬 Khoa học & Công nghệ",
-        "kinhdoanh": "💼 Kinh doanh",
-        "thegioi": "🌍 Thế giới",
-        "thethao": "⚽ Thể thao",
-        "thoisu": "📰 Thời sự",
-        "giai-tri": "🎬 Giải trí",
-        "suc-khoe": "🏥 Sức khỏe",
-        "xe": "🚗 Xe",
-        "du-lich": "✈️ Du lịch",
-        "N/A": "❓ Khác"
+        "giaoduc": "Giáo dục",
+        "khcn": "Khoa học & Công nghệ",
+        "kinhdoanh": "Kinh doanh",
+        "thegioi": "Thế giới",
+        "thethao": "Thể thao",
+        "thoisu": "Thời sự",
+        "giai-tri": "Giải trí",
+        "suc-khoe": "Sức khỏe",
+        "xe": "Xe",
+        "du-lich": "Du lịch",
+        "N/A": "Khác"
     }
 
 settings = Settings()

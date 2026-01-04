@@ -148,7 +148,6 @@ def run_user_knn(R, n_users, n_items, similarity='cosine'):
     sim_matrix.eliminate_zeros()
     
     print("Predicting scores (Sparse)...")
-    # Scores = Sim * R
     scores = sim_matrix.dot(R)
     
     return scores
@@ -162,7 +161,6 @@ def run_item_knn(R, n_users, n_items, similarity='cosine'):
     sim_matrix.eliminate_zeros()
     
     print("Predicting scores (Sparse)...")
-    # Scores = R * Sim
     scores = R.dot(sim_matrix)
     
     return scores
@@ -183,55 +181,24 @@ def run_slope_one(R, n_users, n_items):
     # C[j,i] is count of users who rated both j and i
     C = (R_bin.T @ R_bin).toarray()
     
-    # Numerator part 1: A[j,i] = Sum_u (R[u,j] * I(u has i))
-    A = R.T @ R_bin 
-    A = A.toarray()
-    
-    # Numerator part 2: B[j,i] = Sum_u (R[u,i] * I(u has j)) = A.T
-    B = A.T 
+    # A[j,i] = Sum_u (R[u,j] * I(u has i))
+    A = (R.T @ R_bin).toarray()
     
     # DiffSum = Sum (r_uj - r_ui) over shared users
-    DiffSum = A - B
+    # A - A.T gives us the sum differences
+    DiffSum = A - A.T
     
     print("Deviations computed implicitly. Predicting...")
     
-    # Weighted Slope One Prediction Formula:
-    # P(u,j) = ( Sum_{i in R_u} (dev[j,i] + r_ui) * C[j,i] ) / Sum_{i in R_u} C[j,i]
-    #
-    # Numerator:
-    # = Sum_i (dev[j,i]*C[j,i] + r_ui*C[j,i])
-    # dev[j,i]*C[j,i] = DiffSum[j,i]
-    # -> Sum_i (DiffSum[j,i] + r_ui*C[j,i])
-    #
-    # Part 1: Sum over i in R_u of DiffSum[j,i]
-    # Note: DiffSum[j,i] corresponds to target j.
-    # We want result[u, j].
-    # R_bin[u, :] selects the items i in user's history.
-    # Product: R_bin @ DiffSum.T 
-    # (n_users, n_items) x (n_items, n_items) -> (n_users, n_items)
-    # Element [u, j] is sum_i (R_bin[u,i] * DiffSum.T[i,j])
-    # DiffSum.T[i,j] = DiffSum[j,i] (Wait. Transpose indices)
-    # Let's verify: Result[u,j] = Sum_k (M[u,k] * N[k,j])
-    # Here k is item i.
-    # We want Sum_i (R_bin[u,i] * DiffSum[j,i]).
-    # DiffSum[j,i] is the (j,i) element.
-    # We need matrix where column j contains DiffSum[j, :].
-    # No, we need Sum_i (R_bin[u,i] * Matrix[i,j]).
-    # So Matrix[i,j] must be DiffSum[j,i].
-    # So Matrix must be DiffSum.T.
-    # Yes. R_bin @ DiffSum.T
+    # Weighted Slope One Prediction Formula
     
+    # Part 1: Contribution from deviations
     Num1 = R_bin.dot(DiffSum.T)
     
-    # Part 2: Sum over i in R_u of (r_ui * C[j,i])
-    # Note r_ui is continuous rating. C[j,i] is count (symmetric).
-    # We want Sum_i (R[u,i] * C[i,j]).
-    # This is R @ C.
+    # Part 2: Contribution from user's own ratings weighted by counts
     Num2 = R.dot(C)
     
-    # Denom: Sum over i in R_u of C[j,i]
-    # Sum_i (I(u has i) * C[i,j])
-    # This is R_bin @ C.
+    # Denominator: Sum of counts
     Denom = R_bin.dot(C)
     
     # Combine
@@ -244,30 +211,26 @@ def run_slope_one(R, n_users, n_items):
 
 def run_svd(R, n_users, n_items, k=64):
     print(f"Running SVD (Matrix Factorization) with k={k}...")
-    # TruncatedSVD is optimized for sparse input
     svd = TruncatedSVD(n_components=k, random_state=42)
     
     # Fit and transform users
     print("Fitting SVD...")
-    user_factors = svd.fit_transform(R) # (n_users, k)
-    item_factors = svd.components_.T    # (n_items, k)
+    user_factors = svd.fit_transform(R)
+    item_factors = svd.components_.T
     
     print(f"Factors learned. Predicting...")
-    # Scores = U @ V.T
     scores = user_factors.dot(item_factors.T)
     
     return scores
 
 def run_nmf(R, n_users, n_items, k=64):
     print(f"Running NMF (Non-negative Matrix Factorization) with k={k}...")
-    # NMF handles non-negative data (implicit feedback).
-    # 'cd' solver is Coordinate Descent (similar to ALS).
     # init='nndsvd' is better for sparsity.
     model = NMF(n_components=k, init='nndsvd', solver='cd', random_state=42, max_iter=200)
     
     print("Fitting NMF (this might take a minute)...")
-    user_factors = model.fit_transform(R) # (n_users, k)
-    item_factors = model.components_.T    # (n_items, k)
+    user_factors = model.fit_transform(R)
+    item_factors = model.components_.T
     
     print("Factors learned. Predicting...")
     scores = user_factors.dot(item_factors.T)
@@ -313,7 +276,6 @@ def main():
     # 5. Evaluate
     print("Evaluating...")
     # metrics.py expects scores as dict or numpy array. 
-    # scores is currently (n_users, n_items) sparse csr.
     # Convert to dense for evaluation (approx 200MB, safe)
     if sp.issparse(scores):
         scores = scores.toarray()

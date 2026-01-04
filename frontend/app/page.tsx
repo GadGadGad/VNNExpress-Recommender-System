@@ -209,7 +209,7 @@ export default function Home() {
 
             {displayList.length === 0 && (
               <div className="col-span-full text-center py-32 text-slate-600">
-                <div className="mb-4 text-6xl opacity-20">📡</div>
+                <div className="mb-4 text-6xl opacity-20"></div>
                 No intelligence found matching your criteria.
               </div>
             )}

@@ -525,7 +525,7 @@ def run_as_import(input_file_str: str, output_file_str: str, browser: str, is_he
         log.error(f"A fatal error occurred: {e}", exc_info=True)
         log.error("Crawler stopped prematurely.")
         raise e
-# 🔼 --- KẾT THÚC HÀM MỚI --- 🔼
+# --- KẾT THÚC HÀM MỚI ---
 
 
 if __name__ == "__main__":

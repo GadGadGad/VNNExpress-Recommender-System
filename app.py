@@ -31,7 +31,6 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 st.set_page_config(
     page_title="News RecSys Comprehensive",
-    page_icon="📰",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -206,7 +205,8 @@ def plot_embedding_space(model, user_idx, history_urls, recommended_urls, articl
             # Trường hợp 1: User Vector tự tạo (Cold Start / Custom)
             user_emb = custom_user_vector
             user_source_note = "User Vector: Tổng hợp từ sở thích bạn vừa nhập"
-            user_display_name = "👤 BẠN (Sở thích mới)"
+
+            user_display_name = "BẠN (Sở thích mới)"
         else:
             # Trường hợp 2: User Vector từ Model (Đã học)
             if hasattr(model, 'user_embedding'):
@@ -217,7 +217,7 @@ def plot_embedding_space(model, user_idx, history_urls, recommended_urls, articl
                 user_emb = model.gu.weight[user_idx].detach().cpu().numpy()
             
             user_source_note = f"User Vector: Đã học từ lịch sử đọc (ID: {user_idx})"
-            user_display_name = "👤 BẠN (User đã học)"
+            user_display_name = "BẠN (User đã học)"
 
         if user_emb is None: return None
 
@@ -267,7 +267,7 @@ def plot_embedding_space(model, user_idx, history_urls, recommended_urls, articl
             cat = CATEGORY_MAP.get(info.get('source_category', ''), 'Khác')
             
             vectors.append(item_matrix[idx])
-            names.append(f"<b>✨ Gợi ý:</b> {title[:40]}...")
+            names.append(f"<b>Gợi ý:</b> {title[:40]}...")
             types.append("Recommendation")
             colors.append("#FFA502") # Vàng cam đậm
             sizes.append(20)         
@@ -295,8 +295,8 @@ def plot_embedding_space(model, user_idx, history_urls, recommended_urls, articl
         
         groups = [
             ("User", "#FF4757", user_display_name), 
-            ("History", "#2ED573", "📚 Đã đọc"), 
-            ("Recommendation", "#FFA502", "✨ Gợi ý")
+            ("History", "#2ED573", "Đã đọc"), 
+            ("Recommendation", "#FFA502", "Gợi ý")
         ]
         
         for g_type, g_color, g_label in groups:
@@ -330,7 +330,7 @@ def plot_embedding_space(model, user_idx, history_urls, recommended_urls, articl
         # Cấu hình Layout Thoáng đãng
         fig.update_layout(
             title=dict(
-                text=f"🗺️ BẢN ĐỒ SỞ THÍCH & GỢI Ý<br><sup style='color:#555; font-size:12px'>Vị trí User được tính toán từ: {user_source_note}</sup>",
+                text=f"BẢN ĐỒ SỞ THÍCH & GỢI Ý<br><sup style='color:#555; font-size:12px'>Vị trí User được tính toán từ: {user_source_note}</sup>",
                 y=0.95, x=0.0, xanchor='left', yanchor='top', # Đưa title sang trái
                 font=dict(size=22, color='#1E272E')
             ),
@@ -340,7 +340,6 @@ def plot_embedding_space(model, user_idx, history_urls, recommended_urls, articl
             height=600, # Tăng chiều cao để tách điểm
             margin=dict(l=20, r=20, t=80, b=20),
             
-            # --- SỬA CHỖ NÀY: CẤU HÌNH LEGEND CỐ ĐỊNH MÀU ---
             legend=dict(
                 yanchor="top", y=1, xanchor="right", x=1.1, # Đưa Legend ra ngoài bên phải
                 bgcolor="#FFFFFF",                  # Nền Trắng tuyệt đối (Không trong suốt)
@@ -386,7 +385,7 @@ def explain_recommendation(rec_url, history_urls, articles_df, source_type):
     try:
         # 1. Nếu là nguồn Social (CF), giải thích theo đám đông
         if source_type == "Social":
-            return "👥 <b>Cộng đồng:</b> Phổ biến với những người dùng có gu giống bạn."
+            return "<b>Cộng đồng:</b> Phổ biến với những người dùng có gu giống bạn."
 
         # 2. Nếu là Content/Hybrid, tìm bài tương tự nhất trong lịch sử
         rec_row = articles_df[articles_df['url'] == rec_url]
@@ -417,12 +416,12 @@ def explain_recommendation(rec_url, history_urls, articles_df, source_type):
         
         # Ngưỡng chọn giải thích
         if max_score > 0.1: # Nếu trùng lặp từ khóa kha khá
-            return f"💡 <b>Nội dung:</b> Tương tự bài <i>'{str(best_match_title)[:30]}...'</i> bạn đã đọc."
+            return f"<b>Nội dung:</b> Tương tự bài <i>'{str(best_match_title)[:30]}...'</i> bạn đã đọc."
         elif rec_cat: # Nếu không trùng từ khóa, giải thích theo Category
             cat_name = CATEGORY_MAP.get(rec_cat, rec_cat)
-            return f"📂 <b>Chủ đề:</b> Thuộc danh mục <i>{cat_name}</i> mà bạn quan tâm."
+            return f"<b>Chủ đề:</b> Thuộc danh mục <i>{cat_name}</i> mà bạn quan tâm."
         else:
-            return "✨ <b>Gợi ý:</b> Có thể bạn sẽ thích bài này."
+            return "<b>Gợi ý:</b> Có thể bạn sẽ thích bài này."
             
     except Exception:
         return ""
@@ -703,8 +702,7 @@ def load_cf_model(model_name, n_users, n_items, graph_name=None):
             from src.models.xsimgcl import XSimGCL as ModelClass
         elif model_name.lower() == 'ma-hcl':
             from src.models.ma_hcl import MAHCL as ModelClass
-        # elif model_name.lower() == 'sim-mahgn':
-        #     from src.models.sim_mahgn import SimMAHGN as ModelClass
+
         else:
             return None
 
@@ -1029,7 +1027,7 @@ def get_recs(model, model_type, user_idx, history_urls, article_map, articles_df
                         model_n_users = model.user_embedding.weight.shape[0]
                     
                     if model_n_users and user_idx >= model_n_users:
-                        st.error(f"⚠️ User index {user_idx} >= model capacity ({model_n_users}). Model needs retraining!")
+                        st.error(f"User index {user_idx} >= model capacity ({model_n_users}). Model needs retraining!")
                         return []
                     
                     if adj_norm is not None:
@@ -1148,14 +1146,14 @@ def get_recs(model, model_type, user_idx, history_urls, article_map, articles_df
 
 
 CF_GRAPHS = {
-    "🚀 Deep Social (Strict G2)": "data/processed/strict_g2/full_hetero_graph.pt",
-    "🔥 Large Scale (Regular G2)": "data/processed/regular_g2/full_hetero_graph.pt",
-    "🧪 Enhanced V1": "data/processed/enhanced_v1/full_hetero_graph.pt",
+    "Deep Social (Strict G2)": "data/processed/strict_g2/full_hetero_graph.pt",
+    "Large Scale (Regular G2)": "data/processed/regular_g2/full_hetero_graph.pt",
+    "Enhanced V1": "data/processed/enhanced_v1/full_hetero_graph.pt",
     "Standard Bipartite": "data/processed/cf_cache.pt"
 }
 
 def main():
-    st.set_page_config(page_title="News RecSys Portal", page_icon="📰", layout="wide")
+    st.set_page_config(page_title="News RecSys Portal", layout="wide")
     
     if 'open_url' in st.session_state and st.session_state['open_url']:
         url_to_open = st.session_state['open_url']
@@ -1246,8 +1244,8 @@ def main():
     if 'last_selected_user' not in st.session_state: st.session_state['last_selected_user'] = None
     if 'open_url' not in st.session_state: st.session_state['open_url'] = None
 
-    st.sidebar.title("🎛️ Control Panel")
-    mode_select = st.sidebar.radio("Chế độ:", ["🔑 Thành viên", "🆕 Khách (Cold Start)"], index=0 if st.session_state['user_mode'] == 'existing' else 1)
+    st.sidebar.title("Control Panel")
+    mode_select = st.sidebar.radio("Chế độ:", ["Thành viên", "Khách (Cold Start)"], index=0 if st.session_state['user_mode'] == 'existing' else 1)
     
     selected_variant = "strict_g2"
     active_data_dir = os.path.join(DATA_DIR, selected_variant) if os.path.exists(os.path.join(DATA_DIR, selected_variant)) else DATA_DIR
@@ -1259,7 +1257,7 @@ def main():
     selected_user = None
     is_cold_start_user = False
     
-    if mode_select == "🔑 Thành viên":
+    if mode_select == "Thành viên":
         st.session_state['user_mode'] = 'existing'
         existing_users = sorted(list(user_map_cf.keys()))
         selected_uid = st.sidebar.selectbox("Chọn User ID:", existing_users)
@@ -1274,10 +1272,10 @@ def main():
         st.session_state['user_mode'] = 'guest'
         is_cold_start_user = True
         selected_user = "GUEST"
-        with st.sidebar.expander("📝 Hồ sơ Khách hàng", expanded=True):
+        with st.sidebar.expander("Hồ sơ Khách hàng", expanded=True):
             all_cats = sorted(articles_df['source_category'].dropna().unique().tolist())
             selected_cats = st.multiselect("Chủ đề:", [c for c in all_cats if c in CATEGORY_MAP], format_func=lambda x: CATEGORY_MAP.get(x, x))
-            if st.button("🚀 Tạo Profile"):
+            if st.button("Tạo Profile"):
                 guest_samples = []
                 
                 # --- PHẦN 1: Lấy 3 bài hoàn toàn ngẫu nhiên (bất kể chủ đề) ---
@@ -1316,26 +1314,26 @@ def main():
                 else:
                     st.error("Không tìm thấy dữ liệu bài báo nào!")
 
-    with st.sidebar.expander("⚙️ Cấu hình Thuật toán", expanded=False):
+    with st.sidebar.expander("Cấu hình Thuật toán", expanded=False):
         cf_model_choice = st.selectbox("Model CF:", MODEL_OPTIONS["CF"])
         alpha = st.slider("Trọng số Social (Alpha)", 0.0, 1.0, 0.5, 0.1)
         k_rec = st.slider("Số lượng hiển thị", 5, 50, 10)
         st.divider()
-        st.markdown("**🛡️ Technical Pillars**")
+        st.markdown("**Technical Pillars**")
         use_adt = st.checkbox("Adaptive Denoising (ADT)", value=True, help="Tự động loại bỏ nhiễu từ các tương tác cũ")
         show_semantic_ids = st.checkbox("Hiển thị Semantic IDs", value=False)
     
     cf_model = load_cf_model(cf_model_choice, len(user_map_cf), len(article_map_cf), graph_name=selected_variant)
     cb_model = load_cb_model("vn-sbert", articles_df) 
 
-    st.title("🗞️ Personalized News Engine")
+    st.title("Personalized News Engine")
     
-    tab_feed, tab_analytics = st.tabs(["📰 News Feed & Tìm kiếm", "🛠️ Dev & Analytics"])
+    tab_feed, tab_analytics = st.tabs(["News Feed & Tìm kiếm", "Dev & Analytics"])
 
     with tab_feed:
         base_history = st.session_state.get('guest_profile', []) if is_cold_start_user else user_history.get(selected_user, [])
         if not base_history and is_cold_start_user:
-            st.info("👈 Vui lòng tạo hồ sơ khách hàng ở cột bên trái!")
+            st.info("Vui lòng tạo hồ sơ khách hàng ở cột bên trái!")
             st.stop()
             
         full_history = list(base_history) + list(st.session_state['session_interactions'])
@@ -1343,20 +1341,20 @@ def main():
         # Search UI
         with st.container():
             col_search, col_filter = st.columns([3, 1])
-            with col_search: search_query = st.text_input("🔍 Tìm kiếm bài viết:", placeholder="Nhập từ khóa...")
+            with col_search: search_query = st.text_input("Tìm kiếm bài viết:", placeholder="Nhập từ khóa...")
             with col_filter:
                 unique_cats = sorted(articles_df['source_category'].dropna().unique().tolist())
-                filter_cats = st.multiselect("🏷️ Lọc danh mục:", unique_cats, format_func=lambda x: CATEGORY_MAP.get(x, x))
+                filter_cats = st.multiselect("Lọc danh mục:", unique_cats, format_func=lambda x: CATEGORY_MAP.get(x, x))
         st.divider()
 
         col_content, col_info = st.columns([0.75, 0.25])
         
         # LOG UI
         with col_info:
-            st.markdown("### 📊 Log Hoạt động")
+            st.markdown("### Log Hoạt động")
             with st.container(border=True):
                 if st.session_state['session_interactions']:
-                    st.write("💬 **Vừa bình luận:**")
+                    st.write("**Vừa bình luận:**")
                     for u in reversed(st.session_state['session_interactions']):
                         row = articles_df[articles_df['url'] == u]
                         if not row.empty:
@@ -1365,9 +1363,9 @@ def main():
                             if raw_t == 'nan': raw_t = ""
                             if raw_t and raw_t[0].isdigit(): pub_time = raw_t.split('T')[0] 
                             else: pub_time = raw_t
-                            st.markdown(f"<div style='line-height:1.2;'><a href='{u}' target='_blank' class='article-link' style='font-size:0.95em'>{title}</a><div style='color:gray;font-size:0.75em'>📅 {pub_time}</div></div>", unsafe_allow_html=True)
+                            st.markdown(f"<div style='line-height:1.2;'><a href='{u}' target='_blank' class='article-link' style='font-size:0.95em'>{title}</a><div style='color:gray;font-size:0.75em'> {pub_time}</div></div>", unsafe_allow_html=True)
                             st.write("")
-                    if st.button("🔄 Reset phiên"):
+                    if st.button("Reset phiên"):
                         st.session_state['session_interactions'] = []
                         st.session_state['viewed_posts'] = set()
                         st.rerun()
@@ -1384,7 +1382,7 @@ def main():
             # SEARCH
             if search_query.strip():
                 mode_display = "search"
-                st.markdown(f"### 🔎 Kết quả cho: '{search_query}'")
+                st.markdown(f"### Kết quả cho: '{search_query}'")
                 tokenized_query = search_query.lower().split()
                 doc_scores = search_engine.get_scores(tokenized_query)
                 top_indices = np.argsort(doc_scores)[::-1][:100]
@@ -1407,7 +1405,7 @@ def main():
             # RECSYS
             else:
                 mode_display = "rec"
-                st.markdown(f"### 🔥 Tin dành cho {'Khách' if is_cold_start_user else selected_user}")
+                st.markdown(f"### Tin dành cho {'Khách' if is_cold_start_user else selected_user}")
                 
                 with st.spinner("Đang tổng hợp tin tức..."):
                     candidate_scores = {}
@@ -1444,9 +1442,9 @@ def main():
                                 boost = (val/max_s) * 0.6
                                 if u in candidate_scores:
                                     candidate_scores[u]['score'] += boost
-                                    if boost > 0.3: candidate_scores[u]['source'] = '⚡ Liên quan bài vừa comment'
+                                    if boost > 0.3: candidate_scores[u]['source'] = 'Liên quan bài vừa comment'
                                 else:
-                                    candidate_scores[u] = {'score': boost, 'source': '⚡ Liên quan bài vừa comment'}
+                                    candidate_scores[u] = {'score': boost, 'source': 'Liên quan bài vừa comment'}
 
                     temp_recs = []
                     for u, data in candidate_scores.items():
@@ -1470,10 +1468,10 @@ def main():
                     else: pub_time = raw_time
                     if pub_time == '': pub_time = "Vừa xong"
 
-                    badge_color = "#28a745" if "⚡" in src else ("#17a2b8" if "Tìm kiếm" in src else ("#007bff" if "Gợi ý" in src else "#6c757d"))
+                    badge_color = "#28a745" if "Liên quan" in src else ("#17a2b8" if "Tìm kiếm" in src else ("#007bff" if "Gợi ý" in src else "#6c757d"))
                     
                     with st.container():
-                        is_boosted = "⚡" in src
+                        is_boosted = "Liên quan" in src
                         st.markdown(f'<div class="news-card {"boosted" if is_boosted else ""}">', unsafe_allow_html=True)
                         
                         c1, c2 = st.columns([0.8, 0.2])
@@ -1482,13 +1480,13 @@ def main():
                             <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 10px;">
                                 <span class="source-badge" style="background-color: {badge_color}">{src}</span>
                                 <div class="meta-text">
-                                    <span>🕒 {pub_time}</span>
-                                    {f'<span>• 🎯 Score: {score:.2f}</span>' if mode_display == 'rec' else ''}
+                                    <span>{pub_time}</span>
+                                    {f'<span>• Score: {score:.2f}</span>' if mode_display == 'rec' else ''}
                                 </div>
                             </div>""", unsafe_allow_html=True)
                             
                             is_visited = url in st.session_state.get('viewed_posts', set())
-                            label = f"{'🟣' if is_visited else '🔹'} {row['title']}"
+                            label = f"{'(Đã xem)' if is_visited else ''} {row['title']}"
 
                             if st.button(label, key=f"title_{i}_{url}", type="secondary"):
                                 st.session_state['viewed_posts'].add(url)
@@ -1517,25 +1515,25 @@ def main():
 
                         with c2:
                             st.write("")
-                            if st.button("💬 Phản hồi", key=f"btn_{i}_{url}", type="primary", help="Tương tác mạnh giúp hệ thống hiểu bạn hơn"):
+                            if st.button("Phản hồi", key=f"btn_{i}_{url}", type="primary", help="Tương tác mạnh giúp hệ thống hiểu bạn hơn"):
                                 if url in st.session_state.get('viewed_posts', set()):
                                     if url not in st.session_state['session_interactions']:
                                          st.session_state['session_interactions'].append(url)
-                                    st.toast("Đã ghi nhận! Đang cập nhật feed...", icon="🚀")
+                                    st.toast("Đã ghi nhận! Đang cập nhật feed...")
                                     st.rerun()
                                 else:
-                                    st.toast("Mời bạn click xem bài trước khi bình luận!", icon="☝️")
+                                    st.toast("Mời bạn click xem bài trước khi bình luận!")
                         
                         st.markdown('</div>', unsafe_allow_html=True)
 
             if not search_query.strip() and not is_cold_start_user and cf_model:
-                with st.expander("🗺️ Phân tích Không gian Vector (Visualization)", expanded=False):
+                with st.expander("Phân tích Không gian Vector (Visualization)", expanded=False):
                      rec_urls_viz = [x[0] for x in final_display_list[:15]]
                      fig = plot_embedding_space(cf_model, user_map_cf[selected_user], full_history, rec_urls_viz, article_map_cf, articles_df)
                      if fig: st.plotly_chart(fig, use_container_width=True)
 
     with tab_analytics:
-        st.header("⚔️ So sánh & Đánh giá Mô hình")
+        st.header("So sánh & Đánh giá Mô hình")
         col_conf, col_a, col_b = st.columns([1, 1.5, 1.5])
         with col_conf:
             m_a = st.selectbox("Model A", MODEL_OPTIONS["CF"], key="ma")
@@ -1561,7 +1559,7 @@ def main():
                 
                 # Confidence Distribution Plot
                 st.divider()
-                st.subheader("📈 Phân phối điểm tin cậy (Confidence Distribution)")
+                st.subheader("Phân phối điểm tin cậy (Confidence Distribution)")
                 c_fig, c_ax = plt.subplots(figsize=(10, 4))
                 if ra:
                     scores_a = [x[1] for x in ra]
@@ -1577,3 +1575,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    

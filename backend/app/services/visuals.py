@@ -5,17 +5,17 @@ import io
 import base64
 
 CATEGORY_MAP = {
-    "giaoduc": "📚 Giáo dục",
-    "khcn": "🔬 Khoa học & Công nghệ",
-    "kinhdoanh": "💼 Kinh doanh",
-    "thegioi": "🌍 Thế giới",
-    "thethao": "⚽ Thể thao",
-    "thoisu": "📰 Thời sự",
-    "giai-tri": "🎬 Giải trí",
-    "suc-khoe": "🏥 Sức khỏe",
-    "xe": "🚗 Xe",
-    "du-lich": "✈️ Du lịch",
-    "N/A": "❓ Khác"
+    "giaoduc": "Giáo dục",
+    "khcn": "Khoa học & Công nghệ",
+    "kinhdoanh": "Kinh doanh",
+    "thegioi": "Thế giới",
+    "thethao": "Thể thao",
+    "thoisu": "Thời sự",
+    "giai-tri": "Giải trí",
+    "suc-khoe": "Sức khỏe",
+    "xe": "Xe",
+    "du-lich": "Du lịch",
+    "N/A": "Khác"
 }
 
 def plot_embedding_space(model, user_idx, history_urls, recommended_urls, article_map, articles_df, custom_user_vector=None):
@@ -31,7 +31,7 @@ def plot_embedding_space(model, user_idx, history_urls, recommended_urls, articl
         if custom_user_vector is not None:
             user_emb = custom_user_vector
             user_source_note = "User Vector: Tổng hợp từ sở thích bạn vừa nhập"
-            user_display_name = "👤 BẠN (Sở thích mới)"
+            user_display_name = "BẠN (Sở thích mới)"
         else:
             if hasattr(model, 'user_embedding'):
                 user_emb = model.user_embedding.weight[user_idx].detach().cpu().numpy()
@@ -43,7 +43,7 @@ def plot_embedding_space(model, user_idx, history_urls, recommended_urls, articl
                 user_emb = model.gu.weight[user_idx].detach().cpu().numpy()
                 
             user_source_note = f"User Vector: Đã học từ lịch sử đọc (ID: {user_idx})"
-            user_display_name = "👤 BẠN (User đã học)"
+            user_display_name = "BẠN (User đã học)"
 
         if user_emb is None: return None
 
@@ -93,7 +93,7 @@ def plot_embedding_space(model, user_idx, history_urls, recommended_urls, articl
             cat = CATEGORY_MAP.get(info.get('source_category', ''), 'Khác')
             
             vectors.append(item_matrix[idx])
-            names.append(f"<b>✨ Gợi ý:</b> {title[:40]}...")
+            names.append(f"<b>Gợi ý:</b> {title[:40]}...")
             types.append("Recommendation")
             colors.append("#FFA502") 
             sizes.append(20)         
@@ -118,8 +118,8 @@ def plot_embedding_space(model, user_idx, history_urls, recommended_urls, articl
         plot_data = []
         groups = [
             ("User", "#FF4757", user_display_name), 
-            ("History", "#2ED573", "📚 Đã đọc"), 
-            ("Recommendation", "#FFA502", "✨ Gợi ý")
+            ("History", "#2ED573", "Đã đọc"), 
+            ("Recommendation", "#FFA502", "Gợi ý")
         ]
         
         for g_type, g_color, g_label in groups:

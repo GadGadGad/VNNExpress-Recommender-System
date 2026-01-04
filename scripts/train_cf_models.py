@@ -658,7 +658,7 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
              print(f"  Warning: {emb_filename} not found locally.")
              
              # Fallback: Auto-Download & Encode
-             print("  ⚠️ Attempting to download and encode on-the-fly (this may take time)...")
+             print("  Attempting to download and encode on-the-fly (this may take time)...")
              try:
                  from sentence_transformers import SentenceTransformer
                  import pandas as pd
@@ -675,7 +675,7 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
                  
                  model_name = hf_map.get(embedding_type)
                  if not model_name:
-                     print(f"  ❌ No HF model mapping for {embedding_type}. Fallback to Random.")
+                     print(f"  No HF model mapping for {embedding_type}. Fallback to Random.")
                      return None
                      
                  # Load Articles
@@ -683,9 +683,9 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
                  if articles_path:
                      if Path(articles_path).exists():
                          articles_path = Path(articles_path)
-                         print(f"  ✅ Using explicit articles file: {articles_path}")
+                         print(f"  Using explicit articles file: {articles_path}")
                      else:
-                         print(f"  ⚠️ Warning: Explicit articles path not found: {articles_path}")
+                         print(f"  Warning: Explicit articles path not found: {articles_path}")
                      print(f"  ... Falling back to auto-search in: {search_dirs}")
                      if not articles_path:
                          articles_path = resolve_path('articles.csv', search_dirs)
@@ -698,7 +698,7 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
                      if not articles_path: articles_path = Path('data/raw/articles.csv')
 
                  if not articles_path or not articles_path.exists():
-                     print("  ⚠️ Standard paths failed. Attempting deep search for 'articles.csv'...")
+                     print("  Standard paths failed. Attempting deep search for 'articles.csv'...")
                      potential_roots = ['/kaggle/input', 'data']
                      found = False
                      for root in potential_roots:
@@ -706,14 +706,14 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
                          for r, d, f in os.walk(root):
                              if 'articles.csv' in f:
                                  articles_path = Path(r) / 'articles.csv'
-                                 print(f"  🔍 Found articles.csv via deep search: {articles_path}")
+                                 print(f"  Found articles.csv via deep search: {articles_path}")
                                  found = True
                                  break
                          if found: break
                  # ----------------------------
                  
                  if not articles_path or not articles_path.exists():
-                     print(f"  ❌ Articles file not found. Cannot encode. Fallback to Random.")
+                     print(f"  Articles file not found. Cannot encode. Fallback to Random.")
                      return None
                      
                  df = pd.read_csv(articles_path)
@@ -722,7 +722,7 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
                  # Prepare Text
                  text_col = 'abstract' if 'abstract' in df.columns else 'short_description'
                  if text_col not in df.columns:
-                     print(f"  ⚠️ neither 'abstract' nor 'short_description' found. Using title only.")
+                     print(f"  neither 'abstract' nor 'short_description' found. Using title only.")
                      df['text'] = df['title'].fillna('')
                  else:
                      df['text'] = df['title'].fillna('') + ' ' + df[text_col].fillna('')
@@ -739,13 +739,13 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
                  save_dir.mkdir(exist_ok=True)
                  save_path = save_dir / emb_filename
                  torch.save(embeddings, save_path)
-                 print(f"  ✅ Saved cached embeddings to {save_path}")
+                 print(f"  Saved cached embeddings to {save_path}")
                  
              except ImportError:
-                 print("  ❌ `sentence_transformers` not installed. Cannot auto-encode. Fallback to Random.")
+                 print("  `sentence_transformers` not installed. Cannot auto-encode. Fallback to Random.")
                  return None
              except Exception as e:
-                 print(f"  ❌ Auto-encoding failed: {e}. Fallback to Random.")
+                 print(f"  Auto-encoding failed: {e}. Fallback to Random.")
                  return None
 
     elif embedding_type == 'tfidf':
@@ -1077,7 +1077,7 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
         
         if n_graph_interactions > n_train_interactions:
             print(f"\n" + "!"*60)
-            print(f"⚠️  CRITICAL LEAKAGE DETECTED!")
+            print(f"CRITICAL LEAKAGE DETECTED!")
             print(f"   Message Passing Graph has {n_graph_interactions:,} user-item interactions.")
             print(f"   Training Set has only {n_train_interactions:,} interactions.")
             print(f"   Leakage: {n_graph_interactions - n_train_interactions:,} test edges are visible to the model!")

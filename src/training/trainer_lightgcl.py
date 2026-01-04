@@ -304,7 +304,7 @@ class LightGCLTrainer:
                     
                     if save_path:
                         self.save_model(save_path, epoch, eval_metrics)
-                        print("  ★ New best model saved!")
+                        print("  * New best model saved!")
                 else:
                     no_improve += eval_every
                     

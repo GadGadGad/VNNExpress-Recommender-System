@@ -388,7 +388,7 @@ class HybridTrainer:
                     best_epoch = epoch
                     no_improve = 0
                     self.save_model(save_path)
-                    print(f"  ★ New best Recall@20: {best_recall:.4f}")
+                    print(f"  * New best Recall@20: {best_recall:.4f}")
                 else:
                     no_improve += 1
                     

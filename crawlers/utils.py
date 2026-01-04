@@ -67,7 +67,7 @@ class Cache:
             except Exception as e:
                 self.log.warning(f"Cache delete failed: {e}")
 
-# 🔽 --- THÊM MỚI: BẢN ĐỒ CATEGORY --- 🔽
+# --- THÊM MỚI: BẢN ĐỒ CATEGORY ---
 VNEXPRESS_CATEGORIES = {
     "thoi-su": "1001005",
     "the-gioi": "1001002",
@@ -90,10 +90,10 @@ VNEXPRESS_CATEGORIES = {
 }
 # Bản đồ ngược để tra cứu ID nhanh
 _VNEXPRESS_ID_TO_NAME = {v: k for k, v in VNEXPRESS_CATEGORIES.items()}
-# 🔼 --- KẾT THÚC THÊM MỚI --- 🔼
+# --- KẾT THÚC THÊM MỚI ---
 
 
-# 🔽 --- THÊM MỚI: HÀM LOOKUP --- 🔽
+# --- THÊM MỚI: HÀM LOOKUP ---
 def resolve_category_id(category_input: str) -> Optional[str]:
     """
     Dịch tên category (ví dụ: 'the-gioi') hoặc ID ('1001002')
@@ -113,4 +113,4 @@ def resolve_category_id(category_input: str) -> Optional[str]:
 
     # 3. Không tìm thấy
     return None
-# 🔼 --- KẾT THÚC THÊM MỚI --- 🔼
+# --- KẾT THÚC THÊM MỚI ---

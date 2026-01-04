@@ -23,11 +23,11 @@ def create_notebook():
         "cell_type": "markdown",
         "metadata": {},
         "source": [
-            "# 📊 VNExpress Recommendation Benchmark\n",
+            "# VNExpress Recommendation Benchmark\n",
             "\n",
             "**Comprehensive benchmark** comparing Content-Based (CB) and Collaborative Filtering (CF) approaches.\n",
             "\n",
-            "## 📋 Experiment Design\n",
+            "## Experiment Design\n",
             "- **CB Models**: TF-IDF (Vietnamese), VN-SBERT, BGE-M3\n",
             "- **CF Models**: SimGCL, XSimGCL, LightGCL, MA-HCL, Sim-MAHGN\n",
             "- **Protocols**: Full Ranking, LOO100, Cold-Start\n",
@@ -43,7 +43,7 @@ def create_notebook():
             "!git clone https://github.com/GadGadGad/DS300-Final-Project.git project\n",
             "%cd project\n",
             "!pip install -q torch torch_geometric pandas numpy scikit-learn tqdm sentence-transformers underthesea\n",
-            "print('✅ Setup complete!')"
+            "print('Setup complete!')"
         ],
         "execution_count": None,
         "outputs": []
@@ -53,7 +53,7 @@ def create_notebook():
     cells.append({
         "cell_type": "markdown",
         "metadata": {},
-        "source": ["## 📁 Step 1: Data Setup\n", "Copy data from Kaggle input and prepare directories."]
+        "source": ["## Step 1: Data Setup\n", "Copy data from Kaggle input and prepare directories."]
     })
     
     cells.append({
@@ -74,7 +74,7 @@ def create_notebook():
         "cell_type": "markdown",
         "metadata": {},
         "source": [
-            "## 🔧 Step 2: Graph Generation\\n",
+            "## Step 2: Graph Generation\\n",
             "Build three graph variants for ablation study:\\n",
             "- **G1 (Bipartite)**: User-Article edges only\\n",
             "- **G2 (Heterogeneous)**: + Social edges (reply/interaction)\\n",
@@ -89,18 +89,18 @@ def create_notebook():
             "# ===== G1: Strict Bipartite =====\\n",
             "!python src/data/convert_to_gnn.py --graph-type bipartite --output data/processed/strict_g1 --min-user-interactions 2 --min-article-interactions 2\\n",
             "!python src/data/convert_to_gnn.py --graph-type with-negatives --output data/processed/strict_g1 --min-user-interactions 2 --min-article-interactions 2\\n",
-            "print('✅ G1 (Bipartite) complete!')\\n",
+            "print('G1 (Bipartite) complete!')\\n",
             "\\n",
             "# ===== G2: Strict Heterogeneous =====\\n",
             "!python src/data/convert_to_gnn.py --graph-type hetero --output data/processed/strict_g2 --min-user-interactions 2 --min-article-interactions 2\\n",
             "!python src/data/convert_to_gnn.py --graph-type with-negatives --output data/processed/strict_g2 --min-user-interactions 2 --min-article-interactions 2\\n",
-            "print('✅ G2 (Heterogeneous) complete!')\\n",
+            "print('G2 (Heterogeneous) complete!')\\n",
             "\\n",
             "# ===== G3: Strict Category-Augmented =====\\n",
             "!python src/data/convert_to_gnn.py --graph-type hetero --output data/processed/strict_g3 --min-user-interactions 2 --min-article-interactions 2\\n",
             "!python src/data/augment_graph_with_categories.py --input data/processed/strict_g3 --output data/processed/strict_g3\\n",
             "!python src/data/convert_to_gnn.py --graph-type with-negatives --output data/processed/strict_g3 --min-user-interactions 2 --min-article-interactions 2\\n",
-            "print('✅ G3 (Category) complete!')\\n",
+            "print('G3 (Category) complete!')\\n",
             "\\n",
             "# List all graphs\\n",
             "!ls data/processed/"
@@ -114,7 +114,7 @@ def create_notebook():
         "cell_type": "markdown",
         "metadata": {},
         "source": [
-            "## 🧠 Step 3: Embedding Generation\n",
+            "## Step 3: Embedding Generation\n",
             "Generate TF-IDF and neural embeddings for Content-Based models."
         ]
     })
@@ -125,7 +125,7 @@ def create_notebook():
         "source": [
             "# Generate TF-IDF embeddings with Vietnamese preprocessing\n",
             "!python scripts/generate_multi_embeddings.py --model tfidf --data-path data/processed/strict_g2\n",
-            "print('✅ TF-IDF embeddings generated!')"
+            "print('TF-IDF embeddings generated!')"
         ],
         "execution_count": None,
         "outputs": []
@@ -138,7 +138,7 @@ def create_notebook():
             "# Generate neural embeddings (VN-SBERT, BGE-M3)\n",
             "!python scripts/generate_multi_embeddings.py --model vietnamese-sbert --data-path data/processed/strict_g2\n",
             "!python scripts/generate_multi_embeddings.py --model bge-m3 --data-path data/processed/strict_g2\n",
-            "print('✅ Neural embeddings generated!')\n",
+            "print('Neural embeddings generated!')\n",
             "!ls checkpoints/"
         ],
         "execution_count": None,
@@ -149,7 +149,7 @@ def create_notebook():
     cells.append({
         "cell_type": "markdown",
         "metadata": {},
-        "source": ["## ⚙️ Step 4: Hyperparameters\n", "Define standard hyperparameters for fair comparison."]
+        "source": ["## Step 4: Hyperparameters\n", "Define standard hyperparameters for fair comparison."]
     })
     
     cells.append({
@@ -175,7 +175,7 @@ def create_notebook():
             f"CF_MODELS = {CF_MODELS}\\n",
             f"PROTOCOLS = {PROTOCOLS}\\n",
             "\\n",
-            "print('✅ Hyperparameters set!')\\n",
+            "print('Hyperparameters set!')\\n",
             "print(f'Graph variants: {{list(GRAPH_PATHS.keys())}}')"
         ],
         "execution_count": None,
@@ -187,7 +187,7 @@ def create_notebook():
         "cell_type": "markdown",
         "metadata": {},
         "source": [
-            "## 📝 Step 5: Content-Based (CB) Experiments\n",
+            "## Step 5: Content-Based (CB) Experiments\n",
             "Benchmark CB models across all protocols."
         ]
     })
@@ -209,7 +209,7 @@ def create_notebook():
             "            --eval-protocol {protocol} \\\\\\n",
             "            --output results/cb_{model}_{protocol}.json\\n",
             "\\n",
-            "print('\\\\n✅ CB experiments complete!')"
+            "print('\\\\nCB experiments complete!')"
         ],
         "execution_count": None,
         "outputs": []
@@ -220,7 +220,7 @@ def create_notebook():
         "cell_type": "markdown",
         "metadata": {},
         "source": [
-            "## 🔗 Step 6: Collaborative Filtering (CF) Experiments\\n",
+            "## Step 6: Collaborative Filtering (CF) Experiments\\n",
             "Train and evaluate GNN-based CF models on all graph variants (G1, G2, G3)."
         ]
     })
@@ -247,7 +247,7 @@ def create_notebook():
             "                --eval-protocol {protocol} \\\\\\n",
             "                --save-results results/cf_{model}_{graph_name}_{protocol}.json\\n",
             "\\n",
-            "print('\\\\n✅ CF experiments complete!')"
+            "print('\\\\nCF experiments complete!')"
         ],
         "execution_count": None,
         "outputs": []
@@ -258,7 +258,7 @@ def create_notebook():
         "cell_type": "markdown",
         "metadata": {},
         "source": [
-            "## 📊 Step 7: Results Aggregation\n",
+            "## Step 7: Results Aggregation\n",
             "Compile all results into a publishable format."
         ]
     })
@@ -304,13 +304,13 @@ def create_notebook():
             "df = pd.DataFrame(results)\n",
             "df = df.sort_values(['Type', 'Protocol', 'Recall@10'], ascending=[True, True, False])\n",
             "\n",
-            "print('\\n📊 BENCHMARK RESULTS')\n",
+            "print('\\nBENCHMARK RESULTS')\n",
             "print('=' * 80)\n",
             "print(df.to_string(index=False))\n",
             "\n",
             "# Save to CSV\n",
             "df.to_csv('results/benchmark_summary.csv', index=False)\n",
-            "print('\\n✅ Results saved to results/benchmark_summary.csv')"
+            "print('\\nResults saved to results/benchmark_summary.csv')"
         ],
         "execution_count": None,
         "outputs": []
@@ -322,7 +322,7 @@ def create_notebook():
         "metadata": {},
         "source": [
             "# Highlight best models per protocol\n",
-            "print('\\n🏆 BEST MODELS BY PROTOCOL')\n",
+            "print('\\nBEST MODELS BY PROTOCOL')\n",
             "print('=' * 50)\n",
             "\n",
             "for protocol in PROTOCOLS:\n",
@@ -330,7 +330,7 @@ def create_notebook():
             "    if len(protocol_df) > 0:\n",
             "        best = protocol_df.loc[protocol_df['Recall@10'].idxmax()]\n",
             "        print(f\"\\n{protocol.upper()}:\")\n",
-            "        print(f\"  🥇 {best['Type']}/{best['Model']}: R@10={best['Recall@10']:.4f}, NDCG@10={best['NDCG@10']:.4f}\")"
+            "        print(f\"  {best['Type']}/{best['Model']}: R@10={best['Recall@10']:.4f}, NDCG@10={best['NDCG@10']:.4f}\")"
         ],
         "execution_count": None,
         "outputs": []
@@ -340,7 +340,7 @@ def create_notebook():
     cells.append({
         "cell_type": "markdown",
         "metadata": {},
-        "source": ["## 📥 Step 8: Download Results\n", "Download trained models and benchmark results."]
+        "source": ["## Step 8: Download Results\n", "Download trained models and benchmark results."]
     })
     
     cells.append({
@@ -349,7 +349,7 @@ def create_notebook():
         "source": [
             "# Create archive for download\n",
             "!zip -r benchmark_results.zip results/ models/ checkpoints/\n",
-            "print('\\n✅ Results archived! Download benchmark_results.zip')"
+            "print('\\nResults archived! Download benchmark_results.zip')"
         ],
         "execution_count": None,
         "outputs": []
@@ -382,7 +382,7 @@ if __name__ == "__main__":
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(notebook, f, indent=2, ensure_ascii=False)
     
-    print(f"✅ Notebook saved to {output_path}")
+    print(f"Notebook saved to {output_path}")
     print(f"   - CB Models: {CB_MODELS}")
     print(f"   - CF Models: {CF_MODELS}")
     print(f"   - Protocols: {PROTOCOLS}")

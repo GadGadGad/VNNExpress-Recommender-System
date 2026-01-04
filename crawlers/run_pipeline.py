@@ -62,7 +62,7 @@ def main(args):
     Runs the full 3-step pipeline based on parsed arguments.
     """
     start_time = Path.cwd()
-    console.rule(f"[bold magenta]🚀 Starting VnExpress Crawler Pipeline[/bold magenta]")
+    console.rule(f"[bold magenta]Starting VnExpress Crawler Pipeline[/bold magenta]")
 
     output_dir = Path(args.output)
     log.info(f"All data will be saved in: [cyan]{start_time / output_dir}[/cyan]")
@@ -109,9 +109,9 @@ def main(args):
                     use_tqdm=args.use_tqdm,
                     console=console
                 )
-                console.log(f"[bold green]✅ Step '1. Discover Articles' completed successfully.[/bold green]\n")
+                console.log(f"[bold green]Step '1. Discover Articles' completed successfully.[/bold green]\n")
             except Exception as e:
-                console.log(f"[bold red]❌ ERROR IN STEP: '1. Discover Articles'[/bold red]")
+                console.log(f"[bold red]ERROR IN STEP: '1. Discover Articles'[/bold red]")
                 log.error(f"Pipeline HALTED due to an error in Step 1: {e}", exc_info=True)
                 sys.exit(1)
         else:
@@ -136,10 +136,10 @@ def main(args):
                     worker_id="Step2",
                     console=console
                 )
-                console.log(f"[bold green]✅ Step '2. Process Comments (Deep Crawl)' completed successfully.[/bold green]\n")
+                console.log(f"[bold green]Step '2. Process Comments (Deep Crawl)' completed successfully.[/bold green]\n")
 
             except Exception as e:
-                console.log(f"[bold red]❌ ERROR IN STEP: '2. Process Comments (Deep Crawl)'[/bold red]")
+                console.log(f"[bold red]ERROR IN STEP: '2. Process Comments (Deep Crawl)'[/bold red]")
                 log.error(f"Pipeline HALTED due to an error in Step 2: {e}", exc_info=True)
                 sys.exit(1)
 
@@ -163,9 +163,9 @@ def main(args):
                     no_progress=no_progress_value,
                     use_tqdm=args.use_tqdm
                 )
-                console.log(f"[bold green]✅ Step '3. Enrich Users' completed successfully.[/bold green]\n")
+                console.log(f"[bold green]Step '3. Enrich Users' completed successfully.[/bold green]\n")
             except Exception as e:
-                console.log(f"[bold red]❌ ERROR IN STEP: '3. Enrich Users'[/bold red]")
+                console.log(f"[bold red]ERROR IN STEP: '3. Enrich Users'[/bold red]")
                 log.error(f"Pipeline HALTED due to an error in Step 3: {e}", exc_info=True)
                 sys.exit(1)
         else:
@@ -187,16 +187,16 @@ def main(args):
                     is_headless=args.headless,
                     use_cache=(not args.no_cache)
                 )
-                console.log(f"[bold green]✅ Step '4. Extract Metadata Only' completed successfully.[/bold green]\n")
+                console.log(f"[bold green]Step '4. Extract Metadata Only' completed successfully.[/bold green]\n")
             except Exception as e:
-                console.log(f"[bold red]❌ ERROR IN STEP: '4. Extract Metadata Only'[/bold red]")
+                console.log(f"[bold red]ERROR IN STEP: '4. Extract Metadata Only'[/bold red]")
                 log.error(f"Pipeline HALTED due to an error in Step 4: {e}", exc_info=True)
                 sys.exit(1)
         else:
             log.info("Skipping Step 4 (Extract Metadata Only) as requested.")
 
 
-        console.rule(f"[bold green]🎉 Pipeline Finished Successfully! 🎉[/bold green]")
+        console.rule(f"[bold green]Pipeline Finished Successfully![/bold green]")
         log.info(f"All output is available in the '{output_dir}' directory.")
 
         pipeline_completed = True

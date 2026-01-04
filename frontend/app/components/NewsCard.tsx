@@ -13,7 +13,7 @@ interface NewsCardProps {
 }
 
 export function NewsCard({ article, onClick, onLike, variant = 'rec' }: NewsCardProps) {
-    const isBoosted = article.source?.includes('⚡');
+    const isBoosted = article.source?.includes('Boosted');
 
     const badgeStyle =
         variant === 'search' ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' :
@@ -69,7 +69,7 @@ export function NewsCard({ article, onClick, onLike, variant = 'rec' }: NewsCard
                 </div>
                 {article.score > 0 && (
                     <div className="flex items-center gap-1 font-bold text-indigo-400 ml-auto bg-indigo-500/10 px-2 py-0.5 rounded-md">
-                        🎯 {article.score.toFixed(3)}
+                        Score: {article.score.toFixed(3)}
                     </div>
                 )}
             </div>

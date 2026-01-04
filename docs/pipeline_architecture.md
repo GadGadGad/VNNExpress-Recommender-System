@@ -4,13 +4,13 @@
 
 ```mermaid
 flowchart TB
-    subgraph DataCollection["📥 Data Collection"]
+    subgraph DataCollection["Data Collection"]
         A1[VnExpress Articles]
         A2[User Comments/Replies]
         A3[User Profiles]
     end
 
-    subgraph Preprocessing["📊 Preprocessing"]
+    subgraph Preprocessing["Preprocessing"]
         B1[K-Core Filtering]
         B2[ID Mapping]
         B3["Time Decay Weighting"]
@@ -18,7 +18,7 @@ flowchart TB
         B5[Feature Extraction]
     end
 
-    subgraph Training["🧠 Model Training"]
+    subgraph Training["Model Training"]
         subgraph CF["Collaborative Filtering"]
             C1[XSimGCL]
             C2[LightGCL]
@@ -31,19 +31,19 @@ flowchart TB
         end
     end
 
-    subgraph Inference["🔮 Inference"]
+    subgraph Inference["Inference"]
         D1[CF Scoring]
         D2[CB Scoring]
         D3["Hybrid Blending: α·CF + (1-α)·CB"]
     end
 
-    subgraph PostProcess["📰 Post-Processing"]
+    subgraph PostProcess["Post-Processing"]
         E1["1. Freshness Boost"]
         E2["2. Calibration (KL-Div)"]
         E3["3. MMR Diversity"]
     end
 
-    F[📋 Top-K Recommendations]
+    F[Top-K Recommendations]
 
     A1 --> B1
     A2 --> B1

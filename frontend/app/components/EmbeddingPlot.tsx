@@ -20,7 +20,7 @@ export function EmbeddingPlot({ data }: { data: any[] }) {
                 data={data}
                 layout={{
                     autosize: true,
-                    title: { text: '🗺️ Semantic Atlas', font: { color: '#fff' } },
+                    title: { text: 'Semantic Atlas', font: { color: '#fff' } },
                     hovermode: 'closest',
                     xaxis: { showgrid: false, zeroline: false, showticklabels: false },
                     yaxis: { showgrid: false, zeroline: false, showticklabels: false },

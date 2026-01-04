@@ -104,7 +104,7 @@ def basic_stats(df: pd.DataFrame, name: str) -> dict:
 def analyze_articles(df: pd.DataFrame, category_name: str = "All"):
     """Analyze articles dataframe"""
     print(f"\n{'='*60}")
-    print(f"📰 ARTICLES ANALYSIS - {category_name}")
+    print(f"ARTICLES ANALYSIS - {category_name}")
     print(f"{'='*60}")
     
     if df.empty:
@@ -156,7 +156,7 @@ def analyze_articles(df: pd.DataFrame, category_name: str = "All"):
 def analyze_replies(df: pd.DataFrame, category_name: str = "All"):
     """Analyze replies/comments dataframe"""
     print(f"\n{'='*60}")
-    print(f"💬 REPLIES ANALYSIS - {category_name}")
+    print(f"REPLIES ANALYSIS - {category_name}")
     print(f"{'='*60}")
     
     if df.empty:
@@ -215,7 +215,7 @@ def analyze_replies(df: pd.DataFrame, category_name: str = "All"):
 def analyze_users(df: pd.DataFrame, category_name: str = "All"):
     """Analyze user profiles dataframe"""
     print(f"\n{'='*60}")
-    print(f"👥 USER PROFILES ANALYSIS - {category_name}")
+    print(f"USER PROFILES ANALYSIS - {category_name}")
     print(f"{'='*60}")
     
     if df.empty:
@@ -253,7 +253,7 @@ def analyze_users(df: pd.DataFrame, category_name: str = "All"):
 def analyze_metadata(df: pd.DataFrame, category_name: str = "All"):
     """Analyze metadata dataframe"""
     print(f"\n{'='*60}")
-    print(f"🏷️ METADATA ANALYSIS - {category_name}")
+    print(f"METADATA ANALYSIS - {category_name}")
     print(f"{'='*60}")
     
     if df.empty:
@@ -302,7 +302,7 @@ def analyze_metadata(df: pd.DataFrame, category_name: str = "All"):
 def create_visualizations(merged_data: dict, category_stats: dict):
     """Create and save visualizations"""
     print(f"\n{'='*60}")
-    print("📊 CREATING VISUALIZATIONS")
+    print("CREATING VISUALIZATIONS")
     print(f"{'='*60}")
     
     # 1. Articles per category
@@ -497,7 +497,7 @@ def generate_summary_report(merged_stats: dict, category_stats: dict):
     report.append(f"Generated at: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
     
     # Overview
-    report.append("\n## 📊 Tổng quan\n")
+    report.append("\n## Tổng quan\n")
     report.append("| Metric | Value |")
     report.append("|--------|-------|")
     report.append(f"| Tổng số bài viết | {merged_stats['articles'].get('total_articles', 0):,} |")
@@ -506,7 +506,7 @@ def generate_summary_report(merged_stats: dict, category_stats: dict):
     report.append(f"| Số danh mục | {len(CATEGORIES)} |")
     
     # Category comparison
-    report.append("\n## 📁 So sánh theo danh mục\n")
+    report.append("\n## So sánh theo danh mục\n")
     report.append("| Danh mục | Bài viết | Bình luận | Người dùng | TB BL/bài |")
     report.append("|----------|----------|-----------|------------|-----------|")
     for cat in CATEGORIES:
@@ -520,7 +520,7 @@ def generate_summary_report(merged_stats: dict, category_stats: dict):
     
     # Top authors
     if 'top_authors' in merged_stats['articles']:
-        report.append("\n## ✍️ Top 10 tác giả (theo số bài)\n")
+        report.append("\n## Top 10 tác giả (theo số bài)\n")
         report.append("| Tác giả | Số bài viết |")
         report.append("|---------|-------------|")
         for author, count in list(merged_stats['articles']['top_authors'].items())[:10]:
@@ -528,7 +528,7 @@ def generate_summary_report(merged_stats: dict, category_stats: dict):
     
     # Top commenters
     if 'top_commenters' in merged_stats['replies']:
-        report.append("\n## 💬 Top 10 người bình luận\n")
+        report.append("\n## Top 10 người bình luận\n")
         report.append("| Người dùng | Số bình luận |")
         report.append("|------------|--------------|")
         for user, count in list(merged_stats['replies']['top_commenters'].items())[:10]:
@@ -536,14 +536,14 @@ def generate_summary_report(merged_stats: dict, category_stats: dict):
     
     # Top tags
     if 'top_tags' in merged_stats['metadata']:
-        report.append("\n## 🏷️ Top 20 tags phổ biến\n")
+        report.append("\n## Top 20 tags phổ biến\n")
         report.append("| Tag | Số lượng |")
         report.append("|-----|----------|")
         for tag, count in list(merged_stats['metadata']['top_tags'].items())[:20]:
             report.append(f"| {tag} | {count:,} |")
     
     # Visualizations
-    report.append("\n## 📈 Visualizations\n")
+    report.append("\n## Visualizations\n")
     report.append("- `category_comparison.png`: So sánh các chỉ số theo danh mục")
     report.append("- `content_length_distribution.png`: Phân bố độ dài nội dung")
     report.append("- `reactions_distribution.png`: Phân bố reactions")
@@ -559,18 +559,18 @@ def generate_summary_report(merged_stats: dict, category_stats: dict):
 
 def main():
     print("=" * 70)
-    print("🔍 VNExpress Crawler Data - Exploratory Data Analysis")
+    print("VNExpress Crawler Data - Exploratory Data Analysis")
     print("=" * 70)
     
     # Analyze each category
     print("\n" + "=" * 70)
-    print("📁 ANALYZING INDIVIDUAL CATEGORIES")
+    print("ANALYZING INDIVIDUAL CATEGORIES")
     print("=" * 70)
     
     category_stats = {}
     for category in CATEGORIES:
         print(f"\n{'─'*60}")
-        print(f"📂 Category: {CATEGORY_NAMES.get(category, category)} ({category})")
+        print(f"Category: {CATEGORY_NAMES.get(category, category)} ({category})")
         print(f"{'─'*60}")
         
         data = load_category_data(category)
@@ -585,7 +585,7 @@ def main():
     
     # Merge and analyze all
     print("\n" + "=" * 70)
-    print("📊 ANALYZING MERGED DATA (ALL CATEGORIES)")
+    print("ANALYZING MERGED DATA (ALL CATEGORIES)")
     print("=" * 70)
     
     merged_data = merge_all_categories()
@@ -604,8 +604,8 @@ def main():
     generate_summary_report(merged_stats, category_stats)
     
     print("\n" + "=" * 70)
-    print("✅ EDA COMPLETED!")
-    print(f"📁 Output directory: {OUTPUT_DIR}")
+    print("EDA COMPLETED!")
+    print(f"Output directory: {OUTPUT_DIR}")
     print("=" * 70)
 
 

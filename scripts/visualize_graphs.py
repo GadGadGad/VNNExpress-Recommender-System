@@ -127,7 +127,7 @@ def create_g1_bipartite():
     plt.tight_layout()
     plt.savefig(OUTPUT_DIR / "g1_bipartite.png", dpi=150, bbox_inches='tight', facecolor=COLORS['bg'])
     plt.close()
-    print("✓ Saved: plots/g1_bipartite.png")
+    print("Saved: plots/g1_bipartite.png")
 
 
 def create_g2_heterogeneous():
@@ -196,7 +196,7 @@ def create_g2_heterogeneous():
     plt.tight_layout()
     plt.savefig(OUTPUT_DIR / "g2_heterogeneous.png", dpi=150, bbox_inches='tight', facecolor=COLORS['bg'])
     plt.close()
-    print("✓ Saved: plots/g2_heterogeneous.png")
+    print("Saved: plots/g2_heterogeneous.png")
 
 
 def create_g3_category_hubs():
@@ -264,7 +264,7 @@ def create_g3_category_hubs():
     plt.tight_layout()
     plt.savefig(OUTPUT_DIR / "g3_category_hubs.png", dpi=150, bbox_inches='tight', facecolor=COLORS['bg'])
     plt.close()
-    print("✓ Saved: plots/g3_category_hubs.png")
+    print("Saved: plots/g3_category_hubs.png")
 
 
 def create_g4_full_heterogeneous():
@@ -346,7 +346,7 @@ def create_g4_full_heterogeneous():
     plt.tight_layout()
     plt.savefig(OUTPUT_DIR / "g4_full_heterogeneous.png", dpi=150, bbox_inches='tight', facecolor=COLORS['bg'])
     plt.close()
-    print("✓ Saved: plots/g4_full_heterogeneous.png")
+    print("Saved: plots/g4_full_heterogeneous.png")
 
 
 def create_comparison_summary():
@@ -399,7 +399,7 @@ def create_comparison_summary():
     plt.savefig(OUTPUT_DIR / "graph_comparison_summary.png", dpi=150, bbox_inches='tight', 
                facecolor=COLORS['bg'])
     plt.close()
-    print("✓ Saved: plots/graph_comparison_summary.png")
+    print("Saved: plots/graph_comparison_summary.png")
 
 
 if __name__ == "__main__":

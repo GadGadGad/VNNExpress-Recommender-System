@@ -282,7 +282,7 @@ class VnExpressCrawler:
         total_time = end_time - self.start_time
 
         summary = (
-            f"Discovery Complete ✨\n\n"
+            f"Discovery Complete\n\n"
             f"[bold green]New Articles Found:[/bold green] {self.stats['articles_saved']}\n"
             f"Total Time: {total_time:.2f} seconds\n"
             f"Cache Hits: {self.stats['cache_hits']}\n"

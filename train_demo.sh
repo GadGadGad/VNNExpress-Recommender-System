@@ -6,7 +6,7 @@
 export PYTHONPATH=$PYTHONPATH:$(pwd)
 
 echo "========================================================"
-echo "🚀 STARTING DEMO RESTORATION PROCESS"
+echo "STARTING DEMO TRAINING PROCESS"
 echo "========================================================"
 
 # 1. Create directories
@@ -43,6 +43,6 @@ for model in "${MODELS[@]}"; do
 done
 
 echo "========================================================"
-echo "✅ RESTORATION COMPLETE!"
+echo "TRAINING COMPLETE!"
 echo "Please restart the backend/full-stack script now."
 echo "========================================================"
