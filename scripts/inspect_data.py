@@ -14,8 +14,8 @@ try:
         data = graph_data['graph']
         print("HeteroData Keys:", data.keys) # Node/Edge types
         
-        # Try to access specific edge storage
-        # Note: HeteroData keys are usually tuples or strings
+        # Access specific edge storage
+        # HeteroData keys are usually tuples or strings
         try:
             edge_store = data[('user', 'comments', 'article')]
             print("Edge Store Keys:", edge_store.keys())

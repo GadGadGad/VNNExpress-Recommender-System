@@ -30,7 +30,7 @@ def discover_trained_models():
         "graph_variants": ["strict_g1", "strict_g2", "strict_g3"] # Default variants
     }
     
-    # 1. Discover CF Models (GNNs)
+    # Discover CF Models (GNNs)
     search_dirs = [settings.MODELS_DIR, os.path.join(settings.MODELS_DIR, "models")]
     cf_catalog = ["MA-HCL", "SimGCL", "XSimGCL", "LightGCL", "LightGCN"]
     
@@ -53,7 +53,7 @@ def discover_trained_models():
     if found_variants:
         discovered["graph_variants"] = sorted(list(found_variants))
     
-    # 2. Discover CB Models (Embedders)
+    # Discover CB Models (Embedders)
     emb_map = {
         "vn-sbert": "vietnamese-sbert",
         "bge-m3": "bge-m3",
@@ -101,7 +101,7 @@ def load_resources(data_dir=settings.DATA_DIR, raw_dir=settings.RAW_DIR, specifi
     if a_map_path.exists():
         with open(a_map_path) as f: article_map_cf = json.load(f)
 
-    # 3. Graph Data (Adj matrix + Mappings cache)
+    # Graph Data (Adj matrix + Mappings cache)
     adj_norm = None
     if specific_graph_path and Path(specific_graph_path).exists():
         cf_cache_path = Path(specific_graph_path)
@@ -115,6 +115,7 @@ def load_resources(data_dir=settings.DATA_DIR, raw_dir=settings.RAW_DIR, specifi
             edge_index = cache.get('edge_index')
             if 'user_map' in cache: user_map_cf = cache['user_map']
             if 'article_map' in cache: article_map_cf = cache['article_map']
+            # Cannot cache `articles_df` in arguments easily. Passed in.
         except: pass
     
     # Fallback: Load from full_hetero_graph.pt if adj_norm or edge_index is missing
@@ -359,8 +360,6 @@ def load_cf_model(model_name, n_users, n_items, graph_name=None):
         print(f"Failed to load {model_name}: {e}")
         return None
 
-# Caching this might be too heavy if articles_df is large, but for now ok.
-# Actually we can't cache `articles_df` in arguments easily. We pass it in.
 def load_cb_model(model_type, articles_df, embedding_name=None):
     """Load Content-Based Models (TF-IDF, PhoBERT, VN-SBERT, etc.)"""
     try:

@@ -12,7 +12,7 @@ class LightGCN(BaseGCL):
     
     def __init__(self, n_users, n_items, embedding_dim=64, n_layers=3, 
                  dropout=0.0, reg_weight=1e-4):
-        # Initialize BaseGCL with ssl_weight=0 and temp=1 (dummy)
+        # Initialize BaseGCL (dummy params)
         super().__init__(
             n_users=n_users, 
             n_items=n_items, 

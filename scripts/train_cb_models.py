@@ -101,7 +101,7 @@ def load_data(data_path: str, articles_path: str = None):
     article_texts = []
     if articles_path and Path(articles_path).exists():
         articles_df = pd.read_csv(articles_path)
-        # Assuming simple concat of title and desc
+
         article_texts = (
             articles_df['title'].fillna('') + ' ' + 
             articles_df['short_description'].fillna('')
@@ -188,7 +188,6 @@ def precompute_user_means(model, train_dict):
     print("Precomputing user means for training...")
     with torch.no_grad():
         # Iterate over all users in train_dict
-        # To speed up, we can flatten but loop is fine
         for u, items in train_dict.items():
             if not items: continue
             # Clip items just in case
@@ -234,9 +233,7 @@ def train_model(model, train_dict, n_items, epochs=10, batch_size=1024, lr=1e-3,
         users = all_users[perm]
         items = all_items[perm]
         
-        # Inner loop (Optional: disable inner tqdm to keep it clean, or use leave=False)
-        # We'll just iterate without tqdm for inner loop to minimize spam, 
-        # or use a very minimal one if batch count is huge. Here we silence inner loop.
+        # Inner loop: iterate without tqdm to minimize spam
         n_batches = (n_samples + batch_size - 1) // batch_size
         
         for i in range(0, n_samples, batch_size):

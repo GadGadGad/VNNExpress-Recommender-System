@@ -17,16 +17,16 @@ class BIGCF(nn.Module):
         self.n_intents = n_intents
         self.n_layers = n_layers
         
-        # 1. User/Item Embeddings (Individual preferences)
+        # User/Item Embeddings (Individual preferences)
         self.user_embedding = nn.Embedding(n_users, embedding_dim)
         self.item_embedding = nn.Embedding(n_items, embedding_dim)
         
-        # 2. Collective Intents (Latent prototypes shared across all users/items)
+        # Collective Intents (Latent prototypes shared across all users/items)
         # Represents global trends like "popularity" or "bandwagon effect"
         self.user_collective_intents = nn.Parameter(torch.randn(n_intents, embedding_dim))
         self.item_collective_intents = nn.Parameter(torch.randn(n_intents, embedding_dim))
         
-        # 3. Intent Attention (To map individual preferences to collective intents)
+        # Intent Attention (To map individual preferences to collective intents)
         self.user_intent_attn = nn.Linear(embedding_dim, n_intents)
         self.item_intent_attn = nn.Linear(embedding_dim, n_intents)
         
@@ -53,11 +53,11 @@ class BIGCF(nn.Module):
         return collective_view
 
     def forward(self, adj_norm):
-        # 1. Base Embeddings
+        # Base Embeddings
         u_emb = self.user_embedding.weight
         i_emb = self.item_embedding.weight
         
-        # 2. Intent Fusion (Bilateral)
+        # Intent Fusion (Bilateral)
         # Compute collective views
         u_collective = self.get_user_intents(u_emb)
         i_collective = self.get_item_intents(i_emb)

@@ -7,7 +7,7 @@ class PhoBERTWrapper:
     """Wrapper for pre-computed PhoBERT/SimCSE embeddings for recommendation."""
     
     def __init__(self, embeddings, articles_df):
-        self.embeddings = embeddings  # Shape: (n_articles, embed_dim)
+        self.embeddings = embeddings
         self.articles_df = articles_df
         # Normalize embeddings for cosine similarity
         self.embeddings_norm = F.normalize(embeddings, p=2, dim=1)
@@ -67,7 +67,7 @@ class NaiveBayesWrapper:
     def __init__(self, vectorizer, nb_model, X_matrix, articles_df):
         self.vectorizer = vectorizer
         self.nb = nb_model
-        self.X = X_matrix  # Sparse matrix
+        self.X = X_matrix
         self.articles_df = articles_df
     
     def recommend(self, history_indices, k=10):
@@ -77,7 +77,7 @@ class NaiveBayesWrapper:
         
         # Get category distribution from history
         history_cats = self.articles_df.iloc[history_indices]['source_category'].value_counts()
-        target_cat = history_cats.idxmax()  # Most frequent category
+        target_cat = history_cats.idxmax()
         
         # Get probability of each article belonging to target category
         proba = self.nb.predict_proba(self.X)
@@ -116,7 +116,7 @@ class SessionWrapper:
         
         # Exponential decay: more recent = higher weight
         weights = torch.tensor([0.9 ** (max_session - i - 1) for i in range(len(recent_indices))])
-        weights = weights / weights.sum()  # Normalize
+        weights = weights / weights.sum()
         
         # Weighted average of recent item embeddings
         recent_embs = self.embeddings_norm[recent_indices]

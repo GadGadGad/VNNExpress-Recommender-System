@@ -9,12 +9,12 @@ echo "========================================================"
 echo "STARTING DEMO TRAINING PROCESS"
 echo "========================================================"
 
-# 1. Create directories
+# Create directories
 echo ">> Creating directories..."
 mkdir -p models/checkpoints
 mkdir -p checkpoints
 
-# 2. Generate Embeddings (Content-Based)
+# Generate Embeddings (Content-Based)
 echo ""
 echo ">> 1. Generating ALL Content Embeddings..."
 # Using the 'all' option I saw in generate_multi_embeddings.py

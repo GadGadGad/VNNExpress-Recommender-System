@@ -37,7 +37,7 @@ def get_recommendations(request: Request, payload: RecRequest):
         raise HTTPException(status_code=503, detail="Data not loaded")
 
     # Load Models (Cached)
-    # Note: These load functions are LRU Cached, so repeated calls are fast
+    # These load functions are LRU Cached
     cf_model = None
     if payload.alpha > 0 and payload.model_choice:
          cf_model = load_cf_model(
@@ -54,7 +54,7 @@ def get_recommendations(request: Request, payload: RecRequest):
     # LOGIC MIRRORING app.py
     candidate_scores = {}
     
-    # 1. CF Branch
+    # CF Branch
     if cf_model and payload.user_id and payload.user_id in user_map_cf:
         uidx = user_map_cf[payload.user_id]
         raw_recs = get_recs(
@@ -67,7 +67,7 @@ def get_recommendations(request: Request, payload: RecRequest):
         for u, s in raw_recs:
              candidate_scores[u] = {'score': s * payload.alpha, 'source': 'Social'}
 
-    # 2. CB Branch (History based)
+    # CB Branch (History based)
     if cb_model and payload.history:
         # Get indices for history
         h_indices = []
@@ -84,7 +84,7 @@ def get_recommendations(request: Request, payload: RecRequest):
                  curr = candidate_scores.get(u, {'score': 0, 'source': 'Content'})
                  candidate_scores[u] = {'score': curr['score'] + norm, 'source': curr['source']}
 
-    # 3. Sort & Filter
+    # Sort & Filter
     final_recs = []
     
     # Convert dict to list

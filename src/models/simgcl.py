@@ -29,7 +29,7 @@ class SimGCL(BaseGCL):
         n_items: int,
         embedding_dim: int = 64,
         n_layers: int = 3,
-        eps: float = 0.1,           # Noise magnitude
+        eps: float = 0.1,
         dropout: float = 0.0,
         reg_weight: float = 1e-4,
         ssl_weight: float = 0.2,

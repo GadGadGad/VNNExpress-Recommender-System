@@ -44,7 +44,7 @@ class LightGCLDataLoader:
         # Mappings
         self.user2idx = {}
         self.idx2user = {}
-        self.item2idx = {}  # article URL -> index
+        self.item2idx = {}
         self.idx2item = {}
         
         self.n_users = 0
@@ -207,7 +207,7 @@ class LightGCLDataLoader:
         
         for user, items in user_items.items():
             if len(items) < 2:
-                # User chỉ có 1 interaction -> chỉ train
+                # User has only 1 interaction: train only
                 train_data.extend([(user, item) for item in items])
                 train_dict[user].update(items)
                 n_train_only += 1
@@ -317,7 +317,7 @@ def load_data(data_path: str,
     """
     loader = LightGCLDataLoader(data_path)
     
-    # Try loading processed data
+    # Load processed data
     if not force_reload:
         result = loader.load_processed()
         if result is not None:

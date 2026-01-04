@@ -137,7 +137,7 @@ def load_content_data(
         'n_items': n_items,
         'train_data': train_data,
         'train_dict': train_dict,
-        'test_dict': test_data,  # Already a dict {user: [items]}
+        'test_dict': test_data,
         'article_texts': article_texts,
         'idx2item': loader.idx2item,
         'item2idx': loader.item2idx,

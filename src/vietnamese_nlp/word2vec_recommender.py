@@ -51,7 +51,7 @@ class Word2VecRecommender:
         
         # Embedding options
         embedding_dim: int = 300,
-        aggregation: str = 'mean',  # 'mean', 'tfidf_weighted', 'sif'
+        aggregation: str = 'mean',
         
         # SIF parameters (Smooth Inverse Frequency)
         sif_alpha: float = 0.001,

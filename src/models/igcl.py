@@ -83,7 +83,7 @@ class IGCL(nn.Module):
         return cl_loss
 
     def calculate_loss(self, adj_norm, users, pos_items, neg_items):
-        # 1. Main View (BPR)
+        # Main View (BPR)
         user_all, item_all = self.forward(adj_norm)
         u_g = user_all[users]
         pos_g = item_all[pos_items]
@@ -91,7 +91,7 @@ class IGCL(nn.Module):
         
         bpr_loss = -F.logsigmoid(torch.sum(u_g * pos_g, -1) - torch.sum(u_g * neg_g, -1)).mean()
         
-        # 2. Contrastive Views with Information Control
+        # Contrastive Views with Information Control
         # Generate two jittered views
         z1_u, z1_i = self.forward(adj_norm, perturb=True)
         z2_u, z2_i = self.forward(adj_norm, perturb=True)
@@ -102,7 +102,7 @@ class IGCL(nn.Module):
         # Information Inhibition Term (The "IGCL" core)
         inhibition = self.info_control_loss(z1_u[users], z2_u[users])
         
-        # 3. Reg Loss
+        # Reg Loss
         reg_loss = (u_g.norm(2).pow(2) + pos_g.norm(2).pow(2) + neg_g.norm(2).pow(2)) / users.shape[0]
         
         total_loss = bpr_loss + self.ssl_weight * ssl_loss + self.info_penalty * inhibition + 1e-4 * reg_loss

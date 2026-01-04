@@ -305,7 +305,7 @@ def create_visualizations(merged_data: dict, category_stats: dict):
     print("CREATING VISUALIZATIONS")
     print(f"{'='*60}")
     
-    # 1. Articles per category
+    # Articles per category
     if category_stats:
         fig, axes = plt.subplots(2, 2, figsize=(14, 10))
         
@@ -365,7 +365,7 @@ def create_visualizations(merged_data: dict, category_stats: dict):
         print(f"  Saved: category_comparison.png")
         plt.close()
     
-    # 2. Content length distribution (merged)
+    # Content length distribution (merged)
     if 'articles' in merged_data and not merged_data['articles'].empty:
         df = merged_data['articles'].copy()
         if 'content' in df.columns:
@@ -398,7 +398,7 @@ def create_visualizations(merged_data: dict, category_stats: dict):
             print(f"  Saved: content_length_distribution.png")
             plt.close()
     
-    # 3. Reactions distribution
+    # Reactions distribution
     if 'replies' in merged_data and not merged_data['replies'].empty:
         df = merged_data['replies'].copy()
         if 'parent_reactions' in df.columns:
@@ -435,7 +435,7 @@ def create_visualizations(merged_data: dict, category_stats: dict):
             print(f"  Saved: reactions_distribution.png")
             plt.close()
     
-    # 4. User join date distribution
+    # User join date distribution
     if 'user_profiles' in merged_data and not merged_data['user_profiles'].empty:
         df = merged_data['user_profiles'].copy()
         if 'join_date' in df.columns:
@@ -455,7 +455,7 @@ def create_visualizations(merged_data: dict, category_stats: dict):
             print(f"  Saved: user_join_distribution.png")
             plt.close()
     
-    # 5. Top tags word cloud / bar chart
+    # Top tags word cloud / bar chart
     if 'metadata' in merged_data and not merged_data['metadata'].empty:
         df = merged_data['metadata'].copy()
         if 'tags' in df.columns:

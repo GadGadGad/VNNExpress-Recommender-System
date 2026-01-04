@@ -23,7 +23,7 @@ def plot_embedding_space(model, user_idx, history_urls, recommended_urls, articl
     Vẽ biểu đồ phân tán 2D - Returns JSON for Plotly
     """
     try:
-        # --- 1. XÁC ĐỊNH VECTOR USER (NGUỒN GỐC) ---
+
         user_emb = None
         user_source_note = ""
         user_display_name = ""
@@ -47,7 +47,7 @@ def plot_embedding_space(model, user_idx, history_urls, recommended_urls, articl
 
         if user_emb is None: return None
 
-        # --- 2. LẤY VECTOR ITEM ---
+
         item_matrix = None
         if hasattr(model, 'item_embedding'):
             item_matrix = model.item_embedding.weight.detach().cpu().numpy()
@@ -60,7 +60,7 @@ def plot_embedding_space(model, user_idx, history_urls, recommended_urls, articl
         
         if item_matrix is None: return None
 
-        # --- 3. CHUẨN BỊ DỮ LIỆU ---
+
         url_to_idx = {u: i for u, i in article_map.items()}
         meta_map = articles_df.set_index('url')[['title', 'source_category', 'short_description']].fillna("").to_dict('index')
         
@@ -101,7 +101,7 @@ def plot_embedding_space(model, user_idx, history_urls, recommended_urls, articl
             
         if len(vectors) < 2: return None
 
-        # --- 4. PCA & JITTER ---
+
         n_comp = 2 if len(vectors) > 2 else 1
         pca = PCA(n_components=n_comp)
         vectors_2d = pca.fit_transform(np.array(vectors))
@@ -114,7 +114,7 @@ def plot_embedding_space(model, user_idx, history_urls, recommended_urls, articl
         noise[0] = 0
         vectors_2d = vectors_2d + noise
 
-        # --- 5. Return JSON Data for Frontend Plotly ---
+
         plot_data = []
         groups = [
             ("User", "#FF4757", user_display_name), 

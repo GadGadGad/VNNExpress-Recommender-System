@@ -18,15 +18,15 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 
 # Color palette
 COLORS = {
-    'user': '#3498DB',      # Blue
-    'article': '#2ECC71',   # Green
-    'category': '#E74C3C',  # Red
-    'author': '#9B59B6',    # Purple
-    'edge_ua': '#7F8C8D',   # Gray
+    'user': '#3498DB',
+    'article': '#2ECC71',
+    'category': '#E74C3C',
+    'author': '#9B59B6',
+    'edge_ua': '#7F8C8D',
     'edge_social': '#E67E22', # Orange
     'edge_category': '#F1C40F', # Yellow
-    'edge_author': '#1ABC9C',  # Teal
-    'bg': '#F8F9FA',        # Light gray background
+    'edge_author': '#1ABC9C',
+    'bg': '#F8F9FA',
 }
 
 
@@ -141,9 +141,9 @@ def create_g2_heterogeneous():
     
     # User-Article edges with WEIGHTS
     ua_edges = [
-        ('U1', 'A1', 3),  # High engagement
-        ('U1', 'A2', 1),  # Low engagement
-        ('U2', 'A2', 2),  # Medium
+        ('U1', 'A1', 3),
+        ('U1', 'A2', 1),
+        ('U2', 'A2', 2),
         ('U2', 'A3', 1),
         ('U3', 'A3', 3),
         ('U3', 'A4', 2),

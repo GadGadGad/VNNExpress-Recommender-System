@@ -159,7 +159,7 @@ class MetadataCrawler:
         try:
             with open(self.metadata_path, 'r', encoding='utf-8') as f:
                 reader = csv.reader(f)
-                next(reader)  # Skip header
+                next(reader)
                 for row in reader:
                     if row and len(row) >= 3:
                         url = row[0]
@@ -238,7 +238,7 @@ class MetadataCrawler:
                 logging.warning(f"Category extraction failed: {e}")
 
             # Scroll to bottom to trigger lazy loading of tags (more scrolls on retry)
-            scroll_attempts = 2 + attempt  # More scrolls on each retry
+            scroll_attempts = 2 + attempt
             try:
                 for _ in range(scroll_attempts):
                     self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
@@ -257,7 +257,7 @@ class MetadataCrawler:
             except Exception as e:
                 logging.warning(f"Tags extraction failed: {e}")
 
-            # If we got tags, no need to retry
+            # If tags retrieved, no need to retry
             if metadata["tags"]:
                 break
             elif attempt < max_retries - 1:

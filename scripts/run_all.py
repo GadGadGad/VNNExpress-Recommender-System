@@ -40,10 +40,10 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python scripts/run_all.py --full                    # Complete pipeline
-  python scripts/run_all.py --quick                   # Fast test run
-  python scripts/run_all.py --models sgl,ncl          # Train specific models
-  python scripts/run_all.py --experiments             # Run min_int experiments
+  python scripts/run_all.py --full
+  python scripts/run_all.py --quick
+  python scripts/run_all.py --models sgl,ncl
+  python scripts/run_all.py --experiments
         """
     )
     
@@ -106,7 +106,7 @@ Examples:
     print(f"Config: epochs={args.epochs}, embedding={args.embedding}, min_int={args.min_int}")
     print(f"Models: {args.models}")
     
-    # Ensure we're in project root
+    # Ensure project root context
     project_root = Path(__file__).parent.parent
     os.chdir(project_root)
     
@@ -145,7 +145,7 @@ Examples:
             "python", "scripts/train_and_compare_all.py",
             "--epochs", str(args.epochs),
             "--embedding", args.embedding,
-            "--min-interactions", args.min_int.split(',')[0],  # Use first value
+            "--min-interactions", args.min_int.split(',')[0],
             "--prepare"
         ]
         if args.skip_gnn:

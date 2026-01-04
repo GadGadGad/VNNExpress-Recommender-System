@@ -59,10 +59,6 @@ def get_test_dict(test_edge_index, protocol='full'):
     if protocol == 'full':
         return temp_dict
     elif protocol == 'loo':
-        # Leave-One-Out: Take ONLY the last item (assuming sorted by time)
-        # However, since we don't have timestamps here, we assume the input order 
-        # preserves time (which is true for our data processing pipeline).
-        # OR better: Randomly pick one if time is unknown, but here we trust the split order.
         loo_dict = {}
         for u, items in temp_dict.items():
             if len(items) > 0:
@@ -77,13 +73,6 @@ def get_train_dict(train_edge_index, test_edge_index=None, protocol='full'):
         train_dict[u].add(i)
         
     if protocol == 'loo' and test_edge_index is not None:
-        # IN LOO: The "Train" set for the model should arguably include 
-        # the "other" test items that were not picked as the evaluation target.
-        # But to be safe and consistent with GNN training (which used strict split),
-        # we will strictly use the provided train_edge_index.
-        # So no changes here. The "test" set in GNN was strictly held out.
-        # If we move items from test->train, we change the model's knowledge compared to GNN.
-        # So we keep it strict.
         pass
         
     return train_dict
@@ -92,15 +81,15 @@ def sparse_similarity(R, dense_output=False, method='cosine'):
     # R is sparse csr
     if method == 'jaccard':
         print("Computing Sparse Jaccard Similarity...")
-        # 1. Binarize R (treat all ratings as 1)
+        # Binarize R (treat all ratings as 1)
         R_bin = R.copy()
         R_bin.data = np.ones_like(R_bin.data)
         
-        # 2. Intersection (common items)
+        # Intersection (common items)
         # I[u, v] = |Items(u) AND Items(v)|
         intersection = R_bin.dot(R_bin.T)
         
-        # 3. Union
+        # Union
         # |Union| = |A| + |B| - |Intersection|
         # sizes[u] = |Items(u)|
         sizes = np.array(R_bin.sum(axis=1)).flatten()
@@ -168,13 +157,10 @@ def run_item_knn(R, n_users, n_items, similarity='cosine'):
 def run_slope_one(R, n_users, n_items):
     print("Computing Slope One Deviations (Dense)...")
     
-    # 1. Convert R to dense for deviation calculation (N_Users x N_Items)
-    # Note: R is (13k x 3.6k). Dense is ~180MB. Feasible.
+    # Convert R to dense for deviation calculation (N_Users x N_Items)
     R_dense = R.toarray()
     
-    # 2. Compute Deviation Matrix D[j,i]
-    
-    # Let R_bin be binary incidence matrix
+    # Compute Deviation Matrix D[j,i]
     R_bin = (R > 0).astype(np.float32)
     
     # Common Counts: C = R_bin.T @ R_bin
@@ -249,19 +235,19 @@ def main():
     
     print(f"Running {args.model} with {args.similarity} sim on {args.protocol} protocol.")
 
-    # 1. Load Data
+    # Load Data
     n_users, n_items, train_idx, train_ratings, test_idx = load_data(args.data_path)
     print(f"Data loaded: {n_users} users, {n_items} items.")
     print(f"Train edges: {train_idx.shape[1]}, Test edges: {test_idx.shape[1]}")
     
-    # 2. Build Sparse Interaction Matrix
+    # Build Sparse Interaction Matrix
     R = build_sparse_matrix(n_users, n_items, train_idx, train_ratings)
     
-    # 3. Helpers for Evaluation
+    # Helpers for Evaluation
     test_dict = get_test_dict(test_idx, protocol=args.protocol)
     train_dict = get_train_dict(train_idx, test_idx, protocol=args.protocol)
     
-    # 4. Run Model
+    # Run Model
     if args.model == 'user_knn':
         scores = run_user_knn(R, n_users, n_items, similarity=args.similarity)
     elif args.model == 'item_knn':
@@ -273,7 +259,7 @@ def main():
     elif args.model == 'nmf':
         scores = run_nmf(R, n_users, n_items, k=64)
     
-    # 5. Evaluate
+    # Evaluate
     print("Evaluating...")
     # metrics.py expects scores as dict or numpy array. 
     # Convert to dense for evaluation (approx 200MB, safe)
@@ -282,7 +268,7 @@ def main():
         
     metrics = compute_metrics(scores, test_dict, train_dict)
     
-    # 6. Print and Save
+    # Print and Save
     print_metrics(metrics)
     
     if args.output:

@@ -7,7 +7,7 @@ model = "ma_hgn"
 graph_type = "hetero"
 data_path = "data/processed/strict_g2"
 protocol = "full"
-epochs = 50  # Enough for ablation trend
+epochs = 50
 layers_list = [1, 2, 3, 4]
 
 print(f"Starting Layer Ablation for {model.upper()} on {protocol.upper()} protocol...")

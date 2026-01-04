@@ -88,7 +88,7 @@ MODELS_DIR = "models"
 @st.cache_resource
 def build_search_engine(df):
     """
-    Xây dựng chỉ mục BM25+ từ dữ liệu bài báo.
+    Construct BM25+ index from article data.
     """
     corpus = (df['title'].fillna("") + " " + df['short_description'].fillna("")).astype(str).tolist()
     tokenized_corpus = [doc.lower().split() for doc in corpus]
@@ -103,7 +103,7 @@ def discover_trained_models():
         "graph_variants": ["strict_g1", "strict_g2", "strict_g3"] # Default variants
     }
     
-    # 1. Discover CF Models (GNNs)
+    # Discover CF Models (GNNs)
     # Search root models/ and any subdirs (like models/models/ from unzipped results)
     search_dirs = [MODELS_DIR, os.path.join(MODELS_DIR, "models")]
     cf_catalog = ["MA-HCL", "SimGCL", "XSimGCL", "LightGCL"]
@@ -128,7 +128,7 @@ def discover_trained_models():
     if found_variants:
         discovered["graph_variants"] = sorted(list(found_variants))
     
-    # 2. Discover CB Models (Embedders)
+    # Discover CB Models (Embedders)
     emb_map = {
         "vn-sbert": "vietnamese-sbert",
         "bge-m3": "bge-m3",
@@ -144,7 +144,7 @@ def discover_trained_models():
         if any(p.exists() for p in paths):
             discovered["CB"].append(display_name)
             
-    # Always include 'session' if we have any dense embeddings
+    # Always include 'session' if dense embeddings present
     if len(discovered["CB"]) > 3:
         discovered["CB"].append("session")
         
@@ -178,18 +178,18 @@ CATEGORY_MAP = {
 
 def score_to_color(score, base_hue=120, min_lightness=30, max_lightness=70):
     """Convert score (0-1) to HSL color. Higher score = darker (more saturated)."""
-    score = max(0, min(1, score))  # Clamp to 0-1
+    score = max(0, min(1, score))
     lightness = max_lightness - score * (max_lightness - min_lightness)
-    saturation = 50 + score * 30  # 50-80%
+    saturation = 50 + score * 30
     return f"hsl({base_hue}, {saturation:.0f}%, {lightness:.0f}%)"
 
 def plot_embedding_space(model, user_idx, history_urls, recommended_urls, article_map, articles_df, custom_user_vector=None):
     """
-    Vẽ biểu đồ phân tán 2D (Phiên bản Final - Visual Pro - Fix Legend Color):
-    - Chống đè: Tăng khoảng cách, thêm jitter.
-    - Rõ ràng nguồn gốc User.
-    - Hover Label tương phản cao.
-    - Legend luôn hiển thị rõ (nền trắng, chữ đen).
+    Draw 2D Scatter Plot (Final Version - Visual Pro - Fix Legend Color):
+    - Anti-overlap: Increased spacing, added jitter.
+    - Clear User origin.
+    - High contrast Hover Label.
+    - Legend always visible (white background, black text).
     """
     import plotly.graph_objects as go
     from sklearn.decomposition import PCA
@@ -197,18 +197,18 @@ def plot_embedding_space(model, user_idx, history_urls, recommended_urls, articl
     import streamlit as st
     
     try:
-        # --- 1. XÁC ĐỊNH VECTOR USER (NGUỒN GỐC) ---
+        # --- DETERMINE USER VECTOR (ORIGIN) ---
         user_emb = None
         user_source_note = ""
         
         if custom_user_vector is not None:
-            # Trường hợp 1: User Vector tự tạo (Cold Start / Custom)
+            # Case 1: Custom User Vector (Cold Start / Custom)
             user_emb = custom_user_vector
             user_source_note = "User Vector: Tổng hợp từ sở thích bạn vừa nhập"
 
             user_display_name = "BẠN (Sở thích mới)"
         else:
-            # Trường hợp 2: User Vector từ Model (Đã học)
+            # Case 2: User Vector from Model (Learned)
             if hasattr(model, 'user_embedding'):
                 user_emb = model.user_embedding.weight[user_idx].detach().cpu().numpy()
             elif hasattr(model, 'E_u_0'): 
@@ -221,7 +221,7 @@ def plot_embedding_space(model, user_idx, history_urls, recommended_urls, articl
 
         if user_emb is None: return None
 
-        # --- 2. LẤY VECTOR ITEM ---
+        # --- GET ITEM VECTOR ---
         item_matrix = None
         if hasattr(model, 'item_embedding'):
             item_matrix = model.item_embedding.weight.detach().cpu().numpy()
@@ -232,19 +232,19 @@ def plot_embedding_space(model, user_idx, history_urls, recommended_urls, articl
         
         if item_matrix is None: return None
 
-        # --- 3. CHUẨN BỊ DỮ LIỆU ---
+        # --- PREPARE DATA ---
         url_to_idx = {u: i for u, i in article_map.items()}
         meta_map = articles_df.set_index('url')[['title', 'source_category', 'short_description']].fillna("").to_dict('index')
         
         vectors = [user_emb]
         names = [f"<b>{user_display_name}</b>"]
         types = ["User"]
-        colors = ["#FF4757"] # Đỏ rực rỡ
-        sizes = [40]         # Rất to
+        colors = ["#FF4757"] # Bright Red
+        sizes = [40]
         texts = [user_source_note]
         
-        # Thêm History
-        valid_hist = [u for u in history_urls if u in url_to_idx][-20:] # Lấy 20 bài
+        # Add History
+        valid_hist = [u for u in history_urls if u in url_to_idx][-20:] # Last 20 items
         for u in valid_hist:
             idx = url_to_idx[u]
             info = meta_map.get(u, {})
@@ -254,11 +254,11 @@ def plot_embedding_space(model, user_idx, history_urls, recommended_urls, articl
             vectors.append(item_matrix[idx])
             names.append(f"<b>Đã đọc:</b> {title[:40]}...")
             types.append("History")
-            colors.append("#2ED573") # Xanh lá neon
+            colors.append("#2ED573") # Neon Green
             sizes.append(15)         
             texts.append(f"Chuyên mục: {cat}")
             
-        # Thêm Recommendations
+        # Add Recommendations
         valid_rec = [u for u in recommended_urls if u in url_to_idx]
         for u in valid_rec:
             idx = url_to_idx[u]
@@ -269,13 +269,13 @@ def plot_embedding_space(model, user_idx, history_urls, recommended_urls, articl
             vectors.append(item_matrix[idx])
             names.append(f"<b>Gợi ý:</b> {title[:40]}...")
             types.append("Recommendation")
-            colors.append("#FFA502") # Vàng cam đậm
+            colors.append("#FFA502") # Dark Orange
             sizes.append(20)         
             texts.append(f"Chuyên mục: {cat}")
             
         if len(vectors) < 2: return None
 
-        # --- 4. PCA & JITTER (CHỐNG ĐÈ) ---
+        # --- PCA & JITTER (ANTI-OVERLAP) ---
         n_comp = 2 if len(vectors) > 2 else 1
         pca = PCA(n_components=n_comp)
         vectors_2d = pca.fit_transform(np.array(vectors))
@@ -283,14 +283,14 @@ def plot_embedding_space(model, user_idx, history_urls, recommended_urls, articl
         if vectors_2d.shape[1] == 1:
             vectors_2d = np.hstack((vectors_2d, np.zeros((vectors_2d.shape[0], 1))))
             
-        # Thêm Jitter (Nhiễu ngẫu nhiên nhỏ) để tách các điểm trùng nhau
-        # Chỉ thêm vào các điểm không phải User (để User đứng yên chuẩn xác)
-        jitter_strength = 0.02 # Điều chỉnh độ mạnh của nhiễu
+        # Add Jitter (Small random noise) to separate overlapping points
+        # Only add to non-User points (keep User fixed)
+        jitter_strength = 0.02 # Adjust noise strength
         noise = np.random.normal(0, jitter_strength, vectors_2d.shape)
-        noise[0] = 0 # Giữ nguyên vị trí User
+        noise[0] = 0 # Keep User position fixed
         vectors_2d = vectors_2d + noise
 
-        # --- 5. VẼ BIỂU ĐỒ ---
+        # --- PLOT CHART ---
         fig = go.Figure()
         
         groups = [
@@ -306,46 +306,46 @@ def plot_embedding_space(model, user_idx, history_urls, recommended_urls, articl
             fig.add_trace(go.Scatter(
                 x=vectors_2d[mask, 0],
                 y=vectors_2d[mask, 1],
-                mode='markers', # Bỏ text mặc định để đỡ rối, chỉ hiện khi hover
+                mode='markers', # Remove default text to avoid clutter, only show on hover
                 name=g_label,
                 marker=dict(
                     size=[s for s, m in zip(sizes, mask) if m], 
                     color=g_color,
-                    line=dict(width=2, color='white'), # Viền trắng cho nổi trên nền màu
-                    opacity=0.9 if g_type == 'User' else 0.7 # Item trong suốt hơn để thấy điểm chồng
+                    line=dict(width=2, color='white'), # White border for contrast
+                    opacity=0.9 if g_type == 'User' else 0.7 # Items more transparent to see overlaps
                 ),
-                text=[n for n, m in zip(names, mask) if m], # Text dùng cho hover
-                # Tùy chỉnh Hover Label (Tooltip)
+                text=[n for n, m in zip(names, mask) if m], # Text for hover
+                # Customize Hover Label (Tooltip)
                 hoverlabel=dict(
-                    bgcolor="white",          # Nền trắng hoàn toàn
-                    font_size=14,             # Chữ to vừa phải
+                    bgcolor="white",
+                    font_size=14,
                     font_family="Arial",
-                    font_color="#333333",     # Chữ đen đậm
-                    bordercolor=g_color       # Viền tooltip theo màu nhóm
+                    font_color="#333333",
+                    bordercolor=g_color
                 ),
                 hovertemplate="<b>%{text}</b><br><br>%{customdata}<extra></extra>",
                 customdata=[t for t, m in zip(texts, mask) if m]
             ))
 
-        # Cấu hình Layout Thoáng đãng
+        # Configure Layout
         fig.update_layout(
             title=dict(
                 text=f"BẢN ĐỒ SỞ THÍCH & GỢI Ý<br><sup style='color:#555; font-size:12px'>Vị trí User được tính toán từ: {user_source_note}</sup>",
-                y=0.95, x=0.0, xanchor='left', yanchor='top', # Đưa title sang trái
+                y=0.95, x=0.0, xanchor='left', yanchor='top', # Move title to left
                 font=dict(size=22, color='#1E272E')
             ),
             xaxis=dict(showgrid=True, gridcolor='#F1F2F6', zeroline=False, showticklabels=False),
             yaxis=dict(showgrid=True, gridcolor='#F1F2F6', zeroline=False, showticklabels=False),
             plot_bgcolor='white',
-            height=600, # Tăng chiều cao để tách điểm
+            height=600, # Increase height to separate points
             margin=dict(l=20, r=20, t=80, b=20),
             
             legend=dict(
-                yanchor="top", y=1, xanchor="right", x=1.1, # Đưa Legend ra ngoài bên phải
-                bgcolor="#FFFFFF",                  # Nền Trắng tuyệt đối (Không trong suốt)
-                bordercolor="#E0E0E0",              # Viền xám nhạt
+                yanchor="top", y=1, xanchor="right", x=1.1, # Move Legend outside to right
+                bgcolor="#FFFFFF",
+                bordercolor="#E0E0E0",
                 borderwidth=1,
-                font=dict(size=14, color="#000000") # Chữ Đen tuyệt đối (Bất chấp Dark Mode)
+                font=dict(size=14, color="#000000") # Black Text (Ignoring Dark Mode)
             )
         )
         
@@ -354,10 +354,10 @@ def plot_embedding_space(model, user_idx, history_urls, recommended_urls, articl
     except Exception as e:
         return None
 def generate_user_wordcloud(history_urls, articles_df):
-    """Tạo WordCloud từ tiêu đề lịch sử đọc"""
+    """Create WordCloud from reading history titles"""
     if not history_urls: return None
     try:
-        # Lấy text từ tiêu đề các bài đã đọc
+        # Get text from titles of read articles
         hist_df = articles_df[articles_df['url'].isin(history_urls)]
         text = " ".join(hist_df['title'].astype(str).tolist())
         
@@ -367,7 +367,7 @@ def generate_user_wordcloud(history_urls, articles_df):
             background_color='white',
             colormap='viridis',
             max_words=50,
-            font_path=None # Có thể thêm font tiếng Việt nếu cần
+            font_path=None # Can add Vietnamese font if needed
         ).generate(text)
         
         fig, ax = plt.subplots(figsize=(5, 2.5))
@@ -379,15 +379,15 @@ def generate_user_wordcloud(history_urls, articles_df):
         return None
 def explain_recommendation(rec_url, history_urls, articles_df, source_type):
     """
-    Tạo câu giải thích lý do gợi ý dựa trên Content hoặc Social.
-    Sử dụng so sánh chuỗi đơn giản (Jaccard) để tìm bài tương đồng trong lịch sử.
+    Generate explanation for recommendation based on Content or Social.
+    Use simple string comparison (Jaccard) to find similar articles in history.
     """
     try:
-        # 1. Nếu là nguồn Social (CF), giải thích theo đám đông
+        # If Social source (CF), explain via crowd
         if source_type == "Social":
             return "<b>Cộng đồng:</b> Phổ biến với những người dùng có gu giống bạn."
 
-        # 2. Nếu là Content/Hybrid, tìm bài tương tự nhất trong lịch sử
+        # If Content/Hybrid, find most similar article in history
         rec_row = articles_df[articles_df['url'] == rec_url]
         if rec_row.empty: return ""
         rec_row = rec_row.iloc[0]
@@ -397,14 +397,14 @@ def explain_recommendation(rec_url, history_urls, articles_df, source_type):
         best_match_title = None
         max_score = 0
         
-        # Chỉ so sánh với 20 bài gần nhất để nhanh
+        # Only compare with last 20 articles for speed
         recent_history = history_urls[-20:]
         hist_rows = articles_df[articles_df['url'].isin(recent_history)]
         
         for _, h_row in hist_rows.iterrows():
             if h_row['url'] == rec_url: continue
             
-            # Tính độ trùng lặp từ khóa (Jaccard Similarity đơn giản)
+            # Calculate keyword overlap (Simple Jaccard Similarity)
             h_tokens = set(str(h_row['title']).lower().split())
             intersection = len(rec_tokens & h_tokens)
             union = len(rec_tokens | h_tokens)
@@ -415,9 +415,9 @@ def explain_recommendation(rec_url, history_urls, articles_df, source_type):
                 best_match_title = h_row['title']
         
         # Ngưỡng chọn giải thích
-        if max_score > 0.1: # Nếu trùng lặp từ khóa kha khá
+        if max_score > 0.1: # If keywords overlap significantly
             return f"<b>Nội dung:</b> Tương tự bài <i>'{str(best_match_title)[:30]}...'</i> bạn đã đọc."
-        elif rec_cat: # Nếu không trùng từ khóa, giải thích theo Category
+        elif rec_cat: # If no keyword overlap, explain by Category
             cat_name = CATEGORY_MAP.get(rec_cat, rec_cat)
             return f"<b>Chủ đề:</b> Thuộc danh mục <i>{cat_name}</i> mà bạn quan tâm."
         else:
@@ -430,7 +430,7 @@ class PhoBERTWrapper:
     """Wrapper for pre-computed PhoBERT/SimCSE embeddings for recommendation."""
     
     def __init__(self, embeddings, articles_df):
-        self.embeddings = embeddings  # Shape: (n_articles, embed_dim)
+        self.embeddings = embeddings
         self.articles_df = articles_df
         # Normalize embeddings for cosine similarity
         self.embeddings_norm = F.normalize(embeddings, p=2, dim=1)
@@ -490,17 +490,17 @@ class NaiveBayesWrapper:
     def __init__(self, vectorizer, nb_model, X_matrix, articles_df):
         self.vectorizer = vectorizer
         self.nb = nb_model
-        self.X = X_matrix  # Sparse matrix
+        self.X = X_matrix
         self.articles_df = articles_df
     
     def recommend(self, history_indices, k=10):
-        """Recommend articles with similar category probability distribution."""
+
         if not history_indices:
             return [], []
         
         # Get category distribution from history
         history_cats = self.articles_df.iloc[history_indices]['source_category'].value_counts()
-        target_cat = history_cats.idxmax()  # Most frequent category
+        target_cat = history_cats.idxmax()
         
         # Get probability of each article belonging to target category
         proba = self.nb.predict_proba(self.X)
@@ -539,7 +539,7 @@ class SessionWrapper:
         
         # Exponential decay: more recent = higher weight
         weights = torch.tensor([0.9 ** (max_session - i - 1) for i in range(len(recent_indices))])
-        weights = weights / weights.sum()  # Normalize
+        weights = weights / weights.sum()
         
         # Weighted average of recent item embeddings
         recent_embs = self.embeddings_norm[recent_indices]
@@ -640,7 +640,7 @@ def load_resources(data_dir=DATA_DIR, raw_dir=RAW_DIR, specific_graph_path=None)
                 article_map_cf = lgcl_data['item2idx']
         except: pass
 
-    # 4. Interactions (Raw) -> User History & Fallback Mappings
+    # User History & Mappings
     replies_path = Path(raw_dir) / "replies.csv"
     user_history = {}
     if replies_path.exists():
@@ -675,7 +675,7 @@ def load_resources(data_dir=DATA_DIR, raw_dir=RAW_DIR, specific_graph_path=None)
         article_map_cf = {url: i for i, url in enumerate(sorted(valid_a))}
         status["warnings"].append("article_map_missing")
 
-    # 5. Technical Pillars (Priors)
+    # Technical Pillars (Priors)
     user_priors = None
     a_priors_path = Path(data_dir) / "user_priors.pt"
     if a_priors_path.exists():
@@ -684,8 +684,7 @@ def load_resources(data_dir=DATA_DIR, raw_dir=RAW_DIR, specific_graph_path=None)
         except Exception as e:
             status["warnings"].append(f"Failed to load user priors: {e}")
         
-    # Semantic IDs are usually generated on the fly or cached. 
-    # For now, we'll try to load them if they exist in a model checkpoint or generate dummy if needed.
+    # Load semantic IDs (cached or dummy)
     
     return articles_df, user_map_cf, article_map_cf, user_history, adj_norm, user_priors, status
 
@@ -713,7 +712,7 @@ def load_cf_model(model_name, n_users, n_items, graph_name=None):
         for d in search_dirs:
             if not os.path.exists(d): continue
             if graph_name:
-                # Try graph-specific first (e.g., simgcl_strict_g2_*.pt)
+                # Check graph-specific first
                 f_list = glob.glob(f"{d}/{model_name.lower()}_{graph_name}_*.pt")
                 if f_list: files.extend(f_list)
             
@@ -723,7 +722,7 @@ def load_cf_model(model_name, n_users, n_items, graph_name=None):
                 if f_list: files.extend(f_list)
             
         if not files: 
-            # Final fallback: legacy pattern
+
             files = glob.glob(f"{MODELS_DIR}/{model_name.lower()}_*.pt")
             
         if not files: return None
@@ -749,7 +748,7 @@ def load_cf_model(model_name, n_users, n_items, graph_name=None):
                 for key in ['E_i_0', 'item_embedding.weight']:
                     if key in sd: ckpt_i = sd[key].shape[0]; break
                 
-                # If dimensions match, we found our winner
+                # If dimensions match, use it
                 if ckpt_u == n_users and ckpt_i == n_items:
                     best_checkpoint = ckpt
                     best_state_dict = sd
@@ -757,7 +756,7 @@ def load_cf_model(model_name, n_users, n_items, graph_name=None):
                     break
             except: continue
         
-        # Fallback to the latest one even if mismatched (legacy behavior, but silent)
+        # Fallback to latest
         if best_checkpoint is None:
             latest = candidate_files[0]
             best_checkpoint = torch.load(latest, map_location='cpu', weights_only=False)
@@ -893,7 +892,7 @@ def load_cb_model(model_type, articles_df, embedding_name=None):
              emb_path = Path(f"checkpoints/{file_prefix}_article_embeddings.pt")
              
              if not emb_path.exists():
-                 # Try alternative path
+                 # Alternative path
                  emb_path = Path(st.session_state.get('data_dir', DATA_DIR)) / f"{file_prefix}_embeddings.pt"
              
              if emb_path.exists():
@@ -909,7 +908,7 @@ def load_cb_model(model_type, articles_df, embedding_name=None):
                          if n_emb != n_art:
                              embed_dim = embeddings.shape[1]
                              new_embeddings = torch.zeros(n_art, embed_dim)
-                             # Copy what we have
+                             # Copy available data
                              copy_size = min(n_emb, n_art)
                              new_embeddings[:copy_size] = embeddings[:copy_size]
                              embeddings = new_embeddings
@@ -949,7 +948,7 @@ def load_cb_model(model_type, articles_df, embedding_name=None):
              return None
              
         
-        # 3. LSA (Latent Semantic Analysis) - Latent Semantic CBRS
+        # LSA (Latent Semantic Analysis) - Latent Semantic CBRS
         elif model_type.upper() == 'LSA':
 
             from sklearn.feature_extraction.text import TfidfVectorizer
@@ -971,7 +970,7 @@ def load_cb_model(model_type, articles_df, embedding_name=None):
             
             return LSAWrapper(lsa_matrix, articles_df)
         
-        # 4. Naive Bayes - Probabilistic CBRS
+        # Naive Bayes - Probabilistic CBRS
         elif model_type.upper() == 'NAIVEBAYES':
             from sklearn.feature_extraction.text import CountVectorizer
             from sklearn.naive_bayes import MultinomialNB
@@ -1010,7 +1009,7 @@ def get_recs(model, model_type, user_idx, history_urls, article_map, articles_df
                 # Handling XSimGCL and other champions
                 if model_type.lower() == 'xsimgcl':
                     # XSimGCL prediction with fusion
-                    # We need to pad user_priors if mismatch (handled in load_resources/main)
+                    # Pad user_priors if mismatch
                     u_idx_torch = torch.tensor([user_idx])
                     scores = model.predict(adj_norm, users=u_idx_torch, 
                                           semantic_ids=semantic_ids, 
@@ -1041,7 +1040,7 @@ def get_recs(model, model_type, user_idx, history_urls, article_map, articles_df
                                 raise ValueError("Unexpected return type")
                             scores = torch.mm(user_all[user_idx].unsqueeze(0), item_all.t()).squeeze()
                         except Exception:
-                            # Fallback to raw embeddings if model(adj_norm) fails
+                            # Fallback to raw embeddings
                             if hasattr(model, 'user_embedding'):
                                 u_emb = model.user_embedding.weight[user_idx]
                                 i_embs = model.item_embedding.weight
@@ -1214,7 +1213,7 @@ def main():
             text-decoration: none !important;
         }
 
-        /* Interaction Buttons */
+
         div.stButton > button[kind="primary"] {
             border-radius: 20px; padding: 0.25rem 1rem; font-size: 0.8em;
             background-color: #f8f9fa; color: #5f6368; border: 1px solid #dadce0;
@@ -1235,7 +1234,7 @@ def main():
     </style>
     """, unsafe_allow_html=True)
 
-    # 2. INIT STATE
+    # INIT STATE
     if 'data_dir' not in st.session_state: st.session_state['data_dir'] = DATA_DIR
     if 'session_interactions' not in st.session_state: st.session_state['session_interactions'] = []
     if 'viewed_posts' not in st.session_state: st.session_state['viewed_posts'] = set()
@@ -1278,33 +1277,33 @@ def main():
             if st.button("Tạo Profile"):
                 guest_samples = []
                 
-                # --- PHẦN 1: Lấy 3 bài hoàn toàn ngẫu nhiên (bất kể chủ đề) ---
-                # Mục đích: Tăng tính khám phá (Serendipity)
+                # --- PART: Get 3 completely random articles (any topic) ---
+                # Purpose: Increase Serendipity
                 n_random = 3
                 if len(articles_df) > 0:
-                    # Lấy ngẫu nhiên index
+                    # Random sample
                     rand_indices = np.random.choice(articles_df.index, min(n_random, len(articles_df)), replace=False)
                     guest_samples.extend(articles_df.iloc[rand_indices]['url'].tolist())
 
-                # --- PHẦN 2: Lấy 3 bài cho MỖI chủ đề đã chọn ---
-                # Mục đích: Đảm bảo bám sát sở thích người dùng
+                # --- PART: Get 3 articles for EACH selected topic ---
+                # Purpose: Ensure relevance to user interests
                 n_per_cat = 3
                 if selected_cats:
                     for cat in selected_cats:
-                        # Lọc các bài viết thuộc chủ đề `cat`
+                        # Filter articles in category `cat`
                         cat_indices = articles_df[articles_df['source_category'] == cat].index
                         
                         if len(cat_indices) > 0:
-                            # Chọn ngẫu nhiên 3 bài từ chủ đề này
+                            # Randomly select 3 articles from this category
                             chosen_indices = np.random.choice(cat_indices, min(n_per_cat, len(cat_indices)), replace=False)
                             guest_samples.extend(articles_df.iloc[chosen_indices]['url'].tolist())
 
-                # --- PHẦN 3: Xử lý và Lưu ---
+                # --- PART: Process and Save ---
                 if guest_samples:
-                    # Dùng set() để loại bỏ bài trùng lặp (nếu bài ngẫu nhiên trùng với bài theo chủ đề)
+                    # Use set() to remove duplicates (if random overlaps with topic)
                     unique_samples = list(set(guest_samples))
                     
-                    # Trộn ngẫu nhiên lại danh sách để không bị gom cụm theo chủ đề
+                    # Shuffle again to avoid clustering by topic
                     random.shuffle(unique_samples)
                     
                     st.session_state['guest_profile'] = unique_samples
@@ -1395,8 +1394,8 @@ def main():
                     if filter_cats and row['source_category'] not in filter_cats: continue
                     final_display_list.append((row['url'], doc_scores[idx], "Kết quả tìm kiếm"))
                     
-                    # BIẾN THÀNH TƯƠNG TÁC (Enrichment)
-                    if is_cold_start_user and count < 3: # Chỉ lấy top 3 kết quả search vào profile
+                    # CONVERT TO INTERACTION (Enrichment)
+                    if is_cold_start_user and count < 3: # Only take top 3 search results for profile
                          if row['url'] not in st.session_state['session_interactions']:
                               st.session_state['session_interactions'].append(row['url'])
                     count += 1
@@ -1412,7 +1411,7 @@ def main():
                     active_alpha = 0.0 if is_cold_start_user else alpha
                     
                     if active_alpha > 0 and cf_model:
-                        # APPLY ADT: If enabled, we treat user as 'fresher' by reducing historical noise
+                        # ADT: Treat user as 'fresher' if enabled
                         # (Simulated by emphasizing current session or using specific ADT model weights if available)
                         raw_recs = get_recs(cf_model, cf_model_choice, user_map_cf[selected_user], [], article_map_cf, articles_df, 200, 
                                            adj_norm=adj_norm, use_adt=use_adt)
@@ -1506,7 +1505,7 @@ def main():
                             
                             if show_semantic_ids:
                                  # Semantic ID visualization (Pillar 1)
-                                 # Usually discrete tokens like [12, 45, 102]
+                                 # Discrete tokens
                                  sem_id = f"SID:{hash(url)%512}-{hash(url[::-1])%512}"
                                  tags.append(sem_id)
                             

@@ -53,11 +53,7 @@ def compute_metrics(
         # Protocol-specific filtering
         if protocol == 'loo100':
             # Leave-One-Out + 100 Negatives
-            # We assume gt_items has 1 item for LOO, but our split might have more.
-            # We take the FIRST item in gt as the target for LOO simulation if needed,
-            # but generally we just rank all GT items against 100 random negatives.
-            
-            # Simple simulation: Keep GT items + 100 random negatives, mask others
+            # Rank all GT items against 100 random negatives (simplified LOO simulation).
             all_indices = np.arange(len(scores))
             neg_indices = [i for i in all_indices 
                            if i not in gt_items and i not in train_dict.get(user, set())]

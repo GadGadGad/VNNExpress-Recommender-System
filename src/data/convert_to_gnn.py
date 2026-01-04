@@ -121,9 +121,9 @@ class GNNDataConverter:
         initial_count = len(self.articles)
         self.articles = self.articles.drop_duplicates(subset=[id_col], keep='first')
         if len(self.articles) < initial_count:
-            print(f"   → Deduplicated articles: {initial_count} -> {len(self.articles)} (Removed {initial_count - len(self.articles)} duplicates)")
+            print(f"   Deduplicated articles: {initial_count} -> {len(self.articles)} (Removed {initial_count - len(self.articles)} duplicates)")
         
-        print(f"   → {len(self.articles):,} articles loaded")
+        print(f"   {len(self.articles):,} articles loaded")
         
         print(f"Loading replies from {self.replies_path}...")
         raw_replies = pd.read_csv(self.replies_path)
@@ -165,22 +165,22 @@ class GNNDataConverter:
 
         self.replies = pd.DataFrame(interactions).dropna(subset=['user_id', 'article_url'])
         
-        # LEAKAGE FIX: Deduplicate interactions!
+
         initial_len = len(self.replies)
         
-        # --- DATE HANDLING ---
+
         # Parse dates but keep NaT for interactions that don't have them
         self.replies['date'] = pd.to_datetime(self.replies['date'], errors='coerce')
         
-        # Sắp xếp và deduplicate. Với NaT, Pandas sẽ đẩy xuống cuối.
+        # Sort and deduplicate. Pandas puts NaT at the end.
         self.replies = self.replies.sort_values('date', na_position='last').drop_duplicates(
             subset=['user_id', 'article_url'], keep='first'
         )
-        print(f"   → Deduplicated interactions: {initial_len:,} -> {len(self.replies):,} (Removed {initial_len - len(self.replies):,})")
+        print(f"   Deduplicated interactions: {initial_len:,} -> {len(self.replies):,} (Removed {initial_len - len(self.replies):,})")
 
         self.social_df = pd.DataFrame(social_edges)
         
-        print(f"   → {len(self.replies):,} initial interactions captured")
+        print(f"   {len(self.replies):,} initial interactions captured")
         
         # Time Decay REMOVED as per user request
         self.replies['time_decay'] = 1.0
@@ -248,7 +248,7 @@ class GNNDataConverter:
     def _create_article_features(self) -> torch.Tensor:
         """Create article node features."""
         if self.use_phobert:
-            print("   -> Using PhoBERT embeddings (Projected to hidden_dim)...")
+            print("   Using PhoBERT embeddings (Projected to hidden_dim)...")
             emb_path = self.output_dir / 'phobert_embeddings.pt'
             if not emb_path.exists():
                 raise FileNotFoundError(f"Run generate_embeddings.py first!")
@@ -272,7 +272,7 @@ class GNNDataConverter:
         num_articles = len(self.article_map)
         
         if self.add_text_features:
-            print("   → Adding text features (TF-IDF)...")
+            print("   Adding text features (TF-IDF)...")
             titles = self.articles['title'].fillna('').tolist()
             tfidf = TfidfVectorizer(max_features=self.text_max_features)
             text_features = tfidf.fit_transform(titles).toarray()
@@ -300,17 +300,17 @@ class GNNDataConverter:
             if len(indices) == num_positives:
                 return indices.numpy() if torch.is_tensor(indices) else indices
         
-        # --- SỬA ĐỔI TẠI ĐÂY ---
-        if self.split_strategy == 'time': # Hoặc mặc định luôn nếu bạn muốn ép cứng
-            print("   -> Splitting Chronologically (Past -> Future)...")
-            # Vì self.replies đã sort theo date rồi, ta chỉ cần lấy index tuần tự
+
+        if self.split_strategy == 'time': # Or default if you want to enforce it
+            print("   Splitting Chronologically (Past -> Future)...")
+            # Since replies are sorted by date, use sequential indices
             indices = np.arange(num_positives) 
         else:
-            # Random split (Code cũ)
-            print("   -> Splitting Randomly (Shuffled)...")
+            # Random split (Legacy code)
+            print("   Splitting Randomly (Shuffled)...")
             np.random.seed(seed)
             indices = np.random.permutation(num_positives)
-        # -----------------------
+
 
         torch.save(indices, split_file)
         return indices
@@ -353,40 +353,40 @@ class GNNDataConverter:
         data['user'].x = self._create_user_features()
         data['article'].x = self._create_article_features()
         
-        # --- FIX LEAKAGE START ---
-        print("   → [FIX] Splitting Train/Test to prevent leakage...")
+
+        print("   Splitting Train/Test to prevent leakage...")
         
-        # 1. Lấy mask cho tập Train (80%)
-        # Hàm _get_train_mask đã có sẵn trong class của bạn
+        # 1. Get mask for Train set (80%)
+        # The _get_train_mask function is available in your class
         train_mask = self._get_train_mask(train_ratio=0.8) 
         
-        # 2. Chỉ dùng dữ liệu Train để xây dựng cạnh cho đồ thị (Message Passing)
+        # 2. Only use Train data to build edges for the graph (Message Passing)
         train_replies = self.replies[train_mask]
         
         src_train = torch.tensor(train_replies['user_idx'].values, dtype=torch.long)
         dst_train = torch.tensor(train_replies['article_idx'].values, dtype=torch.long)
         
-        # Edge Index: Chỉ chứa cạnh Train -> Model không nhìn thấy tương lai
+        # Edge Index: Only contains Train edges. Model does not see future interactions.
         data['user', 'comments', 'article'].edge_index = torch.stack([src_train, dst_train])
         
-        # Label Index: Dùng để tính Loss trong Trainer
+        # Label Index: Used for Loss calculation in Trainer
         data['user', 'comments', 'article'].edge_label_index = torch.stack([src_train, dst_train])
         
-        # 3. Tính trọng số (Reactions + Time Decay) chỉ trên tập Train
+        # 3. Calculate weights (Reactions + Time Decay) only on Train set
         reactions = pd.to_numeric(train_replies['reactions'], errors='coerce').fillna(0).values
         reactions = np.clip(reactions, 0, None)
         
         edge_weights = (1.0 + np.log1p(reactions)) * train_replies['time_decay'].values
         data['user', 'comments', 'article'].edge_weight = torch.tensor(edge_weights, dtype=torch.float32)
         
-        # 4. (Quan trọng) Lưu cạnh Test riêng để dùng khi Evaluate sau này
+        # 4. (Important) Save Test edges separately for later Evaluation
         test_replies = self.replies[~train_mask]
         src_test = torch.tensor(test_replies['user_idx'].values, dtype=torch.long)
         dst_test = torch.tensor(test_replies['article_idx'].values, dtype=torch.long)
         data['user', 'comments', 'article'].test_edge_index = torch.stack([src_test, dst_test])
         
         print(f"     Train edges: {len(train_replies)} | Test edges: {len(test_replies)}")
-        # --- FIX LEAKAGE END ---
+
         
         data = T.ToUndirected()(data)
         
@@ -441,7 +441,7 @@ class GNNDataConverter:
         data['article'].x = self._create_article_features()
         
         # ===== EDGES =====
-        print("   → Filtering interactions for User-Article edges...")
+        print("   Filtering interactions for User-Article edges...")
         train_mask = self._get_train_mask()
         train_replies = self.replies[train_mask]
 
@@ -449,13 +449,13 @@ class GNNDataConverter:
         dst = torch.tensor(train_replies['article_idx'].values, dtype=torch.long)
         data['user', 'comments', 'article'].edge_index = torch.stack([src, dst])
         
-        # User -> User (Social Reply Network)
+        # User - User (Social Reply Network)
         if hasattr(self, 'social_df') and not self.social_df.empty:
             self.social_df['from_idx'] = self.social_df['from'].map(self.user_map)
             self.social_df['to_idx'] = self.social_df['to'].map(self.user_map)
             valid_social = self.social_df.dropna(subset=['from_idx', 'to_idx'])
             
-            print("   → Filtering social reply edges...")
+            print("   Filtering social reply edges...")
             train_articles = set(train_replies['article_url'].unique())
             valid_social = valid_social[valid_social['article_url'].isin(train_articles)]
             
@@ -464,14 +464,14 @@ class GNNDataConverter:
                     valid_social[['from_idx', 'to_idx']].values.T, dtype=torch.long
                 )
         
-        # User -> User (Shared Interest)
+        # User - User (Shared Interest)
         if not (hasattr(self, 'no_aux_edges') and self.no_aux_edges):
-            print("   → Filtering interactions for Shared Interest edges...")
+            print("   Filtering interactions for Shared Interest edges...")
             user_articles = train_replies.groupby('user_idx')['article_idx'].apply(set).to_dict()
             shared_edges = []
             user_ids = list(user_articles.keys())
             
-            print(f"   → Computing latent user-user edges (shared >= 2)...")
+            print(f"   Computing latent user-user edges (shared >= 2)...")
             for i in range(len(user_ids)):
                 u1 = user_ids[i]
                 for j in range(i + 1, min(i + 500, len(user_ids))):
@@ -530,7 +530,7 @@ class GNNDataConverter:
         # Merge interactions with article categories
         self.articles['article_url'] = self.articles['url']
         
-        # LEAKAGE FIX: Only use training interactions for category weights
+        # Only use training interactions for category weights
         train_mask = self._get_train_mask()
         train_replies = self.replies[train_mask]
         
@@ -544,7 +544,7 @@ class GNNDataConverter:
         categories = merged['source_category'].unique()
         cat_map = {c: i for i, c in enumerate(categories)}
         
-        # Build edge weights (user -> category interaction count)
+        # Build edge weights (user - category interaction count)
         user_cat_counts = merged.groupby(['user_idx', 'source_category']).size().reset_index(name='count')
         
         src = torch.tensor(user_cat_counts['user_idx'].values, dtype=torch.long)

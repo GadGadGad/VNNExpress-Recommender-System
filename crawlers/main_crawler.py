@@ -28,8 +28,8 @@ from datetime import datetime
 try:
     from dateutil.relativedelta import relativedelta
 except ImportError:
-    print("LỖI: Cần cài 'python-dateutil'.")
-    print("Hãy chạy: python -m pip install python-dateutil")
+    print("ERROR: Need to install 'python-dateutil'.")
+    print("Run: python -m pip install python-dateutil")
     sys.exit(1)
 
 
@@ -181,7 +181,7 @@ class VnExpressCrawler:
             html = self.safe_get(url)
             if not html:
                 if progress_context and task_id:
-                    progress_context.update(task_id, advance=1) # Vẫn đếm trang thất bại
+                    progress_context.update(task_id, advance=1) # Still count failed progress
                 continue
 
             soup = BeautifulSoup(html, "lxml")
@@ -340,10 +340,10 @@ class VnExpressCrawler:
                     if cat_id:
                         categories_to_process.append(cat_id)
                     else:
-                        log.warning(f" > [bold yellow]Bỏ qua:[/bold yellow] Không thể tìm thấy ID cho category '{cat_input}'.")
+                        log.warning(f" > [bold yellow]SKIP:[/bold yellow] Cannot find ID for category '{cat_input}'.")
 
                 if not categories_to_process:
-                    log.error("[bold red]LỖI: Không có category ID hợp lệ nào để xử lý. Dừng lại.[/bold red]")
+                    log.error("[bold red]ERROR: No valid category ID to process. Stopping.[/bold red]")
                     return
             else:
                 categories_to_process = categories
@@ -472,8 +472,8 @@ class VnExpressCrawler:
 
 def run_as_import(categories: list[str], pages: int, output_dir_str: str, use_cache: bool, workers: int, from_date: Optional[str] = None, to_date: Optional[str] = None, no_progress: bool = True, use_tqdm: bool = False, console: Console = None):
     """
-    Hàm này được gọi bởi script bên ngoài (pipeline)
-    để chạy crawler trong cùng một tiến trình.
+    This function is called by external script (pipeline)
+    to run crawler in same process.
     """
     log.info(f"Starting discovery for [bold]{len(categories)}[/bold] categories ({pages} pages each)...")
     if from_date:

@@ -49,7 +49,7 @@ class MAHGN(nn.Module):
                 else:
                     return GATConv((in_channels, in_channels), out_channels // 4, heads=4, add_self_loops=False)
 
-            # We explicitly define convs for each relationship aspect
+            # Explicitly define convs for each relationship aspect
             conv_dict = {
                 ('user', 'comments', 'article'): get_gnn_layer(embedding_dim, embedding_dim),
                 ('article', 'rev_comments', 'user'): get_gnn_layer(embedding_dim, embedding_dim),
@@ -168,8 +168,8 @@ class MAHGN(nn.Module):
         
         # Approximate denominator with batch negatives for efficiency
         # Or full negatives if memory allows (SimGCL uses full)
-        # Here we follow standard SimGCL implementation: full matrix multiplication
-        # But for huge graphs, we might need batching. 
+        # Follows standard SimGCL implementation: full matrix multiplication
+        # Batching might be needed for huge graphs 
         # Using the standard SimGCL formula: -log( exp(sim(u,u')) / sum(exp(sim(u, v'))) )
         
         # Simplified implementation for speed (Batch-wise contrastive)

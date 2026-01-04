@@ -19,7 +19,7 @@ print(">>> PART 1: CF Models")
 for protocol in protocols:
     for model in cf_models:
         for graph in graphs:
-            if model == "hetgnn": continue  # Removed
+            if model == "hetgnn": continue
             print(f"\\nTraining CF: {model} on {graph} ({protocol})")
             outfile = f"results/ablation/cf_{model}_{graph}_{protocol}.json"
             if os.path.exists(outfile):

@@ -11,12 +11,12 @@ def visualize_subgraph(data_path, output_path, num_users=15, max_articles=20):
     try:
         data = torch.load(data_path, weights_only=False)
     except TypeError:
-        # Fallback for older torch versions
+        # Fallback
         data = torch.load(data_path)
     
     G = nx.Graph()
     
-    # 1. Sample users with high interactions
+    # Sample users with high interactions
     # Correct edge type for interaction is ('user', 'comments', 'article')
     rel_type = ('user', 'comments', 'article')
     if rel_type not in data.edge_types:
@@ -28,11 +28,11 @@ def visualize_subgraph(data_path, output_path, num_users=15, max_articles=20):
     user_indices, counts = torch.unique(edge_index[0], return_counts=True)
     top_user_indices = user_indices[torch.argsort(counts, descending=True)[:num_users]].tolist()
     
-    # 2. Add User nodes
+    # Add User nodes
     for u_idx in top_user_indices:
         G.add_node(f"User_{u_idx}", type='user', color='#1f77b4')
     
-    # 3. Add Interaction edges and Article nodes
+    # Add Interaction edges and Article nodes
     articles_found = set()
     for i in range(edge_index.shape[1]):
         u = edge_index[0, i].item()
@@ -43,7 +43,7 @@ def visualize_subgraph(data_path, output_path, num_users=15, max_articles=20):
                 G.add_node(f"Art_{a}", type='article', color='#2ca02c')
             G.add_edge(f"User_{u}", f"Art_{a}", weight=1, type='interaction')
             
-    # 4. Add Social edges (Replied_to)
+    # Add Social edges (Replied_to)
     social_rel = ('user', 'replied_to', 'user')
     if social_rel in data.edge_types:
         social_edge_index = data[social_rel].edge_index
@@ -53,7 +53,7 @@ def visualize_subgraph(data_path, output_path, num_users=15, max_articles=20):
             if u1 in top_user_indices and u2 in top_user_indices:
                 G.add_edge(f"User_{u1}", f"User_{u2}", weight=2, type='social')
 
-    # 5. Visualization
+    # Visualization
     plt.figure(figsize=(12, 10))
     pos = nx.spring_layout(G, k=0.5, iterations=50, seed=42)
     

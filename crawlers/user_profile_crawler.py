@@ -23,8 +23,8 @@ from tqdm import tqdm
 try:
     from playwright_stealth import stealth_sync
 except ImportError:
-    print("LỖI: Không tìm thấy 'playwright_stealth'.")
-    print("Hãy chạy: pip install playwright-stealth==1.0.6")
+    print("ERROR: 'playwright_stealth' not found.")
+    print("Run: pip install playwright-stealth==1.0.6")
     sys.exit(1)
 
 # Rich imports
@@ -71,7 +71,7 @@ class UserProfileCrawler:
 
     def _init_csvs(self):
         """Initializes CSV files with headers if they don't exist."""
-        # UPDATE: New Schema -> user_id, username, join_date
+        # Schema: user_id, username, join_date
         if not self.user_profile_csv.exists():
             with open(self.user_profile_csv, "w", newline="", encoding="utf-8") as f:
                 csv.writer(f).writerow(["user_id", "username", "join_date"])
@@ -153,7 +153,7 @@ class UserProfileCrawler:
 
     def fetch_user_profile(self, userid: str) -> Optional[Dict[str, Any]]:
         """
-        Fetches the user profile page and parses ONLY metadata (Username, Join Date).
+        """Parse metadata (Username, Join Date) from profile page."""
         """
         url = f"https://my.vnexpress.net/users/feed/{userid}"
         html = self.safe_get(url)
@@ -166,7 +166,7 @@ class UserProfileCrawler:
         username = "N/A"
         join_date = "N/A"
 
-        # Logic: "Nguyễn Văn A Tham gia từ 20/10/2021"
+        # Parse "Nguyen Van A Joined from 20/10/2021"
         name_el = soup.select_one("span.name_sub")
         if name_el:
             text = name_el.get_text(separator=" ", strip=True)
@@ -213,8 +213,7 @@ class UserProfileCrawler:
 
     def _fetch_and_save_profile(self, uid: str) -> int:
         """
-        Wrapper function for threading.
-        Fetches one profile, saves it, and returns success status (1 or 0).
+        """Fetch profile, save, and return status."""
         """
         PROFILE_RETRY_COUNT = 2
         profile = None
@@ -315,7 +314,7 @@ class UserProfileCrawler:
                             pbar.update(1)
                         else:
                             progress.update(task, advance=1)
-                        # Slightly faster sleep since we do less work per page
+                        # Slightly faster sleep since less work per page
                         time.sleep(random.uniform(MIN_SLEEP, MAX_SLEEP))
         
         if use_tqdm and not no_progress:

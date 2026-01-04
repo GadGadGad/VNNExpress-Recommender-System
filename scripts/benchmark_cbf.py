@@ -189,14 +189,14 @@ def load_split_data(data_path):
 def benchmark(embedding_type, data_path, eval_protocol='full', cold_users=None, device='cuda'):
     print(f"\n--- Benchmarking {embedding_type} (Protocol: {eval_protocol}) ---")
     
-    # 1. Load Data
+    # Load Data
     train_dict, test_dict, n_cfg_users, n_cfg_items = load_split_data(data_path)
     
     if not test_dict:
         print("  Error: No test data found.")
         return 0, 0, 0
         
-    # 2. Load Embeddings
+    # Load Embeddings
     item_emb = load_pretrained_embeddings(embedding_type, device)
     
     # Handle Random Case
@@ -204,7 +204,7 @@ def benchmark(embedding_type, data_path, eval_protocol='full', cold_users=None, 
     if item_emb is not None:
         embedding_dim = item_emb.shape[1]
         n_items = item_emb.shape[0]
-        # Ensure we cover all items
+        # Ensure all items covered
         if n_cfg_items > n_items:
              n_items = n_cfg_items
     else:
@@ -214,7 +214,7 @@ def benchmark(embedding_type, data_path, eval_protocol='full', cold_users=None, 
     
     item_emb = item_emb.to(device)
 
-    # 3. Setup Recommender
+    # Setup Recommender
     print("  Computing User Profiles...")
     user_profiles = {}
     for u, history in train_dict.items():
@@ -231,7 +231,7 @@ def benchmark(embedding_type, data_path, eval_protocol='full', cold_users=None, 
         embs = item_emb[hist_tensor]
         user_profiles[u] = torch.mean(embs, dim=0)
 
-    # 4. Evaluate
+    # Evaluate
     k_list = [1, 5, 10, 50]
     max_k = max(k_list)
     all_results = {f'{m}@{k}': [] for m in ['recall', 'ndcg', 'precision', 'map', 'hitrate'] for k in k_list}

@@ -8,6 +8,7 @@ import api, { endpoints } from '@/lib/api';
 import { Search, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { ThemeToggle } from './components/ThemeToggle';
 
 export default function Home() {
   const [loading, setLoading] = useState(true);
@@ -112,12 +113,12 @@ export default function Home() {
   };
 
 
-  if (!initData) return <div className="flex h-screen items-center justify-center text-blue-600"><Loader2 className="animate-spin" size={40} /></div>;
+  if (!initData) return <div className="flex h-screen items-center justify-center text-primary"><Loader2 className="animate-spin" size={40} /></div>;
 
   const displayList = searchQuery ? searchResults : recommendations;
 
   return (
-    <div className="min-h-screen flex text-slate-200">
+    <div className="min-h-screen flex text-foreground bg-background transition-colors duration-300">
       <Sidebar
         users={initData.users}
         selectedUser={selectedUser}
@@ -136,11 +137,11 @@ export default function Home() {
         {/* Header / Search */}
         <div className="max-w-6xl mx-auto mb-12 flex gap-4 items-center relative z-10">
           <div className="relative flex-1 group">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-500 transition-colors" size={20} />
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" size={20} />
             <input
               type="text"
               placeholder="Search global intelligence..."
-              className="w-full pl-14 pr-6 py-5 rounded-2xl bg-slate-900/50 border border-slate-700 shadow-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all text-lg placeholder:text-slate-600 text-white backdrop-blur-sm"
+              className="w-full pl-14 pr-6 py-5 rounded-2xl bg-secondary/30 dark:bg-secondary/50 border border-border  shadow-xl focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all text-lg placeholder:text-muted-foreground text-foreground backdrop-blur-sm"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -151,8 +152,8 @@ export default function Home() {
             className={cn(
               "px-8 py-5 rounded-2xl font-bold transition-all flex items-center gap-3 shadow-lg border",
               showViz
-                ? "bg-indigo-600 text-white border-indigo-500 shadow-indigo-500/25"
-                : "bg-slate-800/50 text-slate-300 border-slate-700 hover:bg-slate-800 hover:text-white hover:border-indigo-500/50"
+                ? "bg-primary text-primary-foreground border-primary shadow-primary/25"
+                : "bg-secondary text-foreground border-border hover:bg-secondary/80 hover:border-primary/50"
             )}
           >
             {showViz ? "Hide Atlas" : "Open Atlas"} <span className="text-xs opacity-60">⌘K</span>
@@ -168,7 +169,7 @@ export default function Home() {
               exit={{ height: 0, opacity: 0 }}
               className="max-w-6xl mx-auto mb-12 overflow-hidden"
             >
-              <div className="p-1 border border-indigo-500/30 rounded-3xl bg-indigo-500/5">
+              <div className="p-1 border border-primary/30 rounded-3xl bg-primary/5">
                 <EmbeddingPlot data={vizData} />
               </div>
             </motion.div>
@@ -178,10 +179,10 @@ export default function Home() {
         {/* Content Grid */}
         <div className="max-w-6xl mx-auto relative z-10">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400">
+            <h2 className="text-3xl font-bold text-foreground">
               {searchQuery ? `Intel Results: "${searchQuery}"` : `Feed: ${selectedUser}`}
             </h2>
-            <div className="text-xs font-mono text-slate-500 bg-slate-900/50 px-3 py-1 rounded-full border border-slate-800">
+            <div className="text-xs font-mono text-muted-foreground bg-secondary px-3 py-1 rounded-full border border-border">
               {displayList.length} ITEMS FOUND
             </div>
           </div>
@@ -208,7 +209,7 @@ export default function Home() {
             </AnimatePresence>
 
             {displayList.length === 0 && (
-              <div className="col-span-full text-center py-32 text-slate-600">
+              <div className="col-span-full text-center py-32 text-muted-foreground">
                 <div className="mb-4 text-6xl opacity-20"></div>
                 No intelligence found matching your criteria.
               </div>
