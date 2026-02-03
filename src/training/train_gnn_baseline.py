@@ -305,7 +305,6 @@ class GNNTrainer:
         if self.splits is not None:
             print("   -> Using pre-computed splits. MASKING edges to prevent leakage...")
             
-            # --- 1. Build TRAIN DATA (Train edges only) ---
             self.train_data = data.clone()
             # Get edges from train split for Message Passing
             tr_u = self.splits['train']['pos_users'].long()
@@ -315,12 +314,10 @@ class GNNTrainer:
             # Update train graph edge_index: ONLY train edges
             self.train_data[self.edge_type].edge_index = train_edge_index
             
-            # --- 2. Build VAL DATA (Message Passing uses Train edges) ---
             # During validation, model only sees past edges (Train) to predict Val
             self.val_data = data.clone()
             self.val_data[self.edge_type].edge_index = train_edge_index
             
-            # --- 3. Build TEST DATA (Message Passing uses Train + Val edges) ---
             # During test, model sees full history (Train + Val) to predict Test
             self.test_data = data.clone()
             
@@ -357,7 +354,6 @@ class GNNTrainer:
         """Compute BPR loss with support for Precomputed Negatives."""
         z_dict = self.model(data.x_dict, data.edge_index_dict)
         
-        # 1. Get Positive Edges (Real Interactions)
         if self.splits is not None:
             # From provided splits dict
             pos_u = self.splits[split_name]['pos_users'].to(self.device)
@@ -371,7 +367,6 @@ class GNNTrainer:
         item_emb = z_dict['article'][pos_i]
         pos_scores = (user_emb * item_emb).sum(dim=-1)
         
-        # 2. Get Negative Edges (Fake Interactions)
 
         if self.neg_strategy == 'precomputed' and self.splits is not None:
             neg_u = self.splits[split_name]['neg_users'].to(self.device)

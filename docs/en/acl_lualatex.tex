@@ -29,7 +29,7 @@
 \makeatother
 
 \makeatletter
-\renewcommand{\bibsection}{\section*{Tài liệu tham khảo}}
+\renewcommand{\bibsection}{\section*{References}}
 \makeatother
 
 % Đổi tên trong caption: Figure -> Hình, Table -> Bảng
@@ -120,11 +120,11 @@
 % =========================
 % Title
 % =========================
-\title{\textbf{Heterogeneous Graph Learning for News Recommendation}\\
+\title{\textbf{Heterogeneous Graph Networks for News Recommendation}\\
 \large DS300.Q11 -- Final Project Report}
 
 \author{
-    \textbf{Authors:} Tang Nhat\textsuperscript{1,2,3}, Le Minh Nhut\textsuperscript{1,2,3}, Nguyen Hung Phat\textsuperscript{1,2,3}\\
+    Tang Nhat\textsuperscript{1,2,3}, Le Minh Nhut\textsuperscript{1,2,3}, Nguyen Hung Phat\textsuperscript{1,2,3}\\
     \textbf{Instructor:} M.Sc. Huynh Van Tin\textsuperscript{1,2,3}\\
     \\
     \textsuperscript{1}Faculty of Computer Science\\
@@ -270,12 +270,12 @@ used as input for graph construction and model training.
     \setlength{\tabcolsep}{4pt}
     \begin{tabular}{l p{5.6cm}}
         \toprule
-        \textbf{Table} & \textbf{Main fields}                                                                    \\
+        \textbf{Table} & \textbf{Main fields}                                                                     \\
         \midrule
-        Articles      & \texttt{article\_id, url, title, short\_description, author, published\_at, content}     \\
-        Metadata      & \texttt{article\_url, category, tags}                                                    \\
-        Replies       & \texttt{article\_url, parent\_user\_id, parent\_text, ..., reply\_user\_id, reply\_text} \\
-        User Profiles & \texttt{user\_id, username, join\_date}                                                  \\
+        Articles       & \texttt{article\_id, url, title, short\_description, author, published\_at, content}     \\
+        Metadata       & \texttt{article\_url, category, tags}                                                    \\
+        Replies        & \texttt{article\_url, parent\_user\_id, parent\_text, ..., reply\_user\_id, reply\_text} \\
+        User Profiles  & \texttt{user\_id, username, join\_date}                                                  \\
         \bottomrule
     \end{tabular}
     \caption{Summary of the normalized data schema.}
@@ -628,13 +628,13 @@ when the candidate set is narrowed.
 We evaluate model performance using standard recommendation metrics:
 \begin{itemize}
     \item \textbf{Recall@10}: Measures coverage,
-    reflecting whether the correct item appears in the top-10 list.
+          reflecting whether the correct item appears in the top-10 list.
     \item \textbf{Hit Rate@10 (HR)}: Measures basic user experience,
-    checking whether the top-10 contains at least one relevant article.
+          checking whether the top-10 contains at least one relevant article.
     \item \textbf{NDCG@10}: Measures ranking quality,
-    rewarding models that place relevant items higher.
+          rewarding models that place relevant items higher.
     \item \textbf{MRR}: Suitable for news recommendation,
-    measuring how quickly the system returns the first relevant result.
+          measuring how quickly the system returns the first relevant result.
 \end{itemize}
 
 % ==========================================================
@@ -742,11 +742,11 @@ To quantify the impact of graph expansion on HGN, \autoref{tab:impact-graph} com
     \rowcolors{2}{gray!5}{white}
     \begin{tabularx}{\linewidth}{l X c}
         \toprule
-        \textbf{Graph} & \textbf{Structural statistics}                          & \textbf{R@10 (HGN)} \\
+        \textbf{Graph} & \textbf{Structural statistics}                      & \textbf{R@10 (HGN)} \\
         \midrule
-        G1             & 13k Users, 30k Edges; Density: 0.06\%                   & 0.0262              \\
-        G2             & +61k Social Edges; Density: 0.064\%                     & \textbf{0.0369}     \\
-        G3             & +6 Categories; 16k User-Cat Edges; Density: 0.096\%     & 0.0299              \\
+        G1             & 13k Users, 30k Edges; Density: 0.06\%               & 0.0262              \\
+        G2             & +61k Social Edges; Density: 0.064\%                 & \textbf{0.0369}     \\
+        G3             & +6 Categories; 16k User-Cat Edges; Density: 0.096\% & 0.0299              \\
         \bottomrule
     \end{tabularx}
     \caption{Impact of graph structure on HGN.}
@@ -765,11 +765,11 @@ We evaluate three backbones (GAT, GraphSAGE, TransformerConv). TransformerConv a
     \begin{tabular}{l|cc|ccc}
         \toprule
         \textbf{Backbone} & \multicolumn{2}{c|}{\textbf{Full}} & \multicolumn{3}{c}{\textbf{Cost}}                                   \\
-                          & R@10                               & N@10                                 & Inf. (s)   & Params & Train (s) \\
+                          & R@10                               & N@10                              & Inf. (s)   & Params & Train (s) \\
         \midrule
-        GAT               & 0.0262                             & 0.0163                               & $\sim$1.38 & 1.27M  & 20.23     \\
-        SAGE              & 0.0303                             & 0.0182                               & $\sim$0.88 & 1.27M  & 19.77     \\
-        TRANS             & \textbf{0.0454}                    & \textbf{0.0236}                      & 1.71       & 1.47M  & 19.76     \\
+        GAT               & 0.0262                             & 0.0163                            & $\sim$1.38 & 1.27M  & 20.23     \\
+        SAGE              & 0.0303                             & 0.0182                            & $\sim$0.88 & 1.27M  & 19.77     \\
+        TRANS             & \textbf{0.0454}                    & \textbf{0.0236}                   & 1.71       & 1.47M  & 19.76     \\
         \bottomrule
     \end{tabular}
     \caption{Backbone comparison for HGN (TRANS = TransformerConv).}
@@ -854,14 +854,14 @@ Although Leave-One-Out (LOO) is widely used in recommendation,
 prior studies have pointed out key limitations:
 \begin{itemize}
     \item \textbf{Dependence on splitting strategy:}
-    Performance can vary significantly between random and chronological splits,
-    and random LOO often overestimates results~\citep{meng2020splitting}.
+          Performance can vary significantly between random and chronological splits,
+          and random LOO often overestimates results~\citep{meng2020splitting}.
     \item \textbf{Bias toward local evaluation:}
-    Ranking on a small candidate set (1 positive vs.\ 99 negatives) evaluates only local discrimination,
-    not true global retrieval ability~\citep{sun2023evaluation}.
+          Ranking on a small candidate set (1 positive vs.\ 99 negatives) evaluates only local discrimination,
+          not true global retrieval ability~\citep{sun2023evaluation}.
     \item \textbf{Data leakage risk:}
-    Random LOO on time-dependent data can leak future information,
-    yielding overly optimistic evaluations~\citep{wang2023leakage}.
+          Random LOO on time-dependent data can leak future information,
+          yielding overly optimistic evaluations~\citep{wang2023leakage}.
 \end{itemize}
 Therefore, this report combines LOO with \textbf{Full Ranking using chronological split}
 to provide a more comprehensive and realistic evaluation.

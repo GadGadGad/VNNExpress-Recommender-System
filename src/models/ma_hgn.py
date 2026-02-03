@@ -65,7 +65,6 @@ class MAHGN(nn.Module):
         self.dropout = nn.Dropout(dropout)
         
         # Fusion Attention: Learning relative importance of aspects
-        # 1: User-Article flow, 2: User-User social flow
         self.aspect_attention = nn.Parameter(torch.ones(2)) 
         
         self._init_weights()

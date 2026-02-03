@@ -723,7 +723,6 @@ class CrawledDataEDA:
         # Create grid
         gs = fig.add_gridspec(3, 3, hspace=0.4, wspace=0.3)
         
-        # 1. Key Metrics (text)
         ax1 = fig.add_subplot(gs[0, 0])
         ax1.axis('off')
         metrics = f"""
@@ -738,14 +737,12 @@ class CrawledDataEDA:
                  family='monospace', transform=ax1.transAxes)
         ax1.set_title('Key Metrics', fontweight='bold', fontsize=12)
         
-        # 2. Top 10 Authors
         ax2 = fig.add_subplot(gs[0, 1:])
         top_authors = self.articles['author'].value_counts().head(10)
         ax2.barh(top_authors.index[::-1], top_authors.values[::-1], color=plt.cm.viridis(np.linspace(0, 0.8, 10)))
         ax2.set_title('Top 10 Authors', fontweight='bold')
         ax2.set_xlabel('Articles')
         
-        # 3. Comments per Article
         ax3 = fig.add_subplot(gs[1, 0])
         comments_per_article = self.replies.groupby('article_url').size()
         ax3.hist(comments_per_article, bins=30, color=COLORS['secondary'], edgecolor='white')
@@ -754,7 +751,6 @@ class CrawledDataEDA:
         ax3.set_xlabel('Comments')
         ax3.set_ylabel('Frequency')
         
-        # 4. User Activity Power Law
         ax4 = fig.add_subplot(gs[1, 1])
         all_users = pd.concat([
             self.replies['parent_user_id'],
@@ -767,7 +763,6 @@ class CrawledDataEDA:
         ax4.set_xlabel('User Rank')
         ax4.set_ylabel('Interactions')
         
-        # 5. Top 10 Authors
         ax5 = fig.add_subplot(gs[1, 2])
         top_authors = self.articles['author'].value_counts().head(10)
         ax5.barh(top_authors.index[::-1], top_authors.values[::-1], 
@@ -775,7 +770,6 @@ class CrawledDataEDA:
         ax5.set_title('Top 10 Authors', fontweight='bold')
         ax5.set_xlabel('Articles')
         
-        # 6. Text Length Distributions
         ax6 = fig.add_subplot(gs[2, 0])
         title_lens = self.articles['title'].fillna('').str.len()
         ax6.hist(title_lens, bins=30, color=COLORS['tertiary'], edgecolor='white')
@@ -790,7 +784,6 @@ class CrawledDataEDA:
         ax7.set_xlabel('Characters')
         ax7.set_yscale('log')
         
-        # 7. Reactions Distribution  
         ax8 = fig.add_subplot(gs[2, 2])
         reactions = pd.to_numeric(self.replies['parent_reactions'], errors='coerce').fillna(0)
         reactions = reactions[reactions > 0]

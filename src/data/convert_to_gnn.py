@@ -143,7 +143,6 @@ class GNNDataConverter:
             r_id = clean_id(row['reply_user_id'])
             url = row['article_url']
             
-            # 1. Parent Interaction
             if p_id:
                 p_date = self._parse_vn_date(row['parent_date'])
                 interactions.append({
@@ -151,7 +150,6 @@ class GNNDataConverter:
                     'date': p_date, 'reactions': row.get('parent_reactions', 0)
                 })
             
-            # 2. Reply Interaction
             if r_id:
                 r_date = self._parse_vn_date(row['reply_date'])
                 interactions.append({
@@ -159,7 +157,6 @@ class GNNDataConverter:
                     'date': r_date, 'reactions': row.get('reply_reactions', 0)
                 })
                 
-                # 3. Social Signal (User-User Reply)
                 if p_id:
                     social_edges.append({'from': r_id, 'to': p_id, 'type': 'reply', 'article_url': url})
 

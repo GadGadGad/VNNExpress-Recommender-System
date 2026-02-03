@@ -71,7 +71,6 @@ class UserProfileCrawler:
 
     def _init_csvs(self):
         """Initializes CSV files with headers if they don't exist."""
-        # Schema: user_id, username, join_date
         if not self.user_profile_csv.exists():
             with open(self.user_profile_csv, "w", newline="", encoding="utf-8") as f:
                 csv.writer(f).writerow(["user_id", "username", "join_date"])
@@ -153,7 +152,7 @@ class UserProfileCrawler:
 
     def fetch_user_profile(self, userid: str) -> Optional[Dict[str, Any]]:
         """
-        """Parse metadata (Username, Join Date) from profile page."""
+        Parse metadata (Username, Join Date) from profile page.
         """
         url = f"https://my.vnexpress.net/users/feed/{userid}"
         html = self.safe_get(url)
@@ -166,7 +165,6 @@ class UserProfileCrawler:
         username = "N/A"
         join_date = "N/A"
 
-        # Parse "Nguyen Van A Joined from 20/10/2021"
         name_el = soup.select_one("span.name_sub")
         if name_el:
             text = name_el.get_text(separator=" ", strip=True)
@@ -212,9 +210,7 @@ class UserProfileCrawler:
         return user_ids
 
     def _fetch_and_save_profile(self, uid: str) -> int:
-        """
         """Fetch profile, save, and return status."""
-        """
         PROFILE_RETRY_COUNT = 2
         profile = None
         for attempt in range(PROFILE_RETRY_COUNT):
