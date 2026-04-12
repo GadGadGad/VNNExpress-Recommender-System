@@ -7,10 +7,10 @@ model = "ma_hgn"
 graph_type = "hetero"
 data_path = "data/processed/strict_g2"
 protocol = "full"
-epochs = 50  # Enough for ablation trend
+epochs = 50
 layers_list = [1, 2, 3, 4]
 
-print(f"🚀 Starting Layer Ablation for {model.upper()} on {protocol.upper()} protocol...")
+print(f"Starting Layer Ablation for {model.upper()} on {protocol.upper()} protocol...")
 print(f"Data: {data_path}")
 print(f"Layers to test: {layers_list}")
 
@@ -18,7 +18,7 @@ results = {}
 
 for layers in layers_list:
     print(f"\n\n{'='*60}")
-    print(f"▶️  Training with {layers} LAYERS")
+    print(f"Training with {layers} LAYERS")
     print(f"{'='*60}")
     
     cmd = [
@@ -35,9 +35,9 @@ for layers in layers_list:
     
     try:
         subprocess.run(cmd, check=True)
-        print(f"✅ Finished {layers} layers.")
+        print(f"Finished {layers} layers.")
     except subprocess.CalledProcessError as e:
-        print(f"❌ Failed to train with {layers} layers.")
+        print(f"Failed to train with {layers} layers.")
         print(e)
 
-print("\n\n🎉 Ablation Study Completed!")
+print("\nAblation Study Completed!")

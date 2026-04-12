@@ -33,7 +33,7 @@ def merge_data(input_pattern="crawlers/data_small_*", output_dir="data/raw"):
         articles_path = data_dir / "articles.csv"
         if articles_path.exists():
             df = pd.read_csv(articles_path)
-            df['source_category'] = category  # Add source tracking
+            df['source_category'] = category
             all_articles.append(df)
             print(f"  Articles: {len(df):,}")
         

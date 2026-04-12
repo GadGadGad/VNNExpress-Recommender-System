@@ -58,7 +58,7 @@ class MAHCL(nn.Module):
         self.convs = nn.ModuleList([LightGCNConv() for _ in range(n_layers)])
         
         # Multi-Aspect fusion weights (Interest vs Social)
-        self.aspect_weight = nn.Parameter(torch.tensor([0.7, 0.3]))  # [interest, social]
+        self.aspect_weight = nn.Parameter(torch.tensor([0.7, 0.3]))
         
         self._init_weights()
     
@@ -72,10 +72,10 @@ class MAHCL(nn.Module):
         """Build bipartite user-item graph from hetero edge_index_dict or raw tensor."""
         # Handle raw tensor input (fallback from bipartite graph)
         if isinstance(edge_index_dict, torch.Tensor):
-            # Assume it's already a bipartite edge_index [2, E] with user->item edges
+            # Assume it's already a bipartite edge_index [2, E] with user-item edges
             ua_edges = edge_index_dict
             src = ua_edges[0]
-            dst = ua_edges[1] + self.n_users  # Offset item indices
+            dst = ua_edges[1] + self.n_users
             edge_index = torch.stack([
                 torch.cat([src, dst]),
                 torch.cat([dst, src])
@@ -101,7 +101,7 @@ class MAHCL(nn.Module):
         
         # Build symmetric bipartite graph
         src = ua_edges[0]
-        dst = ua_edges[1] + self.n_users  # Offset item indices
+        dst = ua_edges[1] + self.n_users
         
         edge_index = torch.stack([
             torch.cat([src, dst]),

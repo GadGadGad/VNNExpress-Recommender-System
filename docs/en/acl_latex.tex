@@ -86,7 +86,7 @@ Early graph-based recommendation methods like NGCF \citet{wang2019neural} explic
 \subsection{Heterogeneous Graph Recommendation}
 Heterogeneous GNNs (HGNNs) extend standard GNNs to handle graphs with multiple node and edge types. Our work builds upon **HGRec** \citet{shi2020hgrec}, which introduces a dual-level aggregation mechanism:
 \begin{itemize}
-  \item \textbf{Meta-path Aggregation:} Separately aggregates neighbor information for each specific relation type (e.g., User-Reply-User vs. User-Comment-Article), allowing the model to capture distinct social and interest signals.
+  \item \textbf{Relation-wise Aggregation:} Separately aggregates neighbor information for each specific relation type (e.g., User-Reply-User vs. User-Comment-Article), allowing the model to capture distinct social and interest signals.
   \item \textbf{Semantic Fusion:} Combines these aspect-specific embeddings using an importance-weighted mechanism to form the final user representation.
 \end{itemize}
 This distinction is critical for our G2 (Social) graph, where social edges carry different semantic weight than interaction edges.
@@ -148,12 +148,12 @@ SimGCL augments the representation learning with a contrastive auxiliary task:
 where $e_i^{'}$ and $e_i^{''}$ are perturbed embeddings with added random noise.
 
 \subsubsection{MA-HCL (Multi-Aspect Heterogenous CL)}
-Adapted from \citet{shi2020hgrec}, MA-HCL handles heterogeneity using meta-path based aggregation. For each meta-path $\Phi$ (e.g., User-Article-Author-Article), we compute a distinct embedding $h_u^{\Phi}$ for user $u$.
-We employ a \textbf{simple summation} to fuse embeddings from different meta-paths:
+Adapted from \citet{shi2020hgrec}, MA-HCL handles heterogeneity using relation-based aggregation. For each relation type $\Phi$ (e.g., User-Article vs. User-Reply-User), we compute a distinct embedding $h_u^{\Phi}$ for user $u$.
+We employ a \textbf{simple summation} to fuse embeddings from different relations:
 \begin{equation}
   h_u = \sum_{\Phi} h_u^{\Phi}
 \end{equation}
-To improve robustness, we apply contrastive learning on the meta-path views, encouraging consistency between the global representation and aspect-specific representations.
+To improve robustness, we apply contrastive learning on the relation-specific views, encouraging consistency between the global representation and aspect-specific representations.
 
 \subsubsection{Hybrid Inference Strategy}
 To address the cold-start problem where graph connectivity is sparse or non-existent (new users/items), we implement a hybrid strategy.
@@ -320,7 +320,7 @@ We analyzed the computational cost of training on the dense Social Graph (G2).
   \end{tabular}
   \caption{Training efficiency on Graph G2.}
 \end{table}
-\textbf{XSimGCL} demonstrates superior efficiency (33s/epoch). Our \textbf{MA-HGN} model, while offering better ranking, incurs a 4x computational overhead due to the complex meta-path aggregation steps.
+\textbf{XSimGCL} demonstrates superior efficiency (33s/epoch). Our \textbf{MA-HGN} model, while offering better ranking, incurs a 4x computational overhead due to the complex multi-aspect aggregation steps.
 
 \section{Conclusion}
 We presented a comprehensive study of Graph Neural Networks for Vietnamese news recommendation. Our work underscores the value of heterogeneous graphs, specifically the inclusion of social reply networks (G2). While global retrieval remains challenging due to extreme sparsity (99.93\%), our HGN model demonstrates state-of-the-art stability in personalized ranking tasks.

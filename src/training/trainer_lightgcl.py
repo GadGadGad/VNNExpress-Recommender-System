@@ -304,7 +304,7 @@ class LightGCLTrainer:
                     
                     if save_path:
                         self.save_model(save_path, epoch, eval_metrics)
-                        print("  ★ New best model saved!")
+                        print("  * New best model saved!")
                 else:
                     no_improve += eval_every
                     
@@ -327,8 +327,8 @@ class LightGCLTrainer:
             'epoch': epoch,
             'model_state_dict': self.model.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
-            'metrics': {k: float(v) for k, v in metrics.items()},  # Convert to float
-            'best_recall': float(self.best_recall)  # Convert to float
+            'metrics': {k: float(v) for k, v in metrics.items()},
+            'best_recall': float(self.best_recall)
         }, path)
         
     def load_model(self, path: str):

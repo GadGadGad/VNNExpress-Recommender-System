@@ -35,8 +35,8 @@ from selenium.webdriver.firefox.options import Options as FirefoxOptions
 try:
     from selenium_stealth import stealth
 except ImportError:
-    print("LỖI: Cần cài 'selenium-stealth'.")
-    print("Hãy chạy: python -m pip install selenium-stealth")
+    print("ERROR: 'selenium-stealth' is required.")
+    print("Please run: python -m pip install selenium-stealth")
     sys.exit(1)
 
 
@@ -47,7 +47,7 @@ from rich.rule import Rule
 
 from utils import Cache, sha1
 
-log = logging.getLogger()  # Get the root logger
+log = logging.getLogger()
 
 
 @dataclass
@@ -70,7 +70,7 @@ class Selectors:
 
 class VnExpressDeepCrawler:
     """
-    Class chính để quản lý state (driver, cache, seen_urls)
+    Main class to manage state (driver, cache, seen_urls)
     """
 
     def __init__(self, output_file: str, browser: str, is_headless: bool, use_cache: bool, console: Console, console_handler: logging.Handler):
@@ -95,7 +95,7 @@ class VnExpressDeepCrawler:
         self.total_urls_skipped = 0
         self.total_cache_hits = 0
 
-        # Khởi động Driver
+        # Start Driver
         self.driver = self._setup_driver()
 
     def _setup_driver(self) -> WebDriver:
@@ -150,7 +150,7 @@ class VnExpressDeepCrawler:
         return driver
 
     def _load_seen_urls(self) -> Set[str]:
-        """Tải các URL đã scrape thành công từ file .seen_urls.txt"""
+        """Load successfully scraped URLs from .seen_urls.txt"""
         if not self.seen_file_path.exists():
             return set()
         try:
@@ -163,7 +163,7 @@ class VnExpressDeepCrawler:
             return set()
 
     def _log_seen_url(self, url: str):
-        """Ghi một URL đã scrape thành công vào file .seen."""
+        """Append a successfully scraped URL to the seen file."""
         try:
             with open(self.seen_file_path, 'a', encoding='utf-8') as f:
                 f.write(f"{url}\n")
@@ -171,7 +171,7 @@ class VnExpressDeepCrawler:
             log.error(f"Failed to write to seen file: {e}")
 
     def _save_data_chunk(self, data: List[Dict], needs_header: bool):
-        """Lưu một "mẻ" dữ liệu vào file CSV (chế độ "a" - append)."""
+        """Save a chunk of data to CSV (append mode)."""
         if not data:
             return
         try:
@@ -232,26 +232,26 @@ class VnExpressDeepCrawler:
 
         date = "N/A"
         
-        # Danh sách các thẻ HTML chứa ngày giờ thường gặp trên VnExpress
+        # List of common date selectors on VnExpress
         date_selectors = [
-            sel.date,              # span.time-com (Mặc định - Bài viết thường)
-            ".time-count",         # Giao diện Video / E-magazine
-            "span.time",           # Giao diện cũ
-            "a.time-com",          # Khi ngày giờ là một đường link
-            ".txt-time",           # Giao diện mobile hoặc rút gọn
-            ".time-public"         # Một số chuyên mục đặc biệt
+            sel.date,
+            ".time-count",
+            "span.time",
+            "a.time-com",
+            ".txt-time",
+            ".time-public"
         ]
         
-        # Thử lần lượt từng thẻ, thẻ nào có chữ thì lấy luôn
+        # Try each selector until successful
         for selector in date_selectors:
             try:
                 el = element.find_element(By.CSS_SELECTOR, selector)
                 val = el.text.strip()
-                if val: # Nếu lấy được text (không rỗng)
+                if val: # If text is found
                     date = val
-                    break # Tìm thấy rồi thì dừng, không tìm tiếp nữa
+                    break # Stop searching
             except (NoSuchElementException, Exception):
-                continue # Lỗi thì thử thẻ tiếp theo trong danh sách
+                continue # Try next selector on error
 
         reactions = "0"
         try:
@@ -276,10 +276,10 @@ class VnExpressDeepCrawler:
         try:
             self.driver.get(url)
         except TimeoutException:
-            log.warning(f"[yellow]Page load timed out[/yellow] (60s) cho {url}. Vẫn tiếp tục thử scrape...")
-            pass # Bỏ qua lỗi timeout và tiếp tục
+            log.warning(f"[yellow]Page load timed out[/yellow] (60s) for {url}. Continuing scrape attempt...")
+            pass # Ignore timeout and continue
         except WebDriverException as e:
-            log.error(f"[red]WebDriverException on driver.get()[/red]: {e.msg}. Bỏ qua bài này.")
+            log.error(f"[red]WebDriverException on driver.get()[/red]: {e.msg}. Skipping this article.")
             return []
 
         time.sleep(1.2)
@@ -305,7 +305,7 @@ class VnExpressDeepCrawler:
                 log.info(" > 'Xem thêm ý kiến' button no longer found. All comments are loaded.")
                 break
             except Exception as e:
-                log.warning(f" > Error clicking 'Xem thêm ý kiến': {e}. Assuming all comments are loaded.")
+                log.warning(f" > Error clicking 'Xem thêm ý kiến': {e}. Assuming all comments loaded.")
                 break
 
         all_comment_blocks = self.driver.find_elements(By.CSS_SELECTOR, self.selectors.comment_block)
@@ -373,7 +373,7 @@ class VnExpressDeepCrawler:
         return scraped_data
 
     def run(self, urls_to_scrape: List[str]):
-        """Hàm điều phối chính, tích hợp Resumability và lưu file Tức thời."""
+        """Main coordinator function, integrates Resumability and Instant Save."""
         urls_to_process = []
         for url in urls_to_scrape:
             if url not in self.seen_urls:
@@ -426,7 +426,7 @@ class VnExpressDeepCrawler:
         self._print_summary(total_urls)
 
     def _print_summary(self, total_attempted):
-        """In bảng tổng kết cuối cùng."""
+        """Print final summary table."""
         summary_panel = Panel(
             f"Total URLs in file: [bold]{total_attempted + self.total_urls_skipped}[/bold]\n"
             f"URLs Skipped (seen): [bold yellow]{self.total_urls_skipped}[/bold yellow]\n"
@@ -443,8 +443,8 @@ class VnExpressDeepCrawler:
 
 def run_as_import(input_file_str: str, output_file_str: str, browser: str, is_headless: bool, use_cache: bool, worker_id: str = "Step2", console: Console = None):
     """
-    Hàm này được gọi bởi script bên ngoài (pipeline)
-    để chạy crawler trong cùng một tiến trình.
+    Called by external script (pipeline)
+    to run crawler in the same process.
     """
 
     if not console:
@@ -525,7 +525,6 @@ def run_as_import(input_file_str: str, output_file_str: str, browser: str, is_he
         log.error(f"A fatal error occurred: {e}", exc_info=True)
         log.error("Crawler stopped prematurely.")
         raise e
-# 🔼 --- KẾT THÚC HÀM MỚI --- 🔼
 
 
 if __name__ == "__main__":

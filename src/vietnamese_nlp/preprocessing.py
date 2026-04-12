@@ -95,7 +95,7 @@ class VietnameseTextPreprocessor:
     def __init__(
         self,
         use_word_segmentation: bool = True,
-        segmenter: str = 'underthesea',  # 'underthesea' or 'pyvi'
+        segmenter: str = 'underthesea',
         remove_stopwords: bool = True,
         custom_stopwords: Optional[Set[str]] = None,
         lowercase: bool = True,
@@ -435,7 +435,7 @@ def tokenize_vietnamese(text: str, use_segmentation: bool = True) -> List[str]:
     """
     preprocessor = VietnameseTextPreprocessor(
         use_word_segmentation=use_segmentation,
-        remove_stopwords=False  # Keep all words for tokenization
+        remove_stopwords=False
     )
     return preprocessor.tokenize(text)
 

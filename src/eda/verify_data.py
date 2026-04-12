@@ -26,13 +26,13 @@ def verify_gnn_data(data_path: str):
     print("DATA VERIFICATION REPORT")
     print("="*50)
 
-    # 1. Structure Check
+    # Structure Check
     is_hetero = isinstance(data, HeteroData)
     print(f"Type: {'Heterogeneous' if is_hetero else 'Homogeneous'}")
     if not is_hetero:
         print("[WARNING] Expected HeteroData for this project!")
 
-    # 2. Node Features Check
+    # Node Features Check
     print("\n--- Node Features ---")
     for node_type in data.node_types:
         x = data[node_type].x
@@ -54,7 +54,7 @@ def verify_gnn_data(data_path: str):
         else:
             print(f"   [PASS] All nodes have non-zero features")
 
-    # 3. Edge & Degree Check (5-Core Verification)
+    # Edge & Degree Check (5-Core Verification)
     print("\n--- 5-Core Compliance Check ---")
     edge_type = ('user', 'comments', 'article')
     if edge_type in data.edge_types:
@@ -89,7 +89,7 @@ def verify_gnn_data(data_path: str):
         if isolated_users > 0 or isolated_articles > 0:
             print(f"   [WARN] Isolated nodes found: Users={isolated_users}, Articles={isolated_articles}")
 
-    # 4. Connectivity Check
+    # Connectivity Check
     print("\n--- Connectivity Check ---")
     try:
         # Convert to homogeneous and then undirected for connectivity check

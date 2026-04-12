@@ -37,6 +37,11 @@ NEURAL_MODELS = {
         'name': 'keepitreal/vietnamese-sbert',
         'trust_remote_code': False,
         'dim': 768
+    },
+    'phobert': {
+        'name': 'vinai/phobert-base',
+        'trust_remote_code': True,
+        'dim': 768
     }
 }
 
@@ -94,7 +99,7 @@ def generate_tfidf_embeddings(data_path='data/processed/strict_g2', output_dir='
     url_to_idx = {url: idx for url, idx in article_map.items()}
     
     # Prepare texts with preprocessing
-    texts = [''] * n_articles  # Initialize with empty strings
+    texts = [''] * n_articles
     
     print("Preprocessing Vietnamese text...")
     for _, row in tqdm(articles_df.iterrows(), total=len(articles_df), desc="Preprocessing"):
@@ -112,7 +117,7 @@ def generate_tfidf_embeddings(data_path='data/processed/strict_g2', output_dir='
         max_features=5000,
         min_df=2,
         max_df=0.95,
-        ngram_range=(1, 2)  # Unigrams and bigrams
+        ngram_range=(1, 2)
     )
     
     tfidf_matrix = vectorizer.fit_transform(texts)

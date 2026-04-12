@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+pandas
+numpy
+torch
+scikit-learn
+plotly
+wordcloud
+rank_bm25
+matplotlib
+python-multipart
+pyyaml

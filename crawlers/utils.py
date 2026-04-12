@@ -67,7 +67,7 @@ class Cache:
             except Exception as e:
                 self.log.warning(f"Cache delete failed: {e}")
 
-# 🔽 --- THÊM MỚI: BẢN ĐỒ CATEGORY --- 🔽
+
 VNEXPRESS_CATEGORIES = {
     "thoi-su": "1001005",
     "the-gioi": "1001002",
@@ -88,29 +88,29 @@ VNEXPRESS_CATEGORIES = {
     "cuoi": "1001011",
     "tuyen-dau-chong-dich": "1004565"
 }
-# Bản đồ ngược để tra cứu ID nhanh
+# Reverse map for quick ID lookup
 _VNEXPRESS_ID_TO_NAME = {v: k for k, v in VNEXPRESS_CATEGORIES.items()}
-# 🔼 --- KẾT THÚC THÊM MỚI --- 🔼
 
 
-# 🔽 --- THÊM MỚI: HÀM LOOKUP --- 🔽
+
+
 def resolve_category_id(category_input: str) -> Optional[str]:
     """
-    Dịch tên category (ví dụ: 'the-gioi') hoặc ID ('1001002')
-    thành một Category ID hợp lệ.
-    Trả về ID nếu tìm thấy, ngược lại trả về None.
+    Translate category name (e.g. 'the-gioi') or ID ('1001002')
+    to valid Category ID.
+    Return ID if found, else None.
     """
     if not category_input:
         return None
 
-    # 1. Kiểm tra xem nó có phải là một ID hợp lệ không
+    # Check if it is a valid ID
     if category_input in _VNEXPRESS_ID_TO_NAME:
         return category_input
 
-    # 2. Kiểm tra xem nó có phải là tên mà chúng ta có thể map không
+    # Check if it is a mappable name
     if category_input.lower() in VNEXPRESS_CATEGORIES:
         return VNEXPRESS_CATEGORIES[category_input.lower()]
 
-    # 3. Không tìm thấy
+    # Not found
     return None
-# 🔼 --- KẾT THÚC THÊM MỚI --- 🔼
+

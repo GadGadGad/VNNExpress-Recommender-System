@@ -1,16 +1,16 @@
 # Hướng dẫn Benchmark, Export Results và Chuẩn bị Slides
 
-## 1. Train Full Benchmark 🏋️
+## 1. Train Full Benchmark
 
 ### Option A: Qua Streamlit UI
 ```bash
 streamlit run app.py
 ```
-1. Vào tab **🛠️ Training**
-2. Tick **"✅ Select All CF Models"**
+1. Vào tab **Training**
+2. Tick **"Select All CF Models"**
 3. Đặt **Epochs = 50** (hoặc 100 cho kết quả tốt hơn)
 4. Chọn **Evaluation Protocol = "full"**
-5. Click **"🚀 Start Training Process"**
+5. Click **"Start Training Process"**
 
 ### Option B: Qua Command Line (Nhanh hơn)
 ```bash
@@ -34,10 +34,10 @@ python scripts/train_and_compare_all.py --epochs 50 --eval-protocol full
 
 ---
 
-## 2. Export Results 📊
+## 2. Export Results
 
 ### Xem kết quả trong Streamlit
-1. Mở tab **📈 Metrics**
+1. Mở tab **Metrics**
 2. Xem bảng so sánh tất cả models
 3. Screenshot hoặc copy số liệu
 
@@ -73,7 +73,7 @@ print(df.to_markdown())
 
 ---
 
-## 3. Chuẩn bị Presentation Slides 📽️
+## 3. Chuẩn bị Presentation Slides
 
 ### Cấu trúc đề xuất (10-15 slides)
 
@@ -111,7 +111,7 @@ pdflatex main.tex
 python scripts/train_and_compare_all.py --epochs 50
 
 # 2. View metrics in browser
-streamlit run app.py  # Go to 📈 Metrics tab
+streamlit run app.py  # Go to Metrics tab
 
 # 3. Export to CSV
 python -c "

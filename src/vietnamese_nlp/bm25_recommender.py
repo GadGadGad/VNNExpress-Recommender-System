@@ -48,7 +48,7 @@ class BM25:
         self,
         k1: float = 1.5,
         b: float = 0.75,
-        delta: float = 0.5  # BM25+ extension
+        delta: float = 0.5
     ):
         """
         Initialize BM25.
@@ -66,9 +66,9 @@ class BM25:
         self.corpus_size = 0
         self.avgdl = 0
         self.doc_lengths = []
-        self.doc_freqs = {}  # term -> document frequency
-        self.idf = {}  # term -> IDF score
-        self.doc_term_freqs = []  # list of Counter for each doc
+        self.doc_freqs = {}
+        self.idf = {}
+        self.doc_term_freqs = []
         
         self.is_fitted = False
         

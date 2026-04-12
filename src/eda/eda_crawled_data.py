@@ -180,20 +180,25 @@ class CrawledDataEDA:
         
         print("\nAnalyzing category distribution (from metadata)...")
         
-        fig, axes = plt.subplots(1, 2, figsize=(16, 7))
+        # --- Plot 1: Top 15 Categories Bar Chart ---
+        fig1, ax1 = plt.subplots(figsize=(10, 8))
         
         # Top 15 categories
         top_cats = self.metadata['category'].value_counts().head(15)
         
-        ax1 = axes[0]
         bars = ax1.barh(top_cats.index[::-1], top_cats.values[::-1], 
                        color=plt.cm.viridis(np.linspace(0, 0.8, 15)))
         ax1.set_xlabel('Number of Articles')
         ax1.set_title('Top 15 Article Categories')
         ax1.bar_label(bars, fmt='%d', padding=3, fontsize=9)
         
-        # Category pie chart (top 10 + Others)
-        ax2 = axes[1]
+        plt.tight_layout()
+        plt.savefig(self.output_dir / 'eda_09_metadata_categories_bar.png', dpi=150, bbox_inches='tight')
+        print(f"   [OK] Saved: {self.output_dir}/eda_09_metadata_categories_bar.png")
+        plt.close()
+        
+        # --- Plot 2: Category Distribution Pie Chart ---
+        fig2, ax2 = plt.subplots(figsize=(10, 8))
         top_10 = self.metadata['category'].value_counts().head(10)
         others = self.metadata['category'].value_counts()[10:].sum()
         pie_data = pd.concat([top_10, pd.Series({'Others': others})])
@@ -208,8 +213,8 @@ class CrawledDataEDA:
         ax2.set_title('Category Distribution (Top 10 + Others)')
         
         plt.tight_layout()
-        plt.savefig(self.output_dir / 'eda_09_metadata_categories.png', dpi=150, bbox_inches='tight')
-        print(f"   [OK] Saved: {self.output_dir}/eda_09_metadata_categories.png")
+        plt.savefig(self.output_dir / 'eda_09_metadata_categories_pie.png', dpi=150, bbox_inches='tight')
+        print(f"   [OK] Saved: {self.output_dir}/eda_09_metadata_categories_pie.png")
         plt.close()
     
     def analyze_metadata_tags(self):
@@ -237,10 +242,9 @@ class CrawledDataEDA:
         
         tag_counts = Counter(all_tags)
         
-        fig, axes = plt.subplots(1, 2, figsize=(16, 7))
+        # --- Plot 1: Top 25 Tags Bar Chart ---
+        fig1, ax1 = plt.subplots(figsize=(10, 8))
         
-        # Top 25 tags bar chart
-        ax1 = axes[0]
         top_tags = dict(tag_counts.most_common(25))
         bars = ax1.barh(list(top_tags.keys())[::-1], list(top_tags.values())[::-1], 
                        color=plt.cm.plasma(np.linspace(0.2, 0.8, len(top_tags))))
@@ -248,8 +252,13 @@ class CrawledDataEDA:
         ax1.set_title('Top 25 Article Tags (from Metadata)')
         ax1.bar_label(bars, fmt='%d', padding=3, fontsize=8)
         
-        # Tag frequency distribution
-        ax2 = axes[1]
+        plt.tight_layout()
+        plt.savefig(self.output_dir / 'eda_10_metadata_tags_bar.png', dpi=150, bbox_inches='tight')
+        print(f"   [OK] Saved: {self.output_dir}/eda_10_metadata_tags_bar.png")
+        plt.close()
+        
+        # --- Plot 2: Tag Frequency Distribution ---
+        fig2, ax2 = plt.subplots(figsize=(10, 6))
         tag_freq = list(tag_counts.values())
         ax2.hist(tag_freq, bins=50, color=COLORS['secondary'], edgecolor='white', alpha=0.8)
         ax2.set_xlabel('Number of Articles per Tag')
@@ -258,8 +267,8 @@ class CrawledDataEDA:
         ax2.set_yscale('log')
         
         plt.tight_layout()
-        plt.savefig(self.output_dir / 'eda_10_metadata_tags.png', dpi=150, bbox_inches='tight')
-        print(f"   [OK] Saved: {self.output_dir}/eda_10_metadata_tags.png")
+        plt.savefig(self.output_dir / 'eda_10_metadata_tags_dist.png', dpi=150, bbox_inches='tight')
+        print(f"   [OK] Saved: {self.output_dir}/eda_10_metadata_tags_dist.png")
         plt.close()
     
     def analyze_engagement_by_category(self):
@@ -285,10 +294,9 @@ class CrawledDataEDA:
         category_engagement.columns = ['avg_comments', 'total_comments', 'num_articles']
         category_engagement = category_engagement.sort_values('avg_comments', ascending=False)
         
-        fig, axes = plt.subplots(1, 2, figsize=(16, 7))
+        # --- Plot 1: Avg Comments by Category ---
+        fig1, ax1 = plt.subplots(figsize=(10, 8))
         
-        # Top 15 categories by average comments
-        ax1 = axes[0]
         top_15 = category_engagement.head(15)
         bars = ax1.barh(range(len(top_15)), top_15['avg_comments'].values,
                         color=plt.cm.viridis(np.linspace(0, 0.8, 15)))
@@ -299,8 +307,13 @@ class CrawledDataEDA:
         ax1.invert_yaxis()
         ax1.bar_label(bars, fmt='%.1f', padding=3, fontsize=9)
         
-        # Top 15 by total comments
-        ax2 = axes[1]
+        plt.tight_layout()
+        plt.savefig(self.output_dir / 'eda_11_engagement_by_category_avg.png', dpi=150, bbox_inches='tight')
+        print(f"   [OK] Saved: {self.output_dir}/eda_11_engagement_by_category_avg.png")
+        plt.close()
+        
+        # --- Plot 2: Total Comments by Category ---
+        fig2, ax2 = plt.subplots(figsize=(10, 8))
         top_15_total = category_engagement.nlargest(15, 'total_comments')
         bars2 = ax2.barh(range(len(top_15_total)), top_15_total['total_comments'].values,
                          color=plt.cm.plasma(np.linspace(0.2, 0.8, 15)))
@@ -312,8 +325,8 @@ class CrawledDataEDA:
         ax2.bar_label(bars2, fmt='%d', padding=3, fontsize=9)
         
         plt.tight_layout()
-        plt.savefig(self.output_dir / 'eda_11_engagement_by_category.png', dpi=150, bbox_inches='tight')
-        print(f"   [OK] Saved: {self.output_dir}/eda_11_engagement_by_category.png")
+        plt.savefig(self.output_dir / 'eda_11_engagement_by_category_total.png', dpi=150, bbox_inches='tight')
+        print(f"   [OK] Saved: {self.output_dir}/eda_11_engagement_by_category_total.png")
         plt.close()
     
     def analyze_comments_per_article(self):
@@ -322,10 +335,9 @@ class CrawledDataEDA:
         
         comments_per_article = self.replies.groupby('article_url').size()
         
-        fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+        # --- Plot 1: Comments per Article Histogram ---
+        fig1, ax1 = plt.subplots(figsize=(10, 6))
         
-        # Histogram with log scale
-        ax1 = axes[0]
         ax1.hist(comments_per_article, bins=50, color=COLORS['secondary'], edgecolor='white', alpha=0.8)
         ax1.set_xlabel('Number of Comments')
         ax1.set_ylabel('Number of Articles')
@@ -341,8 +353,14 @@ class CrawledDataEDA:
                  verticalalignment='top', horizontalalignment='right',
                  bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
         
-        # Box plot
-        ax2 = axes[1]
+        plt.tight_layout()
+        plt.savefig(self.output_dir / 'eda_02_comments_per_article_hist.png', dpi=150, bbox_inches='tight')
+        print(f"   [OK] Saved: {self.output_dir}/eda_02_comments_per_article_hist.png")
+        plt.close()
+        
+        # --- Plot 2: Comments per Article Box Plot ---
+        fig2, ax2 = plt.subplots(figsize=(8, 6))
+        
         bp = ax2.boxplot(comments_per_article, vert=True, patch_artist=True)
         bp['boxes'][0].set_facecolor(COLORS['secondary'])
         ax2.set_ylabel('Number of Comments')
@@ -350,13 +368,13 @@ class CrawledDataEDA:
         ax2.set_xticklabels(['All Articles'])
         
         plt.tight_layout()
-        plt.savefig(self.output_dir / 'eda_02_comments_per_article.png', dpi=150, bbox_inches='tight')
-        print(f"   [OK] Saved: {self.output_dir}/eda_02_comments_per_article.png")
+        plt.savefig(self.output_dir / 'eda_02_comments_per_article_box.png', dpi=150, bbox_inches='tight')
+        print(f"   [OK] Saved: {self.output_dir}/eda_02_comments_per_article_box.png")
         plt.close()
     
     def analyze_user_activity(self):
         """Analyze user activity patterns (Power Law)."""
-        print("👥 Analyzing user activity patterns...")
+        print("Analyzing user activity patterns...")
         
         # Combine parent and reply user activity
         parent_activity = self.replies['parent_user_id'].value_counts()
@@ -371,10 +389,11 @@ class CrawledDataEDA:
         ])
         total_activity = all_users.value_counts()
         
-        fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+        total_activity = all_users.value_counts()
         
-        # Log-log plot (Power Law)
-        ax1 = axes[0, 0]
+        # --- Plot 1: User Activity Rank-Frequency (Power Law) ---
+        fig1, ax1 = plt.subplots(figsize=(10, 8))
+        
         ranks = np.arange(1, len(total_activity) + 1)
         ax1.loglog(ranks, total_activity.values, 'o', markersize=2, alpha=0.5, color=COLORS['primary'])
         ax1.set_xlabel('User Rank (log scale)')
@@ -382,8 +401,14 @@ class CrawledDataEDA:
         ax1.set_title('User Activity: Rank-Frequency Plot (Power Law)')
         ax1.grid(True, alpha=0.3)
         
-        # Top 20 most active users
-        ax2 = axes[0, 1]
+        plt.tight_layout()
+        plt.savefig(self.output_dir / 'eda_03_user_activity_power_law.png', dpi=150, bbox_inches='tight')
+        print(f"   [OK] Saved: {self.output_dir}/eda_03_user_activity_power_law.png")
+        plt.close()
+        
+        # --- Plot 2: Top 20 Most Active Users ---
+        fig2, ax2 = plt.subplots(figsize=(10, 8))
+        
         top_20 = total_activity.head(20)
         bars = ax2.barh(range(len(top_20)), top_20.values, color=plt.cm.plasma(np.linspace(0.2, 0.8, 20)))
         ax2.set_yticks(range(len(top_20)))
@@ -392,16 +417,28 @@ class CrawledDataEDA:
         ax2.set_title('Top 20 Most Active Users')
         ax2.invert_yaxis()
         
-        # Activity distribution histogram
-        ax3 = axes[1, 0]
+        plt.tight_layout()
+        plt.savefig(self.output_dir / 'eda_03_user_activity_top20.png', dpi=150, bbox_inches='tight')
+        print(f"   [OK] Saved: {self.output_dir}/eda_03_user_activity_top20.png")
+        plt.close()
+        
+        # --- Plot 3: User Activity Distribution Histogram ---
+        fig3, ax3 = plt.subplots(figsize=(10, 6))
+        
         ax3.hist(total_activity.values, bins=50, color=COLORS['tertiary'], edgecolor='white', alpha=0.8)
         ax3.set_xlabel('Number of Interactions per User')
         ax3.set_ylabel('Number of Users')
         ax3.set_title('User Activity Distribution')
         ax3.set_yscale('log')
         
-        # Cumulative distribution
-        ax4 = axes[1, 1]
+        plt.tight_layout()
+        plt.savefig(self.output_dir / 'eda_03_user_activity_dist.png', dpi=150, bbox_inches='tight')
+        print(f"   [OK] Saved: {self.output_dir}/eda_03_user_activity_dist.png")
+        plt.close()
+        
+        # --- Plot 4: Cumulative Activity Distribution (Pareto) ---
+        fig4, ax4 = plt.subplots(figsize=(10, 6))
+        
         sorted_activity = np.sort(total_activity.values)[::-1]
         cumsum = np.cumsum(sorted_activity) / sorted_activity.sum()
         ax4.plot(np.arange(1, len(cumsum) + 1) / len(cumsum) * 100, cumsum * 100, 
@@ -415,8 +452,8 @@ class CrawledDataEDA:
         ax4.grid(True, alpha=0.3)
         
         plt.tight_layout()
-        plt.savefig(self.output_dir / 'eda_03_user_activity.png', dpi=150, bbox_inches='tight')
-        print(f"   [OK] Saved: {self.output_dir}/eda_03_user_activity.png")
+        plt.savefig(self.output_dir / 'eda_03_user_activity_pareto.png', dpi=150, bbox_inches='tight')
+        print(f"   [OK] Saved: {self.output_dir}/eda_03_user_activity_pareto.png")
         plt.close()
     
     def analyze_reactions(self):
@@ -427,10 +464,11 @@ class CrawledDataEDA:
         self.replies['parent_reactions_num'] = pd.to_numeric(self.replies['parent_reactions'], errors='coerce').fillna(0)
         self.replies['reply_reactions_num'] = pd.to_numeric(self.replies['reply_reactions'], errors='coerce').fillna(0)
         
-        fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+        self.replies['reply_reactions_num'] = pd.to_numeric(self.replies['reply_reactions'], errors='coerce').fillna(0)
         
-        # Parent reactions distribution
-        ax1 = axes[0]
+        # --- Plot 1: Parent Comment Reactions Distribution ---
+        fig1, ax1 = plt.subplots(figsize=(10, 6))
+        
         parent_reactions = self.replies['parent_reactions_num']
         parent_reactions = parent_reactions[parent_reactions > 0]
         if len(parent_reactions) > 0:
@@ -440,8 +478,14 @@ class CrawledDataEDA:
             ax1.set_title('Parent Comment Reactions Distribution')
             ax1.set_yscale('log')
         
-        # Reply reactions distribution
-        ax2 = axes[1]
+        plt.tight_layout()
+        plt.savefig(self.output_dir / 'eda_04_reactions_parent.png', dpi=150, bbox_inches='tight')
+        print(f"   [OK] Saved: {self.output_dir}/eda_04_reactions_parent.png")
+        plt.close()
+        
+        # --- Plot 2: Reply Reactions Distribution ---
+        fig2, ax2 = plt.subplots(figsize=(10, 6))
+        
         reply_reactions = self.replies['reply_reactions_num']
         reply_reactions = reply_reactions[reply_reactions > 0]
         if len(reply_reactions) > 0:
@@ -451,8 +495,14 @@ class CrawledDataEDA:
             ax2.set_title('Reply Reactions Distribution')
             ax2.set_yscale('log')
         
-        # Top reacted comments
-        ax3 = axes[2]
+        plt.tight_layout()
+        plt.savefig(self.output_dir / 'eda_04_reactions_reply.png', dpi=150, bbox_inches='tight')
+        print(f"   [OK] Saved: {self.output_dir}/eda_04_reactions_reply.png")
+        plt.close()
+        
+        # --- Plot 3: Top 15 Most Reacted Comments ---
+        fig3, ax3 = plt.subplots(figsize=(12, 8))
+        
         top_reacted = self.replies.nlargest(15, 'parent_reactions_num')[['parent_author', 'parent_reactions_num']]
         bars = ax3.barh(range(len(top_reacted)), top_reacted['parent_reactions_num'].values,
                         color=plt.cm.Reds(np.linspace(0.3, 0.9, 15)))
@@ -463,8 +513,8 @@ class CrawledDataEDA:
         ax3.invert_yaxis()
         
         plt.tight_layout()
-        plt.savefig(self.output_dir / 'eda_04_reactions.png', dpi=150, bbox_inches='tight')
-        print(f"   [OK] Saved: {self.output_dir}/eda_04_reactions.png")
+        plt.savefig(self.output_dir / 'eda_04_reactions_top15.png', dpi=150, bbox_inches='tight')
+        print(f"   [OK] Saved: {self.output_dir}/eda_04_reactions_top15.png")
         plt.close()
     
     def analyze_text_length(self):
@@ -476,10 +526,11 @@ class CrawledDataEDA:
         self.articles['content_len'] = self.articles['content'].fillna('').str.len()
         self.replies['comment_len'] = self.replies['parent_text'].fillna('').str.len()
         
-        fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+        self.replies['comment_len'] = self.replies['parent_text'].fillna('').str.len()
         
-        # Article title length
-        ax1 = axes[0]
+        # --- Plot 1: Article Title Length Distribution ---
+        fig1, ax1 = plt.subplots(figsize=(10, 6))
+        
         ax1.hist(self.articles['title_len'], bins=50, color=COLORS['primary'], edgecolor='white', alpha=0.8)
         ax1.set_xlabel('Title Length (characters)')
         ax1.set_ylabel('Frequency')
@@ -487,8 +538,14 @@ class CrawledDataEDA:
         ax1.axvline(self.articles['title_len'].mean(), color='red', linestyle='--', label='Mean')
         ax1.legend()
         
-        # Article content length
-        ax2 = axes[1]
+        plt.tight_layout()
+        plt.savefig(self.output_dir / 'eda_05_text_lengths_title.png', dpi=150, bbox_inches='tight')
+        print(f"   [OK] Saved: {self.output_dir}/eda_05_text_lengths_title.png")
+        plt.close()
+        
+        # --- Plot 2: Article Content Length Distribution ---
+        fig2, ax2 = plt.subplots(figsize=(10, 6))
+        
         content_len = self.articles['content_len'][self.articles['content_len'] > 0]
         ax2.hist(content_len, bins=50, color=COLORS['secondary'], edgecolor='white', alpha=0.8)
         ax2.set_xlabel('Content Length (characters)')
@@ -497,8 +554,14 @@ class CrawledDataEDA:
         ax2.axvline(content_len.mean(), color='red', linestyle='--', label='Mean')
         ax2.legend()
         
-        # Comment length
-        ax3 = axes[2]
+        plt.tight_layout()
+        plt.savefig(self.output_dir / 'eda_05_text_lengths_content.png', dpi=150, bbox_inches='tight')
+        print(f"   [OK] Saved: {self.output_dir}/eda_05_text_lengths_content.png")
+        plt.close()
+        
+        # --- Plot 3: Comment Length Distribution ---
+        fig3, ax3 = plt.subplots(figsize=(10, 6))
+        
         comment_len = self.replies['comment_len'][self.replies['comment_len'] > 0]
         ax3.hist(comment_len, bins=50, color=COLORS['tertiary'], edgecolor='white', alpha=0.8)
         ax3.set_xlabel('Comment Length (characters)')
@@ -509,8 +572,8 @@ class CrawledDataEDA:
         ax3.legend()
         
         plt.tight_layout()
-        plt.savefig(self.output_dir / 'eda_05_text_lengths.png', dpi=150, bbox_inches='tight')
-        print(f"   [OK] Saved: {self.output_dir}/eda_05_text_lengths.png")
+        plt.savefig(self.output_dir / 'eda_05_text_lengths_comment.png', dpi=150, bbox_inches='tight')
+        print(f"   [OK] Saved: {self.output_dir}/eda_05_text_lengths_comment.png")
         plt.close()
     
     def analyze_reply_depth(self):
@@ -520,10 +583,12 @@ class CrawledDataEDA:
         # Count replies per parent comment
         has_reply = self.replies['reply_text'].fillna('').str.len() > 0
         
-        fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+        # Count replies per parent comment
+        has_reply = self.replies['reply_text'].fillna('').str.len() > 0
         
-        # Pie chart: comments with replies vs without
-        ax1 = axes[0]
+        # --- Plot 1: Comments with vs without Replies (Pie) ---
+        fig1, ax1 = plt.subplots(figsize=(8, 8))
+        
         reply_counts = [has_reply.sum(), (~has_reply).sum()]
         labels = ['Has Replies', 'No Replies']
         colors = [COLORS['primary'], COLORS['secondary']]
@@ -533,8 +598,14 @@ class CrawledDataEDA:
         )
         ax1.set_title('Comments with vs without Replies')
         
-        # Replies per parent comment
-        ax2 = axes[1]
+        plt.tight_layout()
+        plt.savefig(self.output_dir / 'eda_06_reply_patterns_pie.png', dpi=150, bbox_inches='tight')
+        print(f"   [OK] Saved: {self.output_dir}/eda_06_reply_patterns_pie.png")
+        plt.close()
+        
+        # --- Plot 2: Thread Size Distribution ---
+        fig2, ax2 = plt.subplots(figsize=(10, 6))
+        
         replies_per_parent = self.replies.groupby(['article_url', 'parent_user_id']).size()
         ax2.hist(replies_per_parent, bins=30, color=COLORS['tertiary'], edgecolor='white', alpha=0.8)
         ax2.set_xlabel('Number of Reply Records per Comment Thread')
@@ -543,8 +614,8 @@ class CrawledDataEDA:
         ax2.set_yscale('log')
         
         plt.tight_layout()
-        plt.savefig(self.output_dir / 'eda_06_reply_patterns.png', dpi=150, bbox_inches='tight')
-        print(f"   [OK] Saved: {self.output_dir}/eda_06_reply_patterns.png")
+        plt.savefig(self.output_dir / 'eda_06_reply_patterns_dist.png', dpi=150, bbox_inches='tight')
+        print(f"   [OK] Saved: {self.output_dir}/eda_06_reply_patterns_dist.png")
         plt.close()
     
     def analyze_author_productivity(self):
@@ -553,10 +624,11 @@ class CrawledDataEDA:
         
         author_counts = self.articles['author'].value_counts()
         
-        fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+        author_counts = self.articles['author'].value_counts()
         
-        # Top 20 authors
-        ax1 = axes[0]
+        # --- Plot 1: Top 20 Most Prolific Authors ---
+        fig1, ax1 = plt.subplots(figsize=(10, 8))
+        
         top_20 = author_counts.head(20)
         bars = ax1.barh(range(len(top_20)), top_20.values, 
                         color=plt.cm.coolwarm(np.linspace(0.2, 0.8, 20)))
@@ -567,8 +639,14 @@ class CrawledDataEDA:
         ax1.invert_yaxis()
         ax1.bar_label(bars, fmt='%d', padding=3, fontsize=8)
         
-        # Author productivity distribution
-        ax2 = axes[1]
+        plt.tight_layout()
+        plt.savefig(self.output_dir / 'eda_07_author_productivity_top20.png', dpi=150, bbox_inches='tight')
+        print(f"   [OK] Saved: {self.output_dir}/eda_07_author_productivity_top20.png")
+        plt.close()
+        
+        # --- Plot 2: Author Productivity Distribution ---
+        fig2, ax2 = plt.subplots(figsize=(10, 6))
+        
         ax2.hist(author_counts.values, bins=50, color=COLORS['quaternary'], edgecolor='white', alpha=0.8)
         ax2.set_xlabel('Number of Articles per Author')
         ax2.set_ylabel('Number of Authors')
@@ -585,8 +663,8 @@ class CrawledDataEDA:
                  bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
         
         plt.tight_layout()
-        plt.savefig(self.output_dir / 'eda_07_author_productivity.png', dpi=150, bbox_inches='tight')
-        print(f"   [OK] Saved: {self.output_dir}/eda_07_author_productivity.png")
+        plt.savefig(self.output_dir / 'eda_07_author_productivity_dist.png', dpi=150, bbox_inches='tight')
+        print(f"   [OK] Saved: {self.output_dir}/eda_07_author_productivity_dist.png")
         plt.close()
     
     def analyze_engagement_overall(self):
@@ -601,10 +679,11 @@ class CrawledDataEDA:
         )
         merged['comment_count'] = merged['comment_count'].fillna(0)
         
-        fig, axes = plt.subplots(1, 2, figsize=(16, 7))
+        merged['comment_count'] = merged['comment_count'].fillna(0)
         
-        # Top 20 most commented articles
-        ax1 = axes[0]
+        # --- Plot 1: Top 20 Most Commented Articles ---
+        fig1, ax1 = plt.subplots(figsize=(10, 8))
+        
         top_20 = merged.nlargest(20, 'comment_count')
         bars = ax1.barh(range(len(top_20)), top_20['comment_count'].values,
                         color=plt.cm.viridis(np.linspace(0, 0.8, 20)))
@@ -615,8 +694,14 @@ class CrawledDataEDA:
         ax1.invert_yaxis()
         ax1.bar_label(bars, fmt='%d', padding=3, fontsize=9)
         
-        # Comment count distribution
-        ax2 = axes[1]
+        plt.tight_layout()
+        plt.savefig(self.output_dir / 'eda_08_engagement_patterns_top20.png', dpi=150, bbox_inches='tight')
+        print(f"   [OK] Saved: {self.output_dir}/eda_08_engagement_patterns_top20.png")
+        plt.close()
+        
+        # --- Plot 2: Distribution of Comments per Article ---
+        fig2, ax2 = plt.subplots(figsize=(10, 6))
+        
         ax2.hist(merged['comment_count'], bins=50, color=plt.cm.plasma(0.5), edgecolor='white', alpha=0.8)
         ax2.set_xlabel('Number of Comments')
         ax2.set_ylabel('Number of Articles')
@@ -624,8 +709,8 @@ class CrawledDataEDA:
         ax2.set_yscale('log')
         
         plt.tight_layout()
-        plt.savefig(self.output_dir / 'eda_08_engagement_patterns.png', dpi=150, bbox_inches='tight')
-        print(f"   [OK] Saved: {self.output_dir}/eda_08_engagement_patterns.png")
+        plt.savefig(self.output_dir / 'eda_08_engagement_patterns_dist.png', dpi=150, bbox_inches='tight')
+        print(f"   [OK] Saved: {self.output_dir}/eda_08_engagement_patterns_dist.png")
         plt.close()
     
     def generate_summary_dashboard(self):
@@ -638,7 +723,6 @@ class CrawledDataEDA:
         # Create grid
         gs = fig.add_gridspec(3, 3, hspace=0.4, wspace=0.3)
         
-        # 1. Key Metrics (text)
         ax1 = fig.add_subplot(gs[0, 0])
         ax1.axis('off')
         metrics = f"""
@@ -653,14 +737,12 @@ class CrawledDataEDA:
                  family='monospace', transform=ax1.transAxes)
         ax1.set_title('Key Metrics', fontweight='bold', fontsize=12)
         
-        # 2. Top 10 Authors
         ax2 = fig.add_subplot(gs[0, 1:])
         top_authors = self.articles['author'].value_counts().head(10)
         ax2.barh(top_authors.index[::-1], top_authors.values[::-1], color=plt.cm.viridis(np.linspace(0, 0.8, 10)))
         ax2.set_title('Top 10 Authors', fontweight='bold')
         ax2.set_xlabel('Articles')
         
-        # 3. Comments per Article
         ax3 = fig.add_subplot(gs[1, 0])
         comments_per_article = self.replies.groupby('article_url').size()
         ax3.hist(comments_per_article, bins=30, color=COLORS['secondary'], edgecolor='white')
@@ -669,7 +751,6 @@ class CrawledDataEDA:
         ax3.set_xlabel('Comments')
         ax3.set_ylabel('Frequency')
         
-        # 4. User Activity Power Law
         ax4 = fig.add_subplot(gs[1, 1])
         all_users = pd.concat([
             self.replies['parent_user_id'],
@@ -682,7 +763,6 @@ class CrawledDataEDA:
         ax4.set_xlabel('User Rank')
         ax4.set_ylabel('Interactions')
         
-        # 5. Top 10 Authors
         ax5 = fig.add_subplot(gs[1, 2])
         top_authors = self.articles['author'].value_counts().head(10)
         ax5.barh(top_authors.index[::-1], top_authors.values[::-1], 
@@ -690,7 +770,6 @@ class CrawledDataEDA:
         ax5.set_title('Top 10 Authors', fontweight='bold')
         ax5.set_xlabel('Articles')
         
-        # 6. Text Length Distributions
         ax6 = fig.add_subplot(gs[2, 0])
         title_lens = self.articles['title'].fillna('').str.len()
         ax6.hist(title_lens, bins=30, color=COLORS['tertiary'], edgecolor='white')
@@ -705,7 +784,6 @@ class CrawledDataEDA:
         ax7.set_xlabel('Characters')
         ax7.set_yscale('log')
         
-        # 7. Reactions Distribution  
         ax8 = fig.add_subplot(gs[2, 2])
         reactions = pd.to_numeric(self.replies['parent_reactions'], errors='coerce').fillna(0)
         reactions = reactions[reactions > 0]

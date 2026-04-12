@@ -279,9 +279,9 @@ class GNNTrainer:
         weight_decay: float = 1e-5,
         neg_sampling_ratio: float = 1.0,
         scheduler_type: str = 'plateau',
-        # --- NEW PARAMS ---
-        splits: Optional[Dict] = None,   # Nhận split từ bên ngoài
-        neg_strategy: str = 'random'     # Chiến lược negative
+
+        splits: Optional[Dict] = None,
+        neg_strategy: str = 'random'
     ):
         self.model = model.to(device)
         self.device = device
@@ -290,7 +290,7 @@ class GNNTrainer:
         self.neg_strategy = neg_strategy
         self.splits = splits
         
-        # Optimizer & Scheduler (Giữ nguyên)
+        # Optimizer & Scheduler
         params = list(model.parameters())
         for node_type in data.node_types:
             if isinstance(data[node_type].x, nn.Parameter):
@@ -305,31 +305,28 @@ class GNNTrainer:
         if self.splits is not None:
             print("   -> Using pre-computed splits. MASKING edges to prevent leakage...")
             
-            # --- 1. Xây dựng TRAIN DATA (Chỉ chứa cạnh Train) ---
             self.train_data = data.clone()
-            # Lấy edges từ split train để làm khung xương cho Message Passing
+            # Get edges from train split for Message Passing
             tr_u = self.splits['train']['pos_users'].long()
             tr_v = self.splits['train']['pos_articles'].long()
             train_edge_index = torch.stack([tr_u, tr_v], dim=0)
             
-            # Cập nhật edge_index của graph train: CHỈ chứa cạnh train
+            # Update train graph edge_index: ONLY train edges
             self.train_data[self.edge_type].edge_index = train_edge_index
             
-            # --- 2. Xây dựng VAL DATA (Message Passing dùng Train edges) ---
-            # Khi validate, model chỉ được biết các cạnh quá khứ (Train) để dự đoán Val
+            # During validation, model only sees past edges (Train) to predict Val
             self.val_data = data.clone()
             self.val_data[self.edge_type].edge_index = train_edge_index
             
-            # --- 3. Xây dựng TEST DATA (Message Passing dùng Train + Val edges) ---
-            # Khi test, model được phép biết toàn bộ lịch sử (Train + Val) để dự đoán Test
+            # During test, model sees full history (Train + Val) to predict Test
             self.test_data = data.clone()
             
-            # Lấy thêm cạnh Val
+            # Add Val edges
             val_u = self.splits['val']['pos_users'].long()
             val_v = self.splits['val']['pos_articles'].long()
             val_edge_index = torch.stack([val_u, val_v], dim=0)
             
-            # Gộp Train + Val lại cho Test phase
+            # Combine Train + Val for Test phase
             historical_edges = torch.cat([train_edge_index, val_edge_index], dim=1)
             self.test_data[self.edge_type].edge_index = historical_edges
             
@@ -357,13 +354,12 @@ class GNNTrainer:
         """Compute BPR loss with support for Precomputed Negatives."""
         z_dict = self.model(data.x_dict, data.edge_index_dict)
         
-        # 1. Lấy Positive Edges (Tương tác thật)
         if self.splits is not None:
-            # Lấy từ dictionary splits truyền vào
+            # From provided splits dict
             pos_u = self.splits[split_name]['pos_users'].to(self.device)
             pos_i = self.splits[split_name]['pos_articles'].to(self.device)
         else:
-            # Lấy từ RandomLinkSplit
+            # From RandomLinkSplit
             pos_edge_index = data[self.edge_type].edge_label_index
             pos_u, pos_i = pos_edge_index[0], pos_edge_index[1]
 
@@ -371,13 +367,12 @@ class GNNTrainer:
         item_emb = z_dict['article'][pos_i]
         pos_scores = (user_emb * item_emb).sum(dim=-1)
         
-        # 2. Lấy Negative Edges (Tương tác giả)
-        # --- FIX ERROR 3: Hỗ trợ Precomputed Negatives ---
+
         if self.neg_strategy == 'precomputed' and self.splits is not None:
             neg_u = self.splits[split_name]['neg_users'].to(self.device)
             neg_i = self.splits[split_name]['neg_articles'].to(self.device)
             
-            # Cắt ngắn nếu kích thước không khớp (do batching hoặc ratio)
+            # Truncate if size mismatch (due to batching or ratio)
             min_len = min(len(pos_u), len(neg_u))
             pos_scores = pos_scores[:min_len]
             
@@ -385,7 +380,7 @@ class GNNTrainer:
             neg_item_emb = z_dict['article'][neg_i[:min_len]]
             
         else:
-            # Cách cũ: Random ngẫu nhiên
+            # Old method: Random
             num_neg = int(len(pos_u) * self.neg_ratio)
             neg_users = torch.randint(0, data['user'].num_nodes, (num_neg,), device=self.device)
             neg_items = torch.randint(0, data['article'].num_nodes, (num_neg,), device=self.device)

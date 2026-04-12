@@ -74,9 +74,7 @@ def check_bias(data_dir, articles_path, replies_path, n_users=500, k=10):
         u_vec = user_emb[u_idx].unsqueeze(0)
         scores = (u_vec @ article_emb.T).squeeze(0)
         
-        # We assume training data exclusion is handled or we just care about raw model bias here
-        # For pure bias check, typically we might not filter seen items to check model tendency,
-        # but to match production, let's just take top K raw scores for simplicity 
+        # Top K raw scores (production-style fallback) 
         # (filtering seen requires loading history which is heavy, and bias exists regardless)
         
         topk = torch.topk(scores, k)

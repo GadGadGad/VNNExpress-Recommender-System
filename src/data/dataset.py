@@ -9,11 +9,11 @@ from torch_geometric.data import HeteroData
 def load_data(articles_path, replies_path, hidden_dim=64):
     print(f"--- [Dataset] Loading data from {articles_path} & {replies_path} ---")
 
-    # 1. Load CSVs
+    # Load CSVs
     articles = pd.read_csv(articles_path)
     replies = pd.read_csv(replies_path)
 
-    # 2. Clean User IDs
+    # Clean User IDs
     # Loại bỏ dòng lỗi và chuyển đổi user_id sang string chuẩn
     replies = replies[replies['parent_user_id'] != 'NO_COMMENT']
 
@@ -25,12 +25,12 @@ def load_data(articles_path, replies_path, hidden_dim=64):
 
     replies['user_id'] = replies['parent_user_id'].apply(clean_id)
 
-    # 3. Filter Valid Interactions
+    # Filter Valid Interactions
     # Chỉ giữ lại comment của những bài báo có trong file articles.csv
     valid_urls = set(articles['url'].unique())
     replies = replies[replies['article_url'].isin(valid_urls)]
 
-    # 4. Map ID to Index (0, 1, 2...)
+    # Map ID to Index (0, 1, 2...)
     unique_users = replies['user_id'].unique()
     unique_articles = articles['url'].unique()
 
@@ -43,20 +43,20 @@ def load_data(articles_path, replies_path, hidden_dim=64):
     print(f"Nodes: {len(unique_users)} Users, {len(unique_articles)} Articles")
     print(f"Edges: {len(replies)} Interactions")
 
-    # 5. Construct HeteroData
+    # Construct HeteroData
     data = HeteroData()
     num_users = len(unique_users)
     num_articles = len(unique_articles)
 
-    # --- FEATURES ---
+
     # User Feature: Random Noise (Learnable Latent Factors)
-    # Kích thước [Num_Users, 64] -> Nhẹ, không tốn VRAM
+    # Shape: [Num_Users, 64]. Lightweight, low VRAM usage.
     data['user'].x = torch.randn(num_users, hidden_dim)
 
     # Article Feature: Random Initialization (no category)
     data['article'].x = torch.randn(num_articles, hidden_dim)
 
-    # --- EDGES ---
+
     src = torch.tensor(replies['user_idx'].values, dtype=torch.long)
     dst = torch.tensor(replies['article_idx'].values, dtype=torch.long)
 

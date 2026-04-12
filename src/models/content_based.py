@@ -278,7 +278,7 @@ class ContentBasedRecommender(nn.Module):
             return torch.zeros(self.embedding_dim, device=self.device)
         
         # Get embeddings of read articles
-        history_embeddings = self.article_embeddings[user_history]  # [n_history, dim]
+        history_embeddings = self.article_embeddings[user_history]
         
         if aggregation == "mean":
             user_embed = history_embeddings.mean(dim=0)
@@ -322,10 +322,10 @@ class ContentBasedRecommender(nn.Module):
         
         for i, user_id in enumerate(users.tolist()):
             history = user_histories.get(user_id, [])
-            user_embed = self.get_user_preference(history)  # [dim]
+            user_embed = self.get_user_preference(history)
             
             # Cosine similarity with all articles
-            user_embed = F.normalize(user_embed.unsqueeze(0), dim=-1)  # [1, dim]
+            user_embed = F.normalize(user_embed.unsqueeze(0), dim=-1)
             
             scores[i] = torch.mm(user_embed, all_item_embeds.T).squeeze(0)
             
@@ -347,7 +347,7 @@ class ContentBasedRecommender(nn.Module):
         article_embeds = self.item_encoder(self.article_embeddings)
         article_embeds = F.normalize(article_embeds, dim=-1)
         
-        scores = torch.mm(user_embed, article_embeds.T).squeeze(0)  # [n_items]
+        scores = torch.mm(user_embed, article_embeds.T).squeeze(0)
         
         if exclude_read:
             scores[user_history] = -float('inf')
@@ -391,7 +391,7 @@ class HybridRecommender(nn.Module):
         encoder_type: str = 'phobert',
         model_name: str = None,
         precomputed_path: str = None,
-        alpha: float = 0.5,  # Weight for CF vs Content
+        alpha: float = 0.5,
         device: str = "cuda"
     ):
         super(HybridRecommender, self).__init__()
@@ -474,8 +474,8 @@ class HybridRecommender(nn.Module):
 
     def get_cf_scores(self, users: torch.Tensor) -> torch.Tensor:
         """Get collaborative filtering scores"""
-        user_embeds = self.user_cf_embedding(users)  # [batch, cf_dim]
-        item_embeds = self.item_cf_embedding.weight  # [n_items, cf_dim]
+        user_embeds = self.user_cf_embedding(users)
+        item_embeds = self.item_cf_embedding.weight
         scores = torch.mm(user_embeds, item_embeds.T)
         return scores
     
@@ -486,17 +486,17 @@ class HybridRecommender(nn.Module):
         if self.raw_user_profiles is None:
             raise ValueError("Run precompute_user_profiles first!")
             
-        # 1. Get raw mean embeddings [batch, dim]
+        # Get raw mean embeddings [batch, dim]
         raw_profiles = self.raw_user_profiles[users]
         
-        # 2. Project to preference space (TRAINABLE)
+        # Project to preference space (TRAINABLE)
         user_pref = self.user_content_projection(raw_profiles)
         
-        # 3. Normalize
+        # Normalize
         user_pref = F.normalize(user_pref, dim=-1)
         article_embeds = F.normalize(self.article_content_embeddings, dim=-1)
         
-        # 4. Dot product with all articles
+        # Dot product with all articles
         scores = torch.mm(user_pref, article_embeds.T)
         
         return scores
@@ -516,7 +516,7 @@ class HybridRecommender(nn.Module):
         if self.raw_user_profiles is not None:
             content_scores = self.get_content_scores(users)
         else:
-            # Fallback (slow, mostly for inference on new users if needed, but we rely on precompute)
+            # Fallback (mostly for inference on new users)
             content_scores = torch.zeros_like(cf_scores)
             
         # Hybrid
@@ -571,7 +571,7 @@ class HybridRecommender(nn.Module):
         loss = -F.logsigmoid(pos_scores - neg_scores).mean()
         
         # Regularization (L2 on CF embeddings)
-        # Optional: Add reg on content projection? Default L2 usually covers weights.
+        # Optional: Add reg on content projection
         reg_loss = 1e-4 * (
             self.user_cf_embedding(users).norm(2).pow(2) +
             self.item_cf_embedding(pos_items).norm(2).pow(2) +
@@ -728,7 +728,6 @@ class TFIDFRecommender:
             raise ValueError("Fit model first!")
             
         # Filter valid indices
-        # Ensure we don't crash if index out of bounds
         max_idx = self.article_vectors.shape[0]
         valid_indices = [i for i in history_indices if i < max_idx]
         
@@ -748,5 +747,5 @@ class TFIDFRecommender:
         top_k_indices = scores.argsort()[-k:][::-1]
         top_k_scores = scores[top_k_indices]
         
-        # Note: scores are numpy arrays
+        # scores are numpy arrays
         return top_k_indices.tolist(), top_k_scores.tolist()

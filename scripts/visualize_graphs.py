@@ -18,15 +18,15 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 
 # Color palette
 COLORS = {
-    'user': '#3498DB',      # Blue
-    'article': '#2ECC71',   # Green
-    'category': '#E74C3C',  # Red
-    'author': '#9B59B6',    # Purple
-    'edge_ua': '#7F8C8D',   # Gray
+    'user': '#3498DB',
+    'article': '#2ECC71',
+    'category': '#E74C3C',
+    'author': '#9B59B6',
+    'edge_ua': '#7F8C8D',
     'edge_social': '#E67E22', # Orange
     'edge_category': '#F1C40F', # Yellow
-    'edge_author': '#1ABC9C',  # Teal
-    'bg': '#F8F9FA',        # Light gray background
+    'edge_author': '#1ABC9C',
+    'bg': '#F8F9FA',
 }
 
 
@@ -127,7 +127,7 @@ def create_g1_bipartite():
     plt.tight_layout()
     plt.savefig(OUTPUT_DIR / "g1_bipartite.png", dpi=150, bbox_inches='tight', facecolor=COLORS['bg'])
     plt.close()
-    print("✓ Saved: plots/g1_bipartite.png")
+    print("Saved: plots/g1_bipartite.png")
 
 
 def create_g2_heterogeneous():
@@ -141,9 +141,9 @@ def create_g2_heterogeneous():
     
     # User-Article edges with WEIGHTS
     ua_edges = [
-        ('U1', 'A1', 3),  # High engagement
-        ('U1', 'A2', 1),  # Low engagement
-        ('U2', 'A2', 2),  # Medium
+        ('U1', 'A1', 3),
+        ('U1', 'A2', 1),
+        ('U2', 'A2', 2),
         ('U2', 'A3', 1),
         ('U3', 'A3', 3),
         ('U3', 'A4', 2),
@@ -196,7 +196,7 @@ def create_g2_heterogeneous():
     plt.tight_layout()
     plt.savefig(OUTPUT_DIR / "g2_heterogeneous.png", dpi=150, bbox_inches='tight', facecolor=COLORS['bg'])
     plt.close()
-    print("✓ Saved: plots/g2_heterogeneous.png")
+    print("Saved: plots/g2_heterogeneous.png")
 
 
 def create_g3_category_hubs():
@@ -264,7 +264,7 @@ def create_g3_category_hubs():
     plt.tight_layout()
     plt.savefig(OUTPUT_DIR / "g3_category_hubs.png", dpi=150, bbox_inches='tight', facecolor=COLORS['bg'])
     plt.close()
-    print("✓ Saved: plots/g3_category_hubs.png")
+    print("Saved: plots/g3_category_hubs.png")
 
 
 def create_g4_full_heterogeneous():
@@ -346,7 +346,7 @@ def create_g4_full_heterogeneous():
     plt.tight_layout()
     plt.savefig(OUTPUT_DIR / "g4_full_heterogeneous.png", dpi=150, bbox_inches='tight', facecolor=COLORS['bg'])
     plt.close()
-    print("✓ Saved: plots/g4_full_heterogeneous.png")
+    print("Saved: plots/g4_full_heterogeneous.png")
 
 
 def create_comparison_summary():
@@ -399,7 +399,7 @@ def create_comparison_summary():
     plt.savefig(OUTPUT_DIR / "graph_comparison_summary.png", dpi=150, bbox_inches='tight', 
                facecolor=COLORS['bg'])
     plt.close()
-    print("✓ Saved: plots/graph_comparison_summary.png")
+    print("Saved: plots/graph_comparison_summary.png")
 
 
 if __name__ == "__main__":

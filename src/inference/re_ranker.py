@@ -48,7 +48,7 @@ class CalibratedReRanker:
             if item_dates is not None and i < len(item_dates) and item_dates[i] is not None:
                 try:
                     if isinstance(item_dates[i], str):
-                        # Try to parse common date formats
+                        # Parse common date formats
                         for fmt in ['%Y-%m-%d', '%d/%m/%Y', '%Y-%m-%d %H:%M:%S']:
                             try:
                                 dt = datetime.datetime.strptime(item_dates[i], fmt)
@@ -63,11 +63,11 @@ class CalibratedReRanker:
                         # Exponential decay: e^(-lambda * days)
                         freshness_scores[i] = np.exp(-self.freshness_lambda * max(0, days_old))
                     else:
-                        freshness_scores[i] = 0.5  # Neutral for unparseable dates
+                        freshness_scores[i] = 0.5
                 except:
                     freshness_scores[i] = 0.5
             else:
-                freshness_scores[i] = 0.5  # Neutral for missing dates
+                freshness_scores[i] = 0.5
         
         # Normalize freshness to [0, 1]
         if freshness_scores.max() > 0:
@@ -99,7 +99,7 @@ class CalibratedReRanker:
             for i in candidate_indices:
                 if i in selected: continue
                 
-                # Check how distribution changes if we add this item
+                # Check how distribution changes if item is added
                 temp_selected = selected + [i]
                 p_new = self.get_distribution(temp_selected)
                 

@@ -367,7 +367,7 @@ def run_tfidf_model(args, data_dict, return_scores=False):
     # 1. Compute TF-IDF Matrix
     print("Computing TF-IDF matrix...")
     vectorizer = TfidfVectorizer(max_features=5000, stop_words=None) 
-    # Note: Vietnamese stop words could be added here if available
+    # Vietnamese stop words could be added here if available
     tfidf_matrix = vectorizer.fit_transform(article_texts)
     
     # 2. Predict for valid test users
@@ -378,23 +378,18 @@ def run_tfidf_model(args, data_dict, return_scores=False):
     predictions = {}
     
     # Get user profiles (average of history items)
-    # This can be slow for many users, so we batch or iterate
-    # For simplicity, let's iterate test users
     
     for user_id in tqdm(test_dict.keys(), desc="Predicting"):
         history = list(train_dict.get(user_id, set()))
         if not history:
             continue
             
-        # Get indices of history items
-        # data_dict['article_texts'] is a list, aligned with item_id 0..N-1
-        # BUT we must ensure item_ids in train_dict match list indices.
-        # usually load_content_data ensures item_id 0..N-1 maps to the list index.
+
         
         user_profile = np.asarray(tfidf_matrix[history].mean(axis=0)) # (1, vocab)
         
         # Calculate cosine similarity with ALL items
-        # (1, vocab) dot (n_items, vocab).T -> (1, n_items)
+        # (1, vocab) dot (n_items, vocab).T to (1, n_items)
         scores = cosine_similarity(user_profile, tfidf_matrix).flatten()
         predictions[user_id] = scores
         
@@ -429,8 +424,6 @@ def run_e5_model(args, data_dict):
     model_name = "intfloat/multilingual-e5-small"
     
     # Reuse PhOBERT wrapper but with E5
-    # E5 expects "query: " and "passage: " prefixes usually, but for similarity 
-    # straightforward encoding often works. We'll stick to simple encoding for now.
     
     model = ContentBasedRecommender(
         n_users=data_dict['n_users'],
@@ -446,8 +439,6 @@ def run_e5_model(args, data_dict):
     article_texts = data_dict['article_texts']
     
     # E5 specific: Add "passage: " prefix for document encoding is recommended
-    # But ContentBasedRecommender.encode_articles doesn't do prefixes.
-    # We will modify the input texts slightly before passing
     print("Adding 'passage: ' prefix for E5 encoding...")
     e5_texts = [f"passage: {t}" for t in article_texts]
     
@@ -457,8 +448,7 @@ def run_e5_model(args, data_dict):
         model.load_embeddings(embeddings_path)
     else:
         print(f"Encoding {len(e5_texts)} articles with E5...")
-        # We need to manually call the encoder because wrapper expects 'texts'
-        # The wrapper's encode_articles calls self.phobert_encoder(texts)
+        # Manually call encoder
         model.encode_articles(e5_texts, batch_size=32)
         os.makedirs('checkpoints', exist_ok=True)
         model.save_embeddings(embeddings_path)
@@ -479,11 +469,7 @@ def run_e5_model(args, data_dict):
             if not history:
                 continue
                 
-            # user profile = mean of item embeddings
-            # For query side, E5 usually expects "query: ". 
-            # But here we are doing Item-Item centroid. 
-            # Ideally: user_embed = Mean(Item_Embeddings).
-            # This is symmetric similarity.
+            # user profile = mean of item embeddings (Item-Item centroid)
             
             user_embed = model.get_user_preference(history)
             user_embed = F.normalize(user_embed.unsqueeze(0), dim=-1)
@@ -599,9 +585,7 @@ def main():
     if args.model == 'phobert':
         metrics = run_phobert_model(args, data_dict)
     elif args.model == 'hybrid':
-        # Hybrid logic is more complex and might need separate handling for full/loo
-        # Assuming run_hybrid_model handles its own eval loop; we might need to update it too
-        # but for now let's focus on pure CB models
+        # Hybrid logic handles its own eval loop
         metrics = run_hybrid_model(args, data_dict)
     elif args.model == 'simcse':
         metrics = run_simcse_model(args, data_dict)

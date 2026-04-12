@@ -1,5 +1,3 @@
-# GNN Recommendation System Configuration
-
 data:
   raw_dir: "data/raw"
   processed_dir: "data/processed"
@@ -8,7 +6,6 @@ data:
   embedding: "random" # random | tfidf | bert
   tfidf_max_features: 500
 
-  # BERT model for embeddings (used when embedding=bert)
   bert_model: "vinai/phobert-base"
   # Options: vinai/phobert-base, vinai/phobert-large, vinai/bartpho-syllable,
   #          bert-base-multilingual-cased, sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2

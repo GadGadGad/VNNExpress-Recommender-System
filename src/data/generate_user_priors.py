@@ -7,9 +7,7 @@ from sentence_transformers import SentenceTransformer
 
 def generate_user_priors(data_path='data/processed', model_name='all-MiniLM-L6-v2'):
     """
-    Generate user interest priors by embedding their interaction history content.
-    For this 'lite' version, we average the embeddings of clicked articles.
-    In a full LLMRec implementation, we would use an LLM to summarize the titles first.
+    Generate user interest priors by averaging interaction history embeddings.
     """
     print(f"Generating User Priors using {model_name}...")
     
@@ -17,8 +15,8 @@ def generate_user_priors(data_path='data/processed', model_name='all-MiniLM-L6-v
     with open(os.path.join(data_path, 'lightgcl_data.pkl'), 'rb') as f:
         data = pickle.load(f)
     
-    train_dict = data['train_dict'] # user_idx -> list of item_idx
-    idx2item = data['idx2item'] # item_idx -> url
+    train_dict = data['train_dict'] # user_idx to list of item_idx
+    idx2item = data['idx2item'] # item_idx to url
     n_users = data['n_users']
     
     # Load articles to get text
@@ -42,8 +40,7 @@ def generate_user_priors(data_path='data/processed', model_name='all-MiniLM-L6-v
                 item_texts.append(article_map[url])
         
         if item_texts:
-            # Embed all articles and mean-pool
-            # In a more advanced version, we'd feed item_texts to GPT to get a summary string first
+            # Mean-pool article embeddings
             with torch.no_grad():
                 embs = model.encode(item_texts, convert_to_tensor=True)
                 user_priors[u_idx] = embs.mean(dim=0)

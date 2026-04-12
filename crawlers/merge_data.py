@@ -20,9 +20,9 @@ def merge_csvs(filename: str):
                 df = pd.read_csv(path, on_bad_lines='skip')
                 df['source_category'] = cat
                 dfs.append(df)
-                print(f"  ✓ {cat}: {len(df):,} rows")
+                print(f"  - {cat}: {len(df):,} rows")
             except Exception as e:
-                print(f"  ✗ {cat}: {e}")
+                print(f"  - {cat}: {e}")
     
     if dfs:
         merged = pd.concat(dfs, ignore_index=True)
@@ -36,18 +36,18 @@ print("=" * 60)
 print("Merging Category Data")
 print("=" * 60)
 
-print("\n📰 Merging articles.csv...")
+print("\nMerging articles.csv...")
 articles = merge_csvs('articles.csv')
 
-print("💬 Merging replies.csv...")
+print("Merging replies.csv...")
 replies = merge_csvs('replies.csv')
 
-print("👥 Merging user_profiles.csv...")
+print("Merging user_profiles.csv...")
 users = merge_csvs('user_profiles.csv')
 
-print("🏷️ Merging metadata.csv...")
+print("Merging metadata.csv...")
 metadata = merge_csvs('metadata.csv')
 
 print("=" * 60)
-print(f"✅ All data merged to: {OUTPUT_DIR}")
+print(f"All data merged to: {OUTPUT_DIR}")
 print("=" * 60)

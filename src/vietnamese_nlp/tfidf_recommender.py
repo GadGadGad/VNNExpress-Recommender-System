@@ -37,7 +37,7 @@ class TFIDFRecommender:
         recommender.fit(article_texts)
         
         # Get recommendations
-        user_history = [0, 5, 10]  # article indices user read
+        user_history = [0, 5, 10]
         recommendations = recommender.recommend(user_history, k=10)
     """
     
@@ -102,8 +102,8 @@ class TFIDFRecommender:
             sublinear_tf=sublinear_tf,
             use_idf=use_idf,
             tokenizer=custom_tokenizer if custom_tokenizer else self._tokenize,
-            preprocessor=lambda x: x,  # We do our own preprocessing
-            token_pattern=None  # Required when using tokenizer
+            preprocessor=lambda x: x,
+            token_pattern=None
         )
         
         # Article vectors

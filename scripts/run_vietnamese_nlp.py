@@ -321,7 +321,7 @@ def run_ensemble(args, data_dict) -> Dict[str, float]:
                     # Score shape: [1, N_items]
                     dense_scores = torch.mm(user_embed, self.dense_embeddings.T).squeeze(0).numpy()
                     
-                    # Ensure shapes match (just in case TF-IDF has different item count?)
+                    # Validate shapes
                     # They should match if data_dict is consistent.
                     if len(dense_scores) != len(sparse_scores):
                         # Pad or truncate?
@@ -331,17 +331,10 @@ def run_ensemble(args, data_dict) -> Dict[str, float]:
             else:
                 dense_scores = np.zeros_like(sparse_scores)
                 
-            # 3. Combine
-            # Sparse (Cosine) is [-1, 1], usually [0, 1]
-            # Dense (Cosine) is [-1, 1]
+            # Combine: Sparse [-1, 1] + Dense [-1, 1]
             return self.alpha * dense_scores + (1 - self.alpha) * sparse_scores
 
     # Initialize
-    # Try different alphas? Default 0.3 for Dense (since it's weaker) vs 0.7 for Sparse?
-    # User asked for Dense + Sparse. Let's try 0.5 first.
-    # Actually, Sparse is 5%, Dense is 0.4%.
-    # 0.5 might dilute Sparse too much.
-    # Let's try alpha=0.2 (20% Dense, 80% Sparse)
     alpha = args.alpha if hasattr(args, 'alpha') else 0.2
     print(f"Ensemble Alpha (Dense weight): {alpha}")
     

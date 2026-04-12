@@ -11,7 +11,7 @@ def process_and_save(articles_path, replies_path, output_dir='data/processed', h
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    # 1. Load & Clean
+    # Load & Clean
     articles = pd.read_csv(articles_path)
     replies = pd.read_csv(replies_path)
 
@@ -22,7 +22,7 @@ def process_and_save(articles_path, replies_path, output_dir='data/processed', h
     valid_urls = set(articles['url'].unique())
     replies = replies[replies['article_url'].isin(valid_urls)]
 
-    # 2. Map IDs
+    # Map IDs
     unique_users = replies['user_id'].unique()
     unique_articles = articles['url'].unique()
 
@@ -38,7 +38,7 @@ def process_and_save(articles_path, replies_path, output_dir='data/processed', h
 
     print(f"Graph Info: {len(unique_users)} Users, {len(unique_articles)} Articles, {len(replies)} Edges")
 
-    # 3. Build Graph
+    # Build Graph
     data = HeteroData()
 
     # Features
@@ -54,7 +54,7 @@ def process_and_save(articles_path, replies_path, output_dir='data/processed', h
 
     data = T.ToUndirected()(data)
 
-    # 4. Save
+    # Save
     save_path = f'{output_dir}/graph_data.pt'
     torch.save(data, save_path)
     print(f"Processed graph saved to: {save_path}")

@@ -236,7 +236,7 @@ def load_data(data_path, min_interactions=2, split_strategy='random'):
             # ATTEMPT TO FIND MASTER SPLITS
             master_splits = None
             if isinstance(data, dict) and 'splits' in data:
-                # The file we just loaded IS the master split file
+                # The loaded file IS the master split file
                 master_splits = data['splits']
             else:
                 # Look for it in the directory
@@ -250,12 +250,12 @@ def load_data(data_path, min_interactions=2, split_strategy='random'):
             edge_index = None
             n_users = 0
             n_items = 0
-            n_categories = 0 # Initialize n_categories
+            n_categories = 0
             if isinstance(data, HeteroData):
                 if ('user', 'comments', 'article') in data.edge_types:
                     edge_index = data['user', 'comments', 'article'].edge_index
                 else:
-                    # Fallback to first user-item like relation
+                    # Fallback to first user-item relation
                     edge_index = next(iter(data.edge_index_dict.values()))
                 n_users = data['user'].num_nodes
                 n_items = data['article'].num_nodes
@@ -267,7 +267,7 @@ def load_data(data_path, min_interactions=2, split_strategy='random'):
                 n_users = data.get('n_users') or data.get('num_users') or 0
                 n_items = data.get('n_items') or data.get('num_articles') or data.get('num_items') or 0
             elif isinstance(data, dict):
-                # Try to get interactions from either edge_index or existing train_pairs
+                # Get interactions from either edge_index or existing train_pairs
                 if 'edge_index' in data:
                     edge_index = data['edge_index']
                 elif 'graph' in data and hasattr(data['graph'], 'edge_index_dict'):
@@ -317,13 +317,13 @@ def load_data(data_path, min_interactions=2, split_strategy='random'):
                     'test_dict': test_dict,
                     'train_dict': train_dict,
                     'edge_index': new_edge_index,
-                    'graph': data # Store original object
+                    'graph': data
                 }
                 
-                # If it's a hetero graph, we should also prune its internal edge_index_dict
+                # If hetero graph, also prune internal edge_index_dict
                 if isinstance(data, HeteroData) or (isinstance(data, dict) and 'graph' in data and isinstance(data['graph'], HeteroData)):
-                    target_graph = data if isinstance(data, HeteroData) else data['graph']
-                    # We update both directions to ensure symmetry and proper message passing
+                
+                # Update both directions for symmetry and proper message passing
                     ua_key = ('user', 'comments', 'article')
                     rev_ua_key = ('article', 'rev_comments', 'user')
                     
@@ -390,8 +390,7 @@ def load_data(data_path, min_interactions=2, split_strategy='random'):
                 data.update(data_dict)
                 return data
             
-            # For HeteroData, we MUST filter edge_index_dict to only contain train edges
-            # to prevent leakage in Hetero models (MA-HGN, HetGNN).
+            # Filter edge_index_dict to only contain train edges
             # The original edge_index_dict contains ALL edges (train + test).
             if isinstance(data, HeteroData):
                 train_edge_index = torch.stack([
@@ -464,7 +463,7 @@ def load_data(data_path, min_interactions=2, split_strategy='random'):
     
     if split_strategy == 'time':
         print("   [INFO] Strategy: TIME-BASED SPLIT")
-        print("   -> Preserving CSV order (assuming sorted by time)")
+        print("   Preserving CSV order")
         
         # 1. Deduplicate giữ nguyên thứ tự (Keep First)
         replies = replies.drop_duplicates(subset=['user_idx', 'item_idx'], keep='first')
@@ -548,7 +547,7 @@ def load_data(data_path, min_interactions=2, split_strategy='random'):
         'train_pairs': train_pairs,
         'train_dict': train_dict,
         'test_dict': test_dict,
-        'user_user_edges': user_user_edges, # <--- THÊM DÒNG NÀY
+        'user_user_edges': user_user_edges,
     }
     
     # Save cache with strategy name
@@ -658,7 +657,7 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
              print(f"  Warning: {emb_filename} not found locally.")
              
              # Fallback: Auto-Download & Encode
-             print("  ⚠️ Attempting to download and encode on-the-fly (this may take time)...")
+             print("  Attempting to download and encode on-the-fly (this may take time)...")
              try:
                  from sentence_transformers import SentenceTransformer
                  import pandas as pd
@@ -675,7 +674,7 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
                  
                  model_name = hf_map.get(embedding_type)
                  if not model_name:
-                     print(f"  ❌ No HF model mapping for {embedding_type}. Fallback to Random.")
+                     print(f"  No HF model mapping for {embedding_type}. Fallback to Random.")
                      return None
                      
                  # Load Articles
@@ -683,9 +682,9 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
                  if articles_path:
                      if Path(articles_path).exists():
                          articles_path = Path(articles_path)
-                         print(f"  ✅ Using explicit articles file: {articles_path}")
+                         print(f"  Using explicit articles file: {articles_path}")
                      else:
-                         print(f"  ⚠️ Warning: Explicit articles path not found: {articles_path}")
+                         print(f"  Warning: Explicit articles path not found: {articles_path}")
                      print(f"  ... Falling back to auto-search in: {search_dirs}")
                      if not articles_path:
                          articles_path = resolve_path('articles.csv', search_dirs)
@@ -698,7 +697,7 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
                      if not articles_path: articles_path = Path('data/raw/articles.csv')
 
                  if not articles_path or not articles_path.exists():
-                     print("  ⚠️ Standard paths failed. Attempting deep search for 'articles.csv'...")
+                     print("  Standard paths failed. Attempting deep search for 'articles.csv'...")
                      potential_roots = ['/kaggle/input', 'data']
                      found = False
                      for root in potential_roots:
@@ -706,14 +705,14 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
                          for r, d, f in os.walk(root):
                              if 'articles.csv' in f:
                                  articles_path = Path(r) / 'articles.csv'
-                                 print(f"  🔍 Found articles.csv via deep search: {articles_path}")
+                                 print(f"  Found articles.csv via deep search: {articles_path}")
                                  found = True
                                  break
                          if found: break
-                 # ----------------------------
+
                  
                  if not articles_path or not articles_path.exists():
-                     print(f"  ❌ Articles file not found. Cannot encode. Fallback to Random.")
+                     print(f"  Articles file not found. Cannot encode. Fallback to Random.")
                      return None
                      
                  df = pd.read_csv(articles_path)
@@ -722,7 +721,7 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
                  # Prepare Text
                  text_col = 'abstract' if 'abstract' in df.columns else 'short_description'
                  if text_col not in df.columns:
-                     print(f"  ⚠️ neither 'abstract' nor 'short_description' found. Using title only.")
+                     print(f"  neither 'abstract' nor 'short_description' found. Using title only.")
                      df['text'] = df['title'].fillna('')
                  else:
                      df['text'] = df['title'].fillna('') + ' ' + df[text_col].fillna('')
@@ -739,13 +738,13 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
                  save_dir.mkdir(exist_ok=True)
                  save_path = save_dir / emb_filename
                  torch.save(embeddings, save_path)
-                 print(f"  ✅ Saved cached embeddings to {save_path}")
+                 print(f"  Saved cached embeddings to {save_path}")
                  
              except ImportError:
-                 print("  ❌ `sentence_transformers` not installed. Cannot auto-encode. Fallback to Random.")
+                 print("  `sentence_transformers` not installed. Cannot auto-encode. Fallback to Random.")
                  return None
              except Exception as e:
-                 print(f"  ❌ Auto-encoding failed: {e}. Fallback to Random.")
+                 print(f"  Auto-encoding failed: {e}. Fallback to Random.")
                  return None
 
     elif embedding_type == 'tfidf':
@@ -768,7 +767,7 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
                 return None
                 
             articles = pd.read_csv(articles_path)
-            # ------------------------------------
+
 
             # Load mapping idx2item
             sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -781,7 +780,7 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
             idx2item = loader.idx2item
             print(f"      Loaded mapping for {len(idx2item)} items")
             
-            # Create text list in index order
+            # Flatten loop for speedr
             article_map = dict(zip(articles['url'], zip(articles['title'], articles['short_description'])))
             
             for idx in range(n_items):
@@ -824,12 +823,12 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
         
     if embeddings is not None:
         # Match item count (truncate or pad if needed)
-        # Note: Ideally n_items matches exactly. If valid items < n_items (due to padding), we pad.
+        # Check item count
         curr_items, curr_dim = embeddings.shape
         
         if curr_items != n_items:
             print(f"  Warning: Embedding items ({curr_items}) != Dataset items ({n_items})")
-            # If we have fewer embeddings, pad with random
+            # If fewer embeddings, pad with random
             if curr_items < n_items:
                 padding = torch.randn(n_items - curr_items, curr_dim)
                 embeddings = torch.cat([embeddings, padding], dim=0)
@@ -852,7 +851,7 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
              print("  Warning: Embeddings contain NaN! Replacing with random.")
              return None
              
-        # Clamp to avoid extreme values just in case
+        # Clamp values
         embeddings = torch.clamp(embeddings, -1.0, 1.0)
         
         # Scale down slightly to ensure stability (Xavier often < 1)
@@ -1040,16 +1039,13 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
     train_dict = data['train_dict']
     test_dict = data['test_dict']
     n_items = data['n_items']
-    # --- STRUCTURAL LEAKAGE CHECK ---
-    # Check if the graph used for message passing contains more interactions than the training set.
-    # NOTE: For bipartite models, we check edge_index (already filtered in load_data).
-    #       For hetero models (ma_hgn, hetgnn), we check edge_index_dict.
+
     is_hetero_model = args.model in ['ma_hgn', 'sim-mahgn']
     graph_to_check = edge_index_dict if (is_hetero_model and edge_index_dict is not None) else edge_index
     
     if graph_to_check is not None:
         if isinstance(graph_to_check, dict):
-            # Hetero graph: Look for user->article or user->item edges
+            # Hetero graph: Look for user-article or user-item edges
             ua_edges = None
             for key, val in graph_to_check.items():
                 if isinstance(key, tuple) and len(key) == 3:
@@ -1077,7 +1073,7 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
         
         if n_graph_interactions > n_train_interactions:
             print(f"\n" + "!"*60)
-            print(f"⚠️  CRITICAL LEAKAGE DETECTED!")
+            print(f"CRITICAL LEAKAGE DETECTED!")
             print(f"   Message Passing Graph has {n_graph_interactions:,} user-item interactions.")
             print(f"   Training Set has only {n_train_interactions:,} interactions.")
             print(f"   Leakage: {n_graph_interactions - n_train_interactions:,} test edges are visible to the model!")
@@ -1120,33 +1116,19 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
                 if args.model in ['simgcl', 'bigcf', 'igcl', 'xsimgcl', 'lightgcn']:
                     graph_structure = data.get('adj_norm')
                     if graph_structure is None:
-                        # Fallback if not computed (shouldn't happen if setup is correct)
                         print("Warning: adj_norm missing in train loop, falling back to edge_index")
                         graph_structure = edge_index
                 elif args.model == 'lightgcl':
-                     # LightGCL internal model manages its structure usually, likely stored inside Wrapper
-                     # But if we access `model.calculate_loss`, we might need to pass something.
-                     # Our LightGCLWrapper (if used) handles it. 
-                     # If `model` is the inner model, we might need adj. 
-                     # Let's check LightGCLWrapper usage. 
-                     # The `model` passed here is likely the Wrapper instance or the internal Module.
-                     # In main(), `model` is assigned `LightGCLWrapper(...).model`? Or the wrapper itself?
-                     # Let's assume wrapper extracts what it needs.
-                     graph_structure = data.get('adj_norm') # Pass it anyway
+                     graph_structure = data.get('adj_norm')
                 elif args.model in ['ma_hgn', 'ma-hcl']:
-                    # MA-HGN needs the full heterogeneous edge dictionary
                     graph_structure = getattr(data, 'edge_index_dict', None)
                     if graph_structure is None and isinstance(data, dict):
                         graph_structure = data.get('edge_index_dict')
                     
                     if graph_structure is None:
-                         # Fallback: Construct edge_index_dict from bipartite edge_index
-                         # This happens when loading strict_g3 (GraphWithNegatives) which is homogeneous Data
                          src, dst = edge_index
                          n_users_limit = data['n_users']
                          
-                         # Filter user -> item edges (src < n_users, dst >= n_users)
-                         # Note: dst in edge_index includes offset
                          mask = (src < n_users_limit) & (dst >= n_users_limit)
                          u_i_src = src[mask]
                          u_i_dst = dst[mask] - n_users_limit # Remove offset
@@ -1197,10 +1179,10 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
                          src, dst = edge_index
                          n_users_limit = data['n_users']
                          
-                         # Filter user -> item edges (src < n_users, dst >= n_users)
+                         # Filter user - item edges (src < n_users, dst >= n_users)
                          mask = (src < n_users_limit) & (dst >= n_users_limit)
                          u_i_src = src[mask]
-                         u_i_dst = dst[mask] - n_users_limit  # Remove offset
+                         u_i_dst = dst[mask] - n_users_limit
                          
                          u_i_edges = torch.stack([u_i_src, u_i_dst], dim=0)
                          i_u_edges = torch.stack([u_i_dst, u_i_src], dim=0)
@@ -1247,7 +1229,7 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
             
             adj_norm = data.get('adj_norm') if isinstance(data, dict) else getattr(data, 'adj_norm', None)
             
-            # Fallback for Hetero models on Homogeneous Data (strict_g3)
+            # Fallback for Hetero models on Homogeneous Data
             if edge_index_dict is None and args.model in ['ma_hgn', 'sim-mahgn', 'ma-hcl']:
                  if edge_index is not None:
                      src, dst = edge_index
@@ -1443,7 +1425,7 @@ def main():
         if user_user_edges is not None:
              print(f"  Using {user_user_edges.shape[1]} pre-filtered social edges from data dictionary.")
         else:
-             # Fallback (Code cũ): Chỉ chạy nếu không tìm thấy trong data
+             # Legacy Fallback
              user_user_edges = None
              social_graph_path = Path(args.data_path) / 'full_hetero_graph.pt'
              if social_graph_path.exists():
@@ -1458,7 +1440,7 @@ def main():
         data['adj_norm'] = compute_normalized_adjacency(n_users, n_items, data['train_pairs'], device, 
                                                        item_item_edges, user_user_edges, 
                                                        edge_weights=edge_weights, social_weight=args.social_weight)
-        data['augmented_pairs'] = augmented_pairs # Store for LightGCL
+        data['augmented_pairs'] = augmented_pairs
     
     train_item_indices = list(set([i for u, i in data['train_pairs']]))
 
@@ -1469,7 +1451,7 @@ def main():
         device, 
         train_item_indices=train_item_indices,
         data_path=args.data_path,
-        articles_path=args.articles_path # <--- Pass explicit articles path
+        articles_path=args.articles_path
     )
     
     # Generate Semantic IDs if requested
