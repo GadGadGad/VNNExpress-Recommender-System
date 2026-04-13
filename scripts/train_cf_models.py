@@ -71,8 +71,11 @@ def main():
                         help='Number of cold-start users to evaluate (default: 10)')
     parser.add_argument('--social-weight', type=float, default=1.0,
                         help='Weight for social reply edges in adjacency matrix (default: 1.0)')
-    parser.add_argument('--graph-type', choices=['bipartite', 'hetero', 'article', 'category'], default='bipartite',
-                        help='Graph type: bipartite, hetero, article (Article-Augmented), or category (Category Hubs)')
+    parser.add_argument('--graph-type', choices=['bipartite', 'hetero', 'article', 'category',
+                                                  'author', 'temporal', 'reaction', 'crosscat', 'tenure'], 
+                        default='bipartite',
+                        help='Graph type: bipartite, hetero, article, category, '
+                             'author (G4), temporal (G5), reaction (G6), crosscat (G7), tenure (G8)')
     parser.add_argument('--split-strategy', choices=['random', 'time'], default='random',
                         help='Data splitting strategy: "random" (shuffle) or "time" (chronological)')
 
@@ -196,7 +199,9 @@ def _load_graph_data(args):
         return data
     
     else:
-        return load_data(args.data_path)
+        # Default path: bipartite + all new graph types (author/temporal/reaction/crosscat/tenure)
+        # load_data() auto-discovers the correct .pt file in the directory
+        return load_data(args.data_path, split_strategy=args.split_strategy)
 
 
 def _precompute_adjacency(args, data, device):
@@ -395,7 +400,8 @@ def _build_model(args, n_users, n_items, data, device, pretrained_emb, semantic_
 def _save_and_print_results(args, model, n_users, n_items, best_metrics):
     """Save model checkpoint and print final metrics."""
     p = Path(args.data_path)
-    if p.parent.name in ["strict_g1", "strict_g2", "strict_g3", "regular_g2", "enhanced_v1", "enhanced_v2"]:
+    if p.parent.name in ["strict_g1", "strict_g2", "strict_g3", "strict_g4", "strict_g5", 
+                         "strict_g6", "strict_g7", "strict_g8", "regular_g2", "enhanced_v1", "enhanced_v2"]:
         graph_name = p.parent.name
     else:
         graph_name = p.stem

@@ -85,14 +85,22 @@ def load_data(data_path, min_interactions=2, split_strategy='random'):
     else:
         cache_path = p / cache_filename
         if not cache_path.exists() and split_strategy == 'random':
-            if (p / 'graph_with_negatives.pt').exists():
-                cache_path = p / 'graph_with_negatives.pt'
-            elif (p / 'user_article_graph.pt').exists():
-                cache_path = p / 'user_article_graph.pt'
-            elif (p / 'full_hetero_graph.pt').exists():
-                cache_path = p / 'full_hetero_graph.pt'
-            elif (p / 'category_graph.pt').exists():
-                cache_path = p / 'category_graph.pt'
+            # Search for any known graph file in priority order
+            known_files = [
+                'graph_with_negatives.pt',
+                'user_article_graph.pt',
+                'full_hetero_graph.pt',
+                'category_graph.pt',
+                'author_mediated_graph.pt',
+                'temporal_graph.pt',
+                'reaction_weighted_graph.pt',
+                'cross_category_graph.pt',
+                'user_tenure_graph.pt',
+            ]
+            for fname in known_files:
+                if (p / fname).exists():
+                    cache_path = p / fname
+                    break
         
     if cache_path.exists():
         print(f"  Loading cached data from {cache_path} (Strategy: {split_strategy})...")
