@@ -84,10 +84,23 @@ def generate_tfidf_embeddings(data_path='data/processed/strict_g2', output_dir='
     articles_df = pd.read_csv(articles_path)
     print(f"Loaded {len(articles_df)} articles")
     
-    # Load article mapping
-    mapping_path = Path(data_path) / 'article_map.json'
-    if not mapping_path.exists():
-        mapping_path = Path('data/processed/article_map.json')
+    # Load article mapping (search in multiple logical locations)
+    def find_mapping(base_path):
+        paths = [
+            Path(base_path) / 'article_map.json',
+            Path(base_path).parent / 'article_map.json',
+            Path('data/processed/strict_g2/article_map.json'),
+            Path('data/processed/article_map.json')
+        ]
+        for p in paths:
+            if p.exists():
+                return p
+        return None
+
+    mapping_path = find_mapping(data_path)
+    
+    if mapping_path is None:
+        raise FileNotFoundError(f"Could not find article_map.json in {data_path} or fallbacks.")
     
     print(f"Loading mapping from: {mapping_path}")
     with open(mapping_path, 'r') as f:
@@ -111,8 +124,24 @@ def generate_tfidf_embeddings(data_path='data/processed/strict_g2', output_dir='
             processed_text = preprocess_vietnamese(raw_text)
             texts[url_to_idx[url]] = processed_text
     
+    # Load train split to prevent leakage (fit TF-IDF only on train articles)
+    train_article_indices = None
+    split_candidates = [
+        Path(data_path) / 'graph_with_negatives.pt',
+        Path(data_path) / 'full_hetero_graph.pt',
+        Path(data_path) / 'user_article_graph.pt',
+        Path(data_path) / 'category_graph.pt',
+    ]
+    for sp in split_candidates:
+        if sp.exists():
+            split_data = torch.load(sp, weights_only=False)
+            if isinstance(split_data, dict) and 'splits' in split_data:
+                train_articles = split_data['splits']['train']['pos_articles'].tolist()
+                train_article_indices = sorted(set(train_articles))
+                print(f"  Loaded train split: {len(train_article_indices)} unique train articles (from {sp.name})")
+                break
+    
     # Generate TF-IDF
-    print("Fitting TF-IDF vectorizer...")
     vectorizer = TfidfVectorizer(
         max_features=5000,
         min_df=2,
@@ -120,7 +149,14 @@ def generate_tfidf_embeddings(data_path='data/processed/strict_g2', output_dir='
         ngram_range=(1, 2)
     )
     
-    tfidf_matrix = vectorizer.fit_transform(texts)
+    if train_article_indices is not None:
+        print("Fitting TF-IDF on TRAIN articles only (no leakage)...")
+        train_texts = [texts[i] for i in train_article_indices if i < len(texts)]
+        vectorizer.fit(train_texts)
+        tfidf_matrix = vectorizer.transform(texts)
+    else:
+        print("[WARNING] No split found. Fitting TF-IDF on ALL articles (potential data snooping).")
+        tfidf_matrix = vectorizer.fit_transform(texts)
     print(f"TF-IDF shape: {tfidf_matrix.shape}")
     
     # Convert to dense tensor
@@ -150,11 +186,23 @@ def generate_embeddings(model_key, data_path='data/processed/strict_g2', output_
     articles_df = pd.read_csv(articles_path)
     print(f"Loaded {len(articles_df)} articles")
     
-    # Load article mapping from the specific variant directory
-    mapping_path = Path(data_path) / 'article_map.json'
-    if not mapping_path.exists():
-        # Fallback to base dir if variant subfolder doesn't exist
-        mapping_path = Path('data/processed/article_map.json')
+    # Load article mapping from the specific variant directory or fallbacks
+    def find_mapping(base_path):
+        paths = [
+            Path(base_path) / 'article_map.json',
+            Path(base_path).parent / 'article_map.json',
+            Path('data/processed/strict_g2/article_map.json'),
+            Path('data/processed/article_map.json')
+        ]
+        for p in paths:
+            if p.exists():
+                return p
+        return None
+
+    mapping_path = find_mapping(data_path)
+    
+    if mapping_path is None:
+        raise FileNotFoundError(f"Could not find article_map.json in {data_path} or fallbacks.")
         
     print(f"Loading mapping from: {mapping_path}")
     with open(mapping_path, 'r') as f:
