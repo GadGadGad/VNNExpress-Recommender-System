@@ -21,6 +21,8 @@ from datetime import datetime
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.models import LightGCL, SimGCL, XSimGCL, MAHGN, LightGCN
+from src.models.ngcf import NGCF
+from src.models.igcl import IGCL
 from src.models.ma_hcl import MAHCL
 from src.models.bigcf import BIGCF
 
@@ -195,6 +197,18 @@ def load_data(data_path, min_interactions=2, split_strategy='random'):
     """Load and process data for CF models."""
     import pandas as pd
     from torch_geometric.data import HeteroData
+
+    def writable_cache_path(source_path, filename):
+        source_path = Path(source_path)
+        if str(source_path).startswith('/kaggle/input'):
+            try:
+                relative_source = source_path.relative_to('/kaggle/input')
+            except ValueError:
+                relative_source = Path(source_path.name)
+            return Path('/kaggle/working') / 'cf_cache' / relative_source / filename
+        if source_path.is_file():
+            return source_path.parent / filename
+        return source_path / filename
     
     # Check if data_path is already a file or a directory
     p = Path(data_path)
@@ -579,6 +593,7 @@ def load_data(data_path, min_interactions=2, split_strategy='random'):
     else:
         save_path = p / cache_filename
         
+    save_path = writable_cache_path(p, cache_filename)
     save_path.parent.mkdir(parents=True, exist_ok=True)
     torch.save(data, save_path)
     print(f"   -> Processed data saved to {save_path}")
@@ -1283,7 +1298,7 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
 
 def main():
     parser = argparse.ArgumentParser(description='Train CF/CL Models')
-    parser.add_argument('--model', '-m', choices=['simgcl', 'xsimgcl', 'lightgcl', 'ma-hcl', 'ma_hgn', 'bigcf', 'lightgcn'], 
+    parser.add_argument('--model', '-m', choices=['simgcl', 'xsimgcl', 'lightgcl', 'ma-hcl', 'ma_hgn', 'bigcf', 'lightgcn', 'ngcf', 'igcl'], 
                         default='simgcl', help='Model to train')
     parser.add_argument('--data-path', default='data/processed/strict_g1', help='Path to graph data')
     parser.add_argument('--articles-path', default=None, help='Explicit path to articles.csv')
@@ -1431,7 +1446,7 @@ def main():
 
     # Precompute adj_norm for SimGCL / CGRC / BIGCF / IGCL / XSimGCL
     # Precompute adj_norm for graph-based models
-    graph_models = ['simgcl', 'bigcf', 'igcl', 'xsimgcl', 'lightgcl', 'ma-hcl', 'ma_hgn', 'lightgcn']
+    graph_models = ['simgcl', 'bigcf', 'igcl', 'xsimgcl', 'lightgcl', 'ma-hcl', 'ma_hgn', 'lightgcn', 'ngcf']
     if args.model in graph_models:
         print(f"\nPrecomputing normalized adjacency for {args.model.upper()}...")
         
@@ -1592,6 +1607,20 @@ def main():
         model = MAHGN(n_users, n_items, args.hidden_dim, n_layers=args.n_layers, 
                       n_categories=num_cats, gnn_type=args.gnn_type,
                       cl_weight=args.ssl_weight, temp=args.temp).to(device)
+
+    elif args.model == 'ngcf':
+        model = NGCF(n_users, n_items, embedding_dim=args.hidden_dim, n_layers=args.n_layers,
+                     dropout=args.dropout).to(device)
+        if pretrained_emb is not None:
+            model.item_embedding.weight.data.copy_(pretrained_emb)
+            print("  Transferred embeddings to NGCF")
+
+    elif args.model == 'igcl':
+        model = IGCL(n_users, n_items, embedding_dim=args.hidden_dim, n_layers=args.n_layers,
+                     temp=args.temp, ssl_weight=args.ssl_weight).to(device)
+        if pretrained_emb is not None:
+            model.item_embedding.weight.data.copy_(pretrained_emb)
+            print("  Transferred embeddings to IGCL")
 
     elif args.model == 'xsimgcl':
         model = XSimGCL(n_users, n_items, embedding_dim=args.hidden_dim, n_layers=args.n_layers,
