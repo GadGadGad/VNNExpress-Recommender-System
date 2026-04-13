@@ -20,7 +20,7 @@ echo ">> 1. Generating ALL Content Embeddings..."
 # Using the 'all' option I saw in generate_multi_embeddings.py
 python scripts/generate_multi_embeddings.py \
     --model all \
-    --data-path data/processed/strict_g2 \
+    --data-path data/processed/strict_g3 \
     --output-dir checkpoints
 
 echo ""
