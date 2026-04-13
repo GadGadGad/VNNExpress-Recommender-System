@@ -421,10 +421,32 @@ def load_data(data_path, min_interactions=2, split_strategy='random'):
         return data
     
     print(f"Processing data from raw CSVs (Strategy: {split_strategy})...")
-    raw_replies = Path('data/raw/replies.csv')
-    if not raw_replies.exists():
-        raw_replies = Path(data_path).parent / 'raw' / 'replies.csv'
-        
+    raw_replies = None
+    reply_candidates = [
+        Path('data/raw/replies.csv'),
+        Path(data_path) / 'replies.csv',
+        Path(data_path).parent / 'raw' / 'replies.csv',
+        Path('/kaggle/input/vnexpress-data-v2/replies.csv'),
+    ]
+
+    for candidate in reply_candidates:
+        if candidate.exists():
+            raw_replies = candidate
+            break
+
+    if raw_replies is None:
+        kaggle_input_root = Path('/kaggle/input')
+        if kaggle_input_root.exists():
+            found = list(kaggle_input_root.rglob('replies.csv'))
+            if found:
+                raw_replies = found[0]
+
+    if raw_replies is None:
+        raise FileNotFoundError(
+            "Could not locate replies.csv. Please attach vnexpress-data-v2 dataset on Kaggle."
+        )
+
+    print(f"  Using replies file: {raw_replies}")
     replies = pd.read_csv(raw_replies)
     replies = replies[replies['parent_user_id'] != 'NO_COMMENT'].copy()
     
@@ -1322,15 +1344,33 @@ def main():
     
     # Switch data path based on graph type
     if args.graph_type == 'hetero':
-        hetero_path = Path(args.data_path) / 'full_hetero_graph.pt'
-        if not hetero_path.exists():
-            hetero_path = Path(args.data_path) / 'all_graphs' / 'full_hetero_graph.pt'
-            
-        if hetero_path.exists():
+        base_path = Path(args.data_path)
+        hetero_path = None
+        hetero_candidates = [
+            base_path / 'full_hetero_graph.pt',
+            base_path / 'all_graphs' / 'full_hetero_graph.pt',
+        ]
+
+        for candidate in hetero_candidates:
+            if candidate.exists():
+                hetero_path = candidate
+                break
+
+        if hetero_path is None:
+            kaggle_input_root = Path('/kaggle/input')
+            if kaggle_input_root.exists():
+                matches = list(kaggle_input_root.rglob('full_hetero_graph.pt'))
+                preferred = [m for m in matches if m.parent.name == base_path.name]
+                if preferred:
+                    hetero_path = preferred[0]
+                elif matches:
+                    hetero_path = matches[0]
+
+        if hetero_path is not None:
             print(f"  Loading Heterogeneous Graph from: {hetero_path}")
             data = load_data(str(hetero_path), split_strategy=args.split_strategy)
         else:
-            print(f"  Warning: {hetero_path} not found. Falling back to default bipartite graph.")
+            print("  Warning: full_hetero_graph.pt not found. Falling back to default bipartite graph.")
             data = load_data(args.data_path, split_strategy=args.split_strategy)
     elif args.graph_type == 'category':
         cat_path = Path(args.data_path) / 'all_graphs' / 'category_graph.pt'
