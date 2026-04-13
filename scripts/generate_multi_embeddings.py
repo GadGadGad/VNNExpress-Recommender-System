@@ -124,8 +124,24 @@ def generate_tfidf_embeddings(data_path='data/processed/strict_g2', output_dir='
             processed_text = preprocess_vietnamese(raw_text)
             texts[url_to_idx[url]] = processed_text
     
+    # Load train split to prevent leakage (fit TF-IDF only on train articles)
+    train_article_indices = None
+    split_candidates = [
+        Path(data_path) / 'graph_with_negatives.pt',
+        Path(data_path) / 'full_hetero_graph.pt',
+        Path(data_path) / 'user_article_graph.pt',
+        Path(data_path) / 'category_graph.pt',
+    ]
+    for sp in split_candidates:
+        if sp.exists():
+            split_data = torch.load(sp, weights_only=False)
+            if isinstance(split_data, dict) and 'splits' in split_data:
+                train_articles = split_data['splits']['train']['pos_articles'].tolist()
+                train_article_indices = sorted(set(train_articles))
+                print(f"  Loaded train split: {len(train_article_indices)} unique train articles (from {sp.name})")
+                break
+    
     # Generate TF-IDF
-    print("Fitting TF-IDF vectorizer...")
     vectorizer = TfidfVectorizer(
         max_features=5000,
         min_df=2,
@@ -133,7 +149,14 @@ def generate_tfidf_embeddings(data_path='data/processed/strict_g2', output_dir='
         ngram_range=(1, 2)
     )
     
-    tfidf_matrix = vectorizer.fit_transform(texts)
+    if train_article_indices is not None:
+        print("Fitting TF-IDF on TRAIN articles only (no leakage)...")
+        train_texts = [texts[i] for i in train_article_indices if i < len(texts)]
+        vectorizer.fit(train_texts)
+        tfidf_matrix = vectorizer.transform(texts)
+    else:
+        print("[WARNING] No split found. Fitting TF-IDF on ALL articles (potential data snooping).")
+        tfidf_matrix = vectorizer.fit_transform(texts)
     print(f"TF-IDF shape: {tfidf_matrix.shape}")
     
     # Convert to dense tensor

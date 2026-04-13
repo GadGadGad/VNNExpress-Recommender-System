@@ -238,17 +238,28 @@ def _precompute_adjacency(args, data, device):
     if user_user_edges is not None:
          print(f"  Using {user_user_edges.shape[1]} pre-filtered social edges from data dictionary.")
     else:
-         # Legacy Fallback
+         # Legacy Fallback — load and FILTER social edges to train-only users
          user_user_edges = None
          social_graph_path = Path(args.data_path) / 'full_hetero_graph.pt'
          if social_graph_path.exists():
-            print(f"  [WARNING] Loading social signals from {social_graph_path} (Potential Leakage if not filtered!)")
+            print(f"  Loading social signals from {social_graph_path}...")
             social_data = torch.load(social_graph_path, weights_only=False)
+            raw_social = None
             if isinstance(social_data, dict) and 'edge_index_dict' in social_data:
                 edges_dict = social_data['edge_index_dict']
-                user_user_edges = edges_dict.get(('user', 'replied_to', 'user'))
+                raw_social = edges_dict.get(('user', 'replied_to', 'user'))
             elif hasattr(social_data, 'edge_index_dict'):
-                user_user_edges = social_data['user', 'replied_to', 'user'].edge_index
+                if ('user', 'replied_to', 'user') in social_data.edge_types:
+                    raw_social = social_data['user', 'replied_to', 'user'].edge_index
+            
+            if raw_social is not None:
+                # Filter: only keep edges where BOTH users appear in training interactions
+                train_users = set(u for u, _ in data['train_pairs'])
+                src, dst = raw_social[0], raw_social[1]
+                mask = torch.tensor([s.item() in train_users and d.item() in train_users 
+                                     for s, d in zip(src, dst)], dtype=torch.bool)
+                user_user_edges = raw_social[:, mask]
+                print(f"  Filtered social edges: {raw_social.size(1)} -> {user_user_edges.size(1)} (train-only users)")
     
     data['adj_norm'] = compute_normalized_adjacency(n_users, n_items, data['train_pairs'], device, 
                                                     item_item_edges, user_user_edges, 
