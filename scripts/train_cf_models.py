@@ -200,6 +200,18 @@ def load_data(data_path, min_interactions=2, split_strategy='random'):
     """Load and process data for CF models."""
     import pandas as pd
     from torch_geometric.data import HeteroData
+
+    def writable_cache_path(source_path, filename):
+        source_path = Path(source_path)
+        if str(source_path).startswith('/kaggle/input'):
+            try:
+                relative_source = source_path.relative_to('/kaggle/input')
+            except ValueError:
+                relative_source = Path(source_path.name)
+            return Path('/kaggle/working') / 'cf_cache' / relative_source / filename
+        if source_path.is_file():
+            return source_path.parent / filename
+        return source_path / filename
     
     # Check if data_path is already a file or a directory
     p = Path(data_path)
@@ -577,13 +589,8 @@ def load_data(data_path, min_interactions=2, split_strategy='random'):
         'user_user_edges': user_user_edges,
     }
     
-    # Save cache with strategy name
-    # Nếu là file path, ta lưu vào parent directory với tên mới
-    if p.is_file():
-        save_path = p.parent / cache_filename
-    else:
-        save_path = p / cache_filename
-        
+    # Save cache to a writable location (Kaggle input is read-only).
+    save_path = writable_cache_path(p, cache_filename)
     save_path.parent.mkdir(parents=True, exist_ok=True)
     torch.save(data, save_path)
     print(f"   -> Processed data saved to {save_path}")
