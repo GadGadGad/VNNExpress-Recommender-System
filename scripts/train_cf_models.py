@@ -339,6 +339,9 @@ def load_data(data_path, min_interactions=2, split_strategy='random'):
                 
                 # If hetero graph, also prune internal edge_index_dict
                 if isinstance(data, HeteroData) or (isinstance(data, dict) and 'graph' in data and isinstance(data['graph'], HeteroData)):
+                    target_graph = data if isinstance(data, HeteroData) else data.get('graph')
+                    if target_graph is None:
+                        return data_dict
                 
                 # Update both directions for symmetry and proper message passing
                     ua_key = ('user', 'comments', 'article')
