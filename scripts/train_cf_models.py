@@ -1444,7 +1444,7 @@ def main():
             print(f"  Warning: {article_path} not found. Using Bipartite only.")
     else:
         # Load data (default bipartite)
-        data = load_data(args.data_path)
+        data = load_data(args.data_path, split_strategy=args.split_strategy)
     n_users, n_items = data['n_users'], data['n_items']
     
     print(f"Users: {n_users}, Items: {n_items}")
