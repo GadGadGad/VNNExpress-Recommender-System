@@ -14,7 +14,12 @@ import numpy as np
 import pickle
 import pandas as pd
 from pathlib import Path
-from tqdm import tqdm
+try:
+    from tqdm.auto import tqdm
+except Exception:
+    # Fallback keeps training loop functional when tqdm is unavailable.
+    def tqdm(iterable, *args, **kwargs):
+        return iterable
 
 from datetime import datetime
 
@@ -195,6 +200,18 @@ def load_data(data_path, min_interactions=2, split_strategy='random'):
     """Load and process data for CF models."""
     import pandas as pd
     from torch_geometric.data import HeteroData
+
+    def writable_cache_path(source_path, filename):
+        source_path = Path(source_path)
+        if str(source_path).startswith('/kaggle/input'):
+            try:
+                relative_source = source_path.relative_to('/kaggle/input')
+            except ValueError:
+                relative_source = Path(source_path.name)
+            return Path('/kaggle/working') / 'cf_cache' / relative_source / filename
+        if source_path.is_file():
+            return source_path.parent / filename
+        return source_path / filename
     
     # Check if data_path is already a file or a directory
     p = Path(data_path)
@@ -322,6 +339,9 @@ def load_data(data_path, min_interactions=2, split_strategy='random'):
                 
                 # If hetero graph, also prune internal edge_index_dict
                 if isinstance(data, HeteroData) or (isinstance(data, dict) and 'graph' in data and isinstance(data['graph'], HeteroData)):
+                    target_graph = data if isinstance(data, HeteroData) else data.get('graph')
+                    if target_graph is None:
+                        return data_dict
                 
                 # Update both directions for symmetry and proper message passing
                     ua_key = ('user', 'comments', 'article')
@@ -421,10 +441,32 @@ def load_data(data_path, min_interactions=2, split_strategy='random'):
         return data
     
     print(f"Processing data from raw CSVs (Strategy: {split_strategy})...")
-    raw_replies = Path('data/raw/replies.csv')
-    if not raw_replies.exists():
-        raw_replies = Path(data_path).parent / 'raw' / 'replies.csv'
-        
+    raw_replies = None
+    reply_candidates = [
+        Path('data/raw/replies.csv'),
+        Path(data_path) / 'replies.csv',
+        Path(data_path).parent / 'raw' / 'replies.csv',
+        Path('/kaggle/input/vnexpress-data-v2/replies.csv'),
+    ]
+
+    for candidate in reply_candidates:
+        if candidate.exists():
+            raw_replies = candidate
+            break
+
+    if raw_replies is None:
+        kaggle_input_root = Path('/kaggle/input')
+        if kaggle_input_root.exists():
+            found = list(kaggle_input_root.rglob('replies.csv'))
+            if found:
+                raw_replies = found[0]
+
+    if raw_replies is None:
+        raise FileNotFoundError(
+            "Could not locate replies.csv. Please attach vnexpress-data-v2 dataset on Kaggle."
+        )
+
+    print(f"  Using replies file: {raw_replies}")
     replies = pd.read_csv(raw_replies)
     replies = replies[replies['parent_user_id'] != 'NO_COMMENT'].copy()
     
@@ -550,13 +592,8 @@ def load_data(data_path, min_interactions=2, split_strategy='random'):
         'user_user_edges': user_user_edges,
     }
     
-    # Save cache with strategy name
-    # Nếu là file path, ta lưu vào parent directory với tên mới
-    if p.is_file():
-        save_path = p.parent / cache_filename
-    else:
-        save_path = p / cache_filename
-        
+    # Save cache to a writable location (Kaggle input is read-only).
+    save_path = writable_cache_path(p, cache_filename)
     save_path.parent.mkdir(parents=True, exist_ok=True)
     torch.save(data, save_path)
     print(f"   -> Processed data saved to {save_path}")
@@ -1322,15 +1359,33 @@ def main():
     
     # Switch data path based on graph type
     if args.graph_type == 'hetero':
-        hetero_path = Path(args.data_path) / 'full_hetero_graph.pt'
-        if not hetero_path.exists():
-            hetero_path = Path(args.data_path) / 'all_graphs' / 'full_hetero_graph.pt'
-            
-        if hetero_path.exists():
+        base_path = Path(args.data_path)
+        hetero_path = None
+        hetero_candidates = [
+            base_path / 'full_hetero_graph.pt',
+            base_path / 'all_graphs' / 'full_hetero_graph.pt',
+        ]
+
+        for candidate in hetero_candidates:
+            if candidate.exists():
+                hetero_path = candidate
+                break
+
+        if hetero_path is None:
+            kaggle_input_root = Path('/kaggle/input')
+            if kaggle_input_root.exists():
+                matches = list(kaggle_input_root.rglob('full_hetero_graph.pt'))
+                preferred = [m for m in matches if m.parent.name == base_path.name]
+                if preferred:
+                    hetero_path = preferred[0]
+                elif matches:
+                    hetero_path = matches[0]
+
+        if hetero_path is not None:
             print(f"  Loading Heterogeneous Graph from: {hetero_path}")
             data = load_data(str(hetero_path), split_strategy=args.split_strategy)
         else:
-            print(f"  Warning: {hetero_path} not found. Falling back to default bipartite graph.")
+            print("  Warning: full_hetero_graph.pt not found. Falling back to default bipartite graph.")
             data = load_data(args.data_path, split_strategy=args.split_strategy)
     elif args.graph_type == 'category':
         cat_path = Path(args.data_path) / 'all_graphs' / 'category_graph.pt'
