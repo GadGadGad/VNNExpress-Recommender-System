@@ -6,6 +6,7 @@ Supports: SimpleX, DirectAU, SGL, SimGCL, NCL, LightGCL
 import os
 import sys
 import argparse
+import re
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -468,6 +469,18 @@ def load_data(data_path, min_interactions=2, split_strategy='random'):
 
     print(f"  Using replies file: {raw_replies}")
     replies = pd.read_csv(raw_replies)
+    def extract_vnexpress_id(url):
+        # Trích xuất số ID trước đuôi .html (ví dụ: 4987772)
+        match = re.search(r'-(\d+)\.html', str(url))
+        return int(match.group(1)) if match else 0
+
+    print("   [INFO] Extracting Article IDs as temporal proxy...")
+    replies['proxy_time'] = replies['article_url'].apply(extract_vnexpress_id)
+    
+    # Sắp xếp toàn bộ dữ liệu theo ID bài báo trước khi làm bất cứ việc gì khác
+    # Điều này cực kỳ quan trọng để split 'time' không bị rò rỉ dữ liệu
+    replies = replies.sort_values('proxy_time').reset_index(drop=True)
+    print(f"   [SUCCESS] Data sorted by Article ID. Range: {replies['proxy_time'].min()} to {replies['proxy_time'].max()}")
     replies = replies[replies['parent_user_id'] != 'NO_COMMENT'].copy()
     
     def clean_id(val):
