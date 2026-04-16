@@ -15,7 +15,9 @@ class MAHGN(nn.Module):
     Models 'Social' (user-user) and 'Behavioral' (user-article) signals 
     with different semantic weights.
     """
-    def __init__(self, n_users, n_items, embedding_dim=64, n_layers=2, dropout=0.2, n_categories=0, gnn_type='gat', cl_weight=0.0, temp=0.2):
+    def __init__(self, n_users, n_items, embedding_dim=64, n_layers=2, dropout=0.2, 
+                 n_categories=0, gnn_type='gat', cl_weight=0.0, temp=0.2, 
+                 pretrained_item_emb=None): # <--- Thêm tham số này
         super().__init__()
         self.n_users = n_users
         self.n_items = n_items
