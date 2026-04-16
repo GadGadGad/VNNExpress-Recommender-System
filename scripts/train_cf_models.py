@@ -13,6 +13,7 @@ import torch.nn.functional as F
 import torch.sparse as sp
 import numpy as np
 import pickle
+import random
 import pandas as pd
 from pathlib import Path
 try:
@@ -34,6 +35,16 @@ from src.models.semantic_id import generate_semantic_ids
 from src.inference.re_ranker import CalibratedReRanker
 import scipy.sparse as sp
 
+def set_seed(seed=42):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True # Đảm bảo thuật toán convolution/GNN chạy cố định
+    torch.backends.cudnn.benchmark = False
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    print(f">>> Global seed set to: {seed}")
 
 class SemanticEmbeddingLayer(nn.Module):
     """
@@ -1310,6 +1321,7 @@ def train_model(model, data, args, device, item_content=None, semantic_ids=None,
     return best_metrics
 
 def main():
+    set_seed(42)
     parser = argparse.ArgumentParser(description='Train CF/CL Models')
     parser.add_argument('--model', '-m', choices=['simgcl', 'xsimgcl', 'lightgcl', 'ma-hcl', 'ma_hgn', 'bigcf', 'lightgcn'], 
                         default='simgcl', help='Model to train')
