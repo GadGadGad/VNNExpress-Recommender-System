@@ -8,6 +8,9 @@ import sys
 import argparse
 import re
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.sparse as sp
 import numpy as np
 import pickle
 import random
@@ -24,17 +27,13 @@ from datetime import datetime
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.data.cf_data_loader import load_data, compute_normalized_adjacency
-from src.data.embedding_loader import load_pretrained_embeddings, SemanticEmbeddingLayer, UserPriorLayer
-from src.training.cf_evaluator import load_item_categories
-from src.training.cf_trainer import train_model
-from src.models.lightgcl_wrapper import LightGCLWrapper
-
 from src.models import LightGCL, SimGCL, XSimGCL, MAHGN, LightGCN
 from src.models.ma_hcl import MAHCL
 from src.models.bigcf import BIGCF
+
 from src.models.semantic_id import generate_semantic_ids
 from src.inference.re_ranker import CalibratedReRanker
+import scipy.sparse as sp
 
 def set_seed(seed=42):
     random.seed(seed)
@@ -1366,11 +1365,8 @@ def main():
                         help='Number of cold-start users to evaluate (default: 10)')
     parser.add_argument('--social-weight', type=float, default=1.0,
                         help='Weight for social reply edges in adjacency matrix (default: 1.0)')
-    parser.add_argument('--graph-type', choices=['bipartite', 'hetero', 'article', 'category',
-                                                  'author', 'temporal', 'reaction', 'crosscat', 'tenure'], 
-                        default='bipartite',
-                        help='Graph type: bipartite, hetero, article, category, '
-                             'author (G4), temporal (G5), reaction (G6), crosscat (G7), tenure (G8)')
+    parser.add_argument('--graph-type', choices=['bipartite', 'hetero', 'article', 'category'], default='bipartite',
+                        help='Graph type: bipartite, hetero, article (Article-Augmented), or category (Category Hubs)')
     parser.add_argument('--split-strategy', choices=['random', 'time'], default='random',
                         help='Data splitting strategy: "random" (shuffle) or "time" (chronological)')
 
@@ -1386,60 +1382,7 @@ def main():
     print(f"Data Path: {args.data_path}")
     print("=" * 60)
     
-    # --- Load Data ---
-    data = _load_graph_data(args)
-    n_users, n_items = data['n_users'], data['n_items']
-    
-    print(f"Users: {n_users}, Items: {n_items}")
-    print(f"Train: {len(data['train_pairs'])}, Test users: {len(data['test_dict'])}")
-    
-    # Identify cold-start users (users with <= 3 training interactions)
-    train_dict = data['train_dict']
-    cold_threshold = 3
-    cold_users = {u for u, items in train_dict.items() if len(items) <= cold_threshold}
-    print(f"Cold-start users (≤{cold_threshold} interactions): {len(cold_users)}")
-    
-    # --- Precompute Adjacency ---
-    _precompute_adjacency(args, data, device)
-
-    # --- Load Embeddings ---
-    train_item_indices = list(set([i for u, i in data['train_pairs']]))
-    pretrained_emb = load_pretrained_embeddings(
-        args.embedding, n_items, args.hidden_dim, device, 
-        train_item_indices=train_item_indices,
-        data_path=args.data_path, articles_path=args.articles_path
-    )
-    
-    # --- Semantic IDs & User Priors ---
-    semantic_ids = _load_semantic_ids(args, pretrained_emb, device)
-    user_priors = _load_user_priors(args, n_users, device)
-    
-    # --- Re-ranker ---
-    re_ranker = _load_reranker(args)
-
-    # --- Build Model ---
-    model = _build_model(args, n_users, n_items, data, device, pretrained_emb, semantic_ids, user_priors)
-    
-    # Ensure model is on the correct device if not handled internally (e.g., LightGCL)
-    if args.model != 'lightgcl':
-        model = model.to(device)
-    
-    print(f"Parameters: {sum(p.numel() for p in model.parameters()):,}")
-    
-    # --- Train ---
-    if hasattr(model, 'forward') and pretrained_emb is not None:
-        model.item_content = pretrained_emb # Attach for evaluate
-        
-    best_metrics = train_model(model, data, args, device, item_content=pretrained_emb, 
-                               semantic_ids=semantic_ids, user_priors=user_priors, 
-                               re_ranker=re_ranker, cold_users=cold_users)
-
-    # --- Save & Print Results ---
-    _save_and_print_results(args, model, n_users, n_items, best_metrics)
-
-
-def _load_graph_data(args):
-    """Load graph data based on graph type argument."""
+    # Switch data path based on graph type
     if args.graph_type == 'hetero':
         base_path = Path(args.data_path)
         hetero_path = None
@@ -1465,7 +1408,7 @@ def _load_graph_data(args):
 
         if hetero_path is not None:
             print(f"  Loading Heterogeneous Graph from: {hetero_path}")
-            return load_data(str(hetero_path), split_strategy=args.split_strategy)
+            data = load_data(str(hetero_path), split_strategy=args.split_strategy)
         else:
             print("  Warning: full_hetero_graph.pt not found. Falling back to default bipartite graph.")
             data = load_data(args.data_path, split_strategy=args.split_strategy)
@@ -1476,12 +1419,13 @@ def _load_graph_data(args):
              
         if cat_path.exists():
             print(f"  Loading Category-Augmented Graph from: {cat_path}")
-            return load_data(str(cat_path), split_strategy=args.split_strategy)
+            data = load_data(str(cat_path), split_strategy=args.split_strategy)
         else:
             print(f"  Warning: {cat_path} not found. Falling back.")
-            return load_data(args.data_path, split_strategy=args.split_strategy)
+            data = load_data(args.data_path, split_strategy=args.split_strategy)
 
     elif args.graph_type == 'article':
+        # Load full hetero graph as base to ensure consistent dimensions
         hetero_path = Path(args.data_path) / 'all_graphs' / 'full_hetero_graph.pt'
         if hetero_path.exists():
             print(f"  Loading Full Base Graph from: {hetero_path}")
@@ -1493,9 +1437,11 @@ def _load_graph_data(args):
                      print("  Removing Social Edges for Article-Augmented experiment...")
                      del data['edge_index_dict'][('user', 'replied_to', 'user')]
             elif hasattr(data, 'edge_index_dict'):
+                 # PyG HeteroData
                  if ('user', 'replied_to', 'user') in data.edge_types:
                      print("  Removing Social Edges for Article-Augmented experiment...")
                      del data['user', 'replied_to', 'user']
+
         else:
              print("Full graph not found, falling back (might fail dimensions)")
              data = load_data(args.data_path, split_strategy=args.split_strategy)
@@ -1508,8 +1454,6 @@ def _load_graph_data(args):
             data['article_edge_index'] = article_data.edge_index
         else:
             print(f"  Warning: {article_path} not found. Using Bipartite only.")
-        return data
-    
     else:
         # Load data (default bipartite)
         data = load_data(args.data_path, split_strategy=args.split_strategy)
@@ -1525,139 +1469,131 @@ def _load_graph_data(args):
     print(f"Cold-start users (≤{cold_threshold} interactions): {len(cold_users)}")
     
 
-
-def _precompute_adjacency(args, data, device):
-    """Precompute normalized adjacency for graph-based models."""
+    # Precompute adj_norm for SimGCL / CGRC / BIGCF / IGCL / XSimGCL
+    # Precompute adj_norm for graph-based models
     graph_models = ['simgcl', 'bigcf', 'igcl', 'xsimgcl', 'lightgcl', 'ma-hcl', 'ma_hgn', 'lightgcn']
-    if args.model not in graph_models:
-        return
-    
-    n_users, n_items = data['n_users'], data['n_items']
-    print(f"\nPrecomputing normalized adjacency for {args.model.upper()}...")
-    
-    augmented_pairs = None
-    # Fix ambiguous boolean evaluation for Tensors
-    item_item_edges = data.get('article_edge_index')
-    if item_item_edges is None:
-        item_item_edges = data.get('user_category_edge_index')
-    if item_item_edges is None:
-        item_item_edges = data.get('cat_article_edges')
-    
-    if args.augment == 'llmrec':
-        augment_path = Path('data/processed/augmented_edges.pt')
-        if augment_path.exists():
-            print(f"  Loading augmented interactions from {augment_path}...")
-            aug_data = torch.load(augment_path, weights_only=False)
-            augmented_pairs = aug_data.get('augmented_pairs', None)
-            item_item_edges = aug_data.get('item_item_edges', item_item_edges) 
+    if args.model in graph_models:
+        print(f"\nPrecomputing normalized adjacency for {args.model.upper()}...")
+        
+        augmented_pairs = None
+        # Fix ambiguous boolean evaluation for Tensors
+        item_item_edges = data.get('article_edge_index')
+        if item_item_edges is None:
+            item_item_edges = data.get('user_category_edge_index')
+        if item_item_edges is None:
+            item_item_edges = data.get('cat_article_edges')
+        
+        if args.augment == 'llmrec':
+            augment_path = Path('data/processed/augmented_edges.pt')
+            if augment_path.exists():
+                print(f"  Loading augmented interactions from {augment_path}...")
+                aug_data = torch.load(augment_path, weights_only=False)
+                augmented_pairs = aug_data.get('augmented_pairs', None)
+                item_item_edges = aug_data.get('item_item_edges', item_item_edges) 
+            else:
+                print(f"  Warning: {augment_path} not found. Running without augmentation.")
+        
+        # Check for weights in the data
+        edge_weights = data.get('edge_weight')
+        if edge_weights is not None:
+            if isinstance(edge_weights, torch.Tensor):
+                edge_weights = edge_weights.numpy()
+            print(f"  Found {len(edge_weights)} edge weights. Using weighted adjacency.")
+        
+        user_user_edges = data.get('user_user_edges') 
+        
+        if user_user_edges is not None:
+             print(f"  Using {user_user_edges.shape[1]} pre-filtered social edges from data dictionary.")
         else:
-            print(f"  Warning: {augment_path} not found. Running without augmentation.")
+             # Legacy Fallback
+             user_user_edges = None
+             social_graph_path = Path(args.data_path) / 'full_hetero_graph.pt'
+             if social_graph_path.exists():
+                print(f"  [WARNING] Loading social signals from {social_graph_path} (Potential Leakage if not filtered!)")
+                social_data = torch.load(social_graph_path, weights_only=False)
+                if isinstance(social_data, dict) and 'edge_index_dict' in social_data:
+                    edges_dict = social_data['edge_index_dict']
+                    user_user_edges = edges_dict.get(('user', 'replied_to', 'user'))
+                elif hasattr(social_data, 'edge_index_dict'):
+                    user_user_edges = social_data['user', 'replied_to', 'user'].edge_index
+        
+        data['adj_norm'] = compute_normalized_adjacency(n_users, n_items, data['train_pairs'], device, 
+                                                       item_item_edges, user_user_edges, 
+                                                       edge_weights=edge_weights, social_weight=args.social_weight)
+        data['augmented_pairs'] = augmented_pairs
     
-    # Check for weights in the data
-    edge_weights = data.get('edge_weight')
-    if edge_weights is not None:
-        if isinstance(edge_weights, torch.Tensor):
-            edge_weights = edge_weights.numpy()
-        print(f"  Found {len(edge_weights)} edge weights. Using weighted adjacency.")
+    train_item_indices = list(set([i for u, i in data['train_pairs']]))
+
+    pretrained_emb = load_pretrained_embeddings(
+        args.embedding, 
+        n_items, 
+        args.hidden_dim, 
+        device, 
+        train_item_indices=train_item_indices,
+        data_path=args.data_path,
+        articles_path=args.articles_path
+    )
     
-    user_user_edges = data.get('user_user_edges') 
-    
-    if user_user_edges is not None:
-         print(f"  Using {user_user_edges.shape[1]} pre-filtered social edges from data dictionary.")
-    else:
-         # Legacy Fallback — load and FILTER social edges to train-only users
-         user_user_edges = None
-         social_graph_path = Path(args.data_path) / 'full_hetero_graph.pt'
-         if social_graph_path.exists():
-            print(f"  Loading social signals from {social_graph_path}...")
-            social_data = torch.load(social_graph_path, weights_only=False)
-            raw_social = None
-            if isinstance(social_data, dict) and 'edge_index_dict' in social_data:
-                edges_dict = social_data['edge_index_dict']
-                raw_social = edges_dict.get(('user', 'replied_to', 'user'))
-            elif hasattr(social_data, 'edge_index_dict'):
-                if ('user', 'replied_to', 'user') in social_data.edge_types:
-                    raw_social = social_data['user', 'replied_to', 'user'].edge_index
+    # Generate Semantic IDs if requested
+    semantic_ids = None
+    if args.semantic_id_bits > 0:
+        if pretrained_emb is not None:
+            print(f"\nGenerating Semantic IDs ({args.semantic_id_bits} stages)...")
+            semantic_ids, _ = generate_semantic_ids(pretrained_emb, n_codebooks=args.semantic_id_bits, codebook_size=32)
+            semantic_ids = semantic_ids.to(device)
+            print(f"  Generated IDs shape: {semantic_ids.shape}")
+        else:
+            print("\n  Warning: Cannot generate Semantic IDs without pretrained embeddings. Skipping.")
             
-            if raw_social is not None:
-                # Filter: only keep edges where BOTH users appear in training interactions
-                train_users = set(u for u, _ in data['train_pairs'])
-                src, dst = raw_social[0], raw_social[1]
-                mask = torch.tensor([s.item() in train_users and d.item() in train_users 
-                                     for s, d in zip(src, dst)], dtype=torch.bool)
-                user_user_edges = raw_social[:, mask]
-                print(f"  Filtered social edges: {raw_social.size(1)} -> {user_user_edges.size(1)} (train-only users)")
-    
-    data['adj_norm'] = compute_normalized_adjacency(n_users, n_items, data['train_pairs'], device, 
-                                                    item_item_edges, user_user_edges, 
-                                                    edge_weights=edge_weights, social_weight=args.social_weight)
-    data['augmented_pairs'] = augmented_pairs
-
-
-def _load_semantic_ids(args, pretrained_emb, device):
-    """Generate Semantic IDs if requested."""
-    if args.semantic_id_bits <= 0:
-        return None
-    if pretrained_emb is not None:
-        print(f"\nGenerating Semantic IDs ({args.semantic_id_bits} stages)...")
-        semantic_ids, _ = generate_semantic_ids(pretrained_emb, n_codebooks=args.semantic_id_bits, codebook_size=32)
-        semantic_ids = semantic_ids.to(device)
-        print(f"  Generated IDs shape: {semantic_ids.shape}")
-        return semantic_ids
-    else:
-        print("\n  Warning: Cannot generate Semantic IDs without pretrained embeddings. Skipping.")
-        return None
-
-
-def _load_user_priors(args, n_users, device):
-    """Load User Priors if requested."""
-    if args.model != 'xsimgcl':
-        return None
-    prior_path = Path('data/processed/user_priors.pt')
-    if prior_path.exists():
-        print(f"\nLoading User Priors from {prior_path}...")
-        priors = torch.load(prior_path, weights_only=False).to(device)
-        if priors.shape[0] < n_users:
-            print(f"  Padding User Priors: {priors.shape[0]} -> {n_users}")
-            user_priors = torch.zeros((n_users, priors.shape[1]), device=device)
-            user_priors[:priors.shape[0]] = priors
+    # Load User Priors if requested
+    user_priors = None
+    if args.model == 'xsimgcl':
+        prior_path = Path('data/processed/user_priors.pt')
+        if prior_path.exists():
+            print(f"\nLoading User Priors from {prior_path}...")
+            priors = torch.load(prior_path, weights_only=False).to(device)
+            # Alignment: priors might have fewer users than GNN
+            if priors.shape[0] < n_users:
+                print(f"  Padding User Priors: {priors.shape[0]} -> {n_users}")
+                user_priors = torch.zeros((n_users, priors.shape[1]), device=device)
+                user_priors[:priors.shape[0]] = priors
+            else:
+                user_priors = priors
+            print(f"  Final Priors shape: {user_priors.shape}")
         else:
-            user_priors = priors
-        print(f"  Final Priors shape: {user_priors.shape}")
-        return user_priors
-    else:
-        print(f"\n  Warning: User Priors not found at {prior_path}. Running without priors.")
-        return None
-
-
-def _load_reranker(args):
-    """Load Re-ranker if requested."""
-    if args.rerank == 'none':
-        return None
-    print("\nInitializing Re-ranker...")
-    with open('data/processed/lightgcl_data.pkl', 'rb') as f:
-        idx_data = pickle.load(f)
-        idx2item = idx_data['idx2item']
+            print(f"\n  Warning: User Priors not found at {prior_path}. Running without priors.")
+            
+    # Load Re-ranker if requested
+    re_ranker = None
+    if args.rerank != 'none':
+        print("\nInitializing Re-ranker...")
+        # Get idx2item from pkl
+        with open('data/processed/lightgcl_data.pkl', 'rb') as f:
+            idx_data = pickle.load(f)
+            idx2item = idx_data['idx2item']
+        
+        categories, n_cats = load_item_categories(idx2item)
+        re_ranker = CalibratedReRanker(categories, alpha=0.5, lambda_mmr=0.5)
+        print(f"  Loaded {n_cats} categories for {len(categories)} items.")
     
-    categories, n_cats = load_item_categories(idx2item)
-    re_ranker = CalibratedReRanker(categories, alpha=0.5, lambda_mmr=0.5)
-    print(f"  Loaded {n_cats} categories for {len(categories)} items.")
-    return re_ranker
 
 
-def _build_model(args, n_users, n_items, data, device, pretrained_emb, semantic_ids, user_priors):
-    """Instantiate the chosen model and inject pretrained embeddings."""
-    if args.model == 'lightgcl':
+    elif args.model == 'lightgcl':
         model = LightGCLWrapper(n_users, n_items, embed_dim=args.hidden_dim, n_layers=args.n_layers, 
                                 device=args.device, svd_q=args.svd_q, ssl_weight=args.ssl_weight, temp=args.temp)
-        model.setup(data['train_pairs'], data.get('augmented_pairs', None))
+        model.setup(data['train_pairs'], data.get('augmented_pairs', None)) # Computes SVD
+        
         if pretrained_emb is not None:
+            # For LightGCL, items are initialized in self.model.E_i_0
             model.model.E_i_0.data.copy_(pretrained_emb)
             print("  Transferred embeddings to LightGCL (E_i_0)")
             
     elif args.model == 'lightgcn':
+        # LightGCN (No SSL overhead)
+        from src.models import LightGCN
         model = LightGCN(n_users, n_items, embedding_dim=args.hidden_dim, n_layers=args.n_layers, 
                          dropout=args.dropout).to(device)
+        
         if pretrained_emb is not None:
              model.item_embedding.weight.data.copy_(pretrained_emb)
              print("  Transferred embeddings to LightGCN")
@@ -1668,11 +1604,18 @@ def _build_model(args, n_users, n_items, data, device, pretrained_emb, semantic_
              model.item_embedding.weight.data.copy_(pretrained_emb)
              print("  Transferred embeddings to BIGCF")
 
+
+
     elif args.model == 'ma-hcl':
+        from src.models.ma_hcl import MAHCL
         model = MAHCL(
-            n_users=n_users, n_items=n_items,
-            embedding_dim=args.hidden_dim, n_layers=args.n_layers,
-            ssl_weight=args.ssl_weight, eps=args.eps, temp=args.temp,
+            n_users=n_users,
+            n_items=n_items,
+            embedding_dim=args.hidden_dim,
+            n_layers=args.n_layers,
+            ssl_weight=args.ssl_weight,
+            eps=args.eps,
+            temp=args.temp,
             n_categories=data.get('n_categories', 0)
         ).to(device)
         if pretrained_emb is not None:
@@ -1706,24 +1649,37 @@ def _build_model(args, n_users, n_items, data, device, pretrained_emb, semantic_
         if pretrained_emb is not None:
              model.item_embedding.weight.data.copy_(pretrained_emb)
              print("  Transferred embeddings to XSimGCL")
-
+             
+    # Add other models as needed...
     else:
-        # Default: SimGCL
+        # Combined logic for models with standard item_embedding
         if args.model == 'simgcl':
             model = SimGCL(n_users, n_items, embedding_dim=args.hidden_dim, n_layers=args.n_layers).to(device)
         
+        # Inject embeddings
         if pretrained_emb is not None:
             model.item_embedding.weight.data.copy_(pretrained_emb)
             print(f"  Transferred embeddings to {args.model.upper()}")
+
+    # Ensure model is on the correct device if not handled internally (e.g., LightGCL)
+    if args.model != 'lightgcl':
+        model = model.to(device)
     
-    return model
+    print(f"Parameters: {sum(p.numel() for p in model.parameters()):,}")
+    
+    # Train
+    if hasattr(model, 'forward') and pretrained_emb is not None:
+        model.item_content = pretrained_emb # Attach for evaluate
+        
+    # Run training
+    best_metrics = train_model(model, data, args, device, item_content=pretrained_emb, 
+                               semantic_ids=semantic_ids, user_priors=user_priors, 
+                               re_ranker=re_ranker, cold_users=cold_users)
 
-
-def _save_and_print_results(args, model, n_users, n_items, best_metrics):
-    """Save model checkpoint and print final metrics."""
     p = Path(args.data_path)
-    if p.parent.name in ["strict_g1", "strict_g2", "strict_g3", "strict_g4", "strict_g5", 
-                         "strict_g6", "strict_g7", "strict_g8", "regular_g2", "enhanced_v1", "enhanced_v2"]:
+    # Priority: If graph is in a variant folder (strict_g2, etc.), use that folder name
+    # Otherwise fallback to the filename stem
+    if p.parent.name in ["strict_g1", "strict_g2", "strict_g3", "regular_g2", "enhanced_v1", "enhanced_v2"]:
         graph_name = p.parent.name
     else:
         graph_name = p.stem
@@ -1731,6 +1687,7 @@ def _save_and_print_results(args, model, n_users, n_items, best_metrics):
     timestamp = datetime.now().strftime("%m%d_%H%M")
     save_path = f"models/{args.model}_{graph_name}_{timestamp}.pt"
     
+    # Ensure directory exists
     Path("models").mkdir(parents=True, exist_ok=True)
     
     torch.save({
@@ -1746,6 +1703,7 @@ def _save_and_print_results(args, model, n_users, n_items, best_metrics):
     metrics_to_print = ['recall', 'ndcg', 'precision', 'f1', 'hitrate', 'map']
     k_list = [1, 5, 10, 50]
     
+    # Print header
     header = f"{'Metric':<12} | " + " | ".join([f"K={k:<8}" for k in k_list])
     print(header)
     print("-" * len(header))
@@ -1763,15 +1721,18 @@ def _save_and_print_results(args, model, n_users, n_items, best_metrics):
     if 'entropy' in best_metrics:
         print(f"Entropy: {best_metrics['entropy']:.6f}")
     
+    # Save results json if requested
     if args.save_results:
         import json
         
+        # Ensure results go to results/ folder
         results_path = Path(args.save_results)
         if not results_path.parent.exists() or results_path.parent == Path('.'):
             results_dir = Path('results')
             results_dir.mkdir(exist_ok=True)
             results_path = results_dir / results_path.name
         
+        # Helper to serializable
         def convert(o):
             if isinstance(o, np.float32): return float(o)
             return o
