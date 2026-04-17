@@ -455,10 +455,10 @@ def load_data(data_path, min_interactions=2, split_strategy='random'):
     print(f"Processing data from raw CSVs (Strategy: {split_strategy})...")
     raw_replies = None
     reply_candidates = [
-        Path('data/raw/replies.csv'),
         Path(data_path) / 'replies.csv',
-        Path(data_path).parent / 'raw' / 'replies.csv',
+        # [FIX] Thêm đường dẫn chính xác của Kaggle Dataset v2
         Path('/kaggle/input/vnexpress-data-v2/replies.csv'),
+        Path('data/raw/replies.csv'),
     ]
 
     for candidate in reply_candidates:
@@ -680,6 +680,7 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
 
     # Common locations to search
     search_dirs = [
+        '/kaggle/input/vnexpress-data-v2',
         'checkpoints', 
         'data/raw', 
         'data',
@@ -1062,8 +1063,22 @@ def evaluate(model, test_dict, train_dict, n_items, edge_index, k_list=[1, 5, 10
 
 
 
-def load_item_categories(idx2item, csv_path='data/raw/articles.csv'):
-    """Map item indices to their categories."""
+# Khoảng dòng 590
+def load_item_categories(idx2item, csv_path=None):
+    if csv_path is None or not Path(csv_path).exists():
+        # Fallback tự động tìm trên Kaggle
+        potential_paths = [
+            '/kaggle/input/vnexpress-data-v2/articles.csv',
+            'data/raw/articles.csv'
+        ]
+        for p in potential_paths:
+            if Path(p).exists():
+                csv_path = p
+                break
+    
+    if csv_path is None:
+        raise FileNotFoundError("Không tìm thấy articles.csv để load categories.")
+        
     df = pd.read_csv(csv_path)
     url_to_cat = dict(zip(df['url'], df['source_category']))
     unique_cats = sorted(df['source_category'].unique().tolist())
@@ -1382,81 +1397,41 @@ def main():
     print(f"Data Path: {args.data_path}")
     print("=" * 60)
     
-    # Switch data path based on graph type
-    if args.graph_type == 'hetero':
-        base_path = Path(args.data_path)
-        hetero_path = None
-        hetero_candidates = [
-            base_path / 'full_hetero_graph.pt',
-            base_path / 'all_graphs' / 'full_hetero_graph.pt',
-        ]
-
-        for candidate in hetero_candidates:
-            if candidate.exists():
-                hetero_path = candidate
-                break
-
-        if hetero_path is None:
-            kaggle_input_root = Path('/kaggle/input')
-            if kaggle_input_root.exists():
-                matches = list(kaggle_input_root.rglob('full_hetero_graph.pt'))
-                preferred = [m for m in matches if m.parent.name == base_path.name]
-                if preferred:
-                    hetero_path = preferred[0]
-                elif matches:
-                    hetero_path = matches[0]
-
-        if hetero_path is not None:
-            print(f"  Loading Heterogeneous Graph from: {hetero_path}")
-            data = load_data(str(hetero_path), split_strategy=args.split_strategy)
-        else:
-            print("  Warning: full_hetero_graph.pt not found. Falling back to default bipartite graph.")
-            data = load_data(args.data_path, split_strategy=args.split_strategy)
-    elif args.graph_type == 'category':
-        cat_path = Path(args.data_path) / 'all_graphs' / 'category_graph.pt'
-        if not cat_path.exists():
-             cat_path = Path(args.data_path) / 'category_graph.pt'
-             
-        if cat_path.exists():
-            print(f"  Loading Category-Augmented Graph from: {cat_path}")
-            data = load_data(str(cat_path), split_strategy=args.split_strategy)
-        else:
-            print(f"  Warning: {cat_path} not found. Falling back.")
-            data = load_data(args.data_path, split_strategy=args.split_strategy)
-
-    elif args.graph_type == 'article':
-        # Load full hetero graph as base to ensure consistent dimensions
-        hetero_path = Path(args.data_path) / 'all_graphs' / 'full_hetero_graph.pt'
-        if hetero_path.exists():
-            print(f"  Loading Full Base Graph from: {hetero_path}")
-            data = load_data(args.data_path, split_strategy=args.split_strategy)
-            
-            # REMOVE Social Edges to ensure purely Article-Augmented experiment
-            if isinstance(data, dict):
-                 if 'edge_index_dict' in data and ('user', 'replied_to', 'user') in data['edge_index_dict']:
-                     print("  Removing Social Edges for Article-Augmented experiment...")
-                     del data['edge_index_dict'][('user', 'replied_to', 'user')]
-            elif hasattr(data, 'edge_index_dict'):
-                 # PyG HeteroData
-                 if ('user', 'replied_to', 'user') in data.edge_types:
-                     print("  Removing Social Edges for Article-Augmented experiment...")
-                     del data['user', 'replied_to', 'user']
-
-        else:
-             print("Full graph not found, falling back (might fail dimensions)")
-             data = load_data(args.data_path, split_strategy=args.split_strategy)
-        
-        # Load auxiliary Article-Article graph
-        article_path = Path(args.data_path) / 'all_graphs' / 'article_article_graph_users.pt'
-        if article_path.exists():
-            print(f"  Loading Article-Article Edges from: {article_path}")
-            article_data = torch.load(article_path, weights_only=False)
-            data['article_edge_index'] = article_data.edge_index
-        else:
-            print(f"  Warning: {article_path} not found. Using Bipartite only.")
+    base_path = Path(args.data_path)
+    graph_type_map = {
+        'bipartite': 'strict_g1',
+        'hetero': 'strict_g2',
+        'category': 'strict_g3'
+    }
+    
+    # Nếu đường dẫn chưa trỏ vào strict_gX, tự động thêm vào
+    if base_path.name not in graph_type_map.values():
+        target_subdir = graph_type_map.get(args.graph_type, 'strict_g1')
+        actual_data_path = base_path / target_subdir
     else:
-        # Load data (default bipartite)
-        data = load_data(args.data_path, split_strategy=args.split_strategy)
+        actual_data_path = base_path
+
+    print(f"  Target Path: {actual_data_path}")
+
+    # Cập nhật logic load file cụ thể cho từng loại
+    if args.graph_type == 'hetero':
+        hetero_file = actual_data_path / 'full_hetero_graph.pt'
+        if hetero_file.exists():
+            data = load_data(str(hetero_file), split_strategy=args.split_strategy)
+        else:
+            raise FileNotFoundError(f"Không tìm thấy file Hetero tại: {hetero_file}")
+            
+    elif args.graph_type == 'category':
+        cat_file = actual_data_path / 'category_graph.pt'
+        if cat_file.exists():
+            data = load_data(str(cat_file), split_strategy=args.split_strategy)
+        else:
+            raise FileNotFoundError(f"Không tìm thấy file Category tại: {cat_file}")
+    else:
+        # Mặc định cho bipartite (G1)
+        g1_file = actual_data_path / 'user_article_graph.pt'
+        data = load_data(str(g1_file if g1_file.exists() else actual_data_path), 
+                        split_strategy=args.split_strategy)
     n_users, n_items = data['n_users'], data['n_items']
     
     print(f"Users: {n_users}, Items: {n_items}")
