@@ -926,7 +926,7 @@ def load_pretrained_embeddings(embedding_type, n_items, target_dim, device='cpu'
     return None
 
 
-def evaluate(model, test_dict, train_dict, n_items, edge_index, k_list=[1, 5, 10, 50], device='cpu', adj_norm=None, 
+def evaluate(model, test_dict, train_dict, n_items, edge_index, k_list=[5, 10, 20, 40], device='cpu', adj_norm=None, 
              re_ranker=None, rerank_strategy='none', eval_protocol='full', cold_users=None, edge_index_dict=None):
     """
     Evaluate model with multiple protocols.
@@ -1676,7 +1676,7 @@ def main():
     print(f"\nModel saved: {save_path}")
     print(f"\nBest Metrics (Final Evaluation):")
     metrics_to_print = ['recall', 'ndcg', 'precision', 'f1', 'hitrate', 'map']
-    k_list = [1, 5, 10, 50]
+    k_list = [5, 10, 20, 40]
     
     # Print header
     header = f"{'Metric':<12} | " + " | ".join([f"K={k:<8}" for k in k_list])
