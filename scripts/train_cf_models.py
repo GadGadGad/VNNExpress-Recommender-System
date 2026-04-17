@@ -1016,13 +1016,13 @@ def evaluate(model, test_dict, train_dict, n_items, edge_index, k_list=[5, 10, 2
         else:
             topk_list = topk_candidates[:max_k]
         
-        # MRR
-        mrr = 0.0
-        for i, item in enumerate(topk_list):
-            if item in test_items:
-                mrr = 1.0 / (i + 1)
-                break
-        results['mrr'].append(mrr)
+        # # MRR
+        # mrr = 0.0
+        # for i, item in enumerate(topk_list):
+        #     if item in test_items:
+        #         mrr = 1.0 / (i + 1)
+        #         break
+        # results['mrr'].append(mrr)
         
         # Metrics at each k
         for k in k_list:
