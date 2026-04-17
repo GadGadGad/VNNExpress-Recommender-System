@@ -962,8 +962,7 @@ def evaluate(model, test_dict, train_dict, n_items, edge_index, k_list=[5, 10, 2
             item_emb = model.item_embedding.weight
     
     max_k = max(k_list)
-    results = {f'{metric}@{k}': [] for metric in ['recall', 'ndcg', 'hitrate', 'precision', 'map', 'f1'] for k in k_list}
-    results['mrr'] = []
+    results = {f'{metric}@{k}': [] for metric in ['recall', 'ndcg', 'hitrate', 'precision', 'map', 'f1', 'mrr'] for k in k_list}
     
     # Choose which users to evaluate based on protocol
     if eval_protocol == 'cold' and cold_users is not None:
@@ -1054,6 +1053,13 @@ def evaluate(model, test_dict, train_dict, n_items, edge_index, k_list=[5, 10, 2
                     ap += n_hits / (i + 1)
             ap = ap / min(k, len(test_items)) if len(test_items) > 0 else 0
             results[f'map@{k}'].append(ap)
+            
+            mrr_k = 0.0
+            for i, item in enumerate(topk_list[:k]):
+                if item in test_items:
+                    mrr_k = 1.0 / (i + 1)
+                    break
+            results[f'mrr@{k}'].append(mrr_k)
         
         if re_ranker is not None:
              ent = compute_entropy(topk_list, re_ranker.item_categories, re_ranker.n_categories)
@@ -1675,7 +1681,7 @@ def main():
 
     print(f"\nModel saved: {save_path}")
     print(f"\nBest Metrics (Final Evaluation):")
-    metrics_to_print = ['recall', 'ndcg', 'precision', 'f1', 'hitrate', 'map']
+    metrics_to_print = ['recall', 'ndcg', 'mrr', 'precision', 'f1', 'hitrate', 'map']
     k_list = [5, 10, 20, 40]
     
     # Print header
@@ -1692,7 +1698,6 @@ def main():
         print(row + " | ".join(values))
     
     print("-" * len(header))
-    print(f"MRR: {best_metrics.get('mrr', 0):.6f}")
     if 'entropy' in best_metrics:
         print(f"Entropy: {best_metrics['entropy']:.6f}")
     
